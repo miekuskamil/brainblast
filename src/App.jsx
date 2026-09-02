@@ -209,6 +209,35 @@ export default function App() {
     else el.removeAttribute('data-dyslexia');
   }, [state.settings.dyslexia]);
 
+  // Installed as a standalone app (or even a plain browser tab), the OS/
+  // browser back gesture maps to the browser's own history.back(). Every
+  // screen change here was pure React state with no history entry behind
+  // it, so there was nothing to "go back" to — the very first swipe/back
+  // press exited the app instead of returning to the previous screen. This
+  // mirrors every screen's own on-screen back arrow into a real history
+  // entry, so the gesture now walks back through screens exactly like a
+  // native app, and only exits once it reaches the entry the app opened on.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history) return undefined;
+    window.history.replaceState({ screen }, '');
+    function onPopState(e) {
+      const target = e.state && e.state.screen;
+      if (target) setScreen(target);
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // Only ever wired up once — see the effect below for per-navigation pushes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history) return;
+    // A popstate-driven update already matches the history entry it landed
+    // on — pushing again here would duplicate it and eat the next swipe.
+    if (window.history.state && window.history.state.screen === screen) return;
+    window.history.pushState({ screen }, '');
+  }, [screen]);
+
   /** Backup asks for the current save; it owns how that reaches the user. */
   function exportProgress() {
     return loadSlot(getActiveSlot());
