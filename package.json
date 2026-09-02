@@ -1,0 +1,30 @@
+{
+  "name": "brainblast",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "bundle": "node scripts/build-single.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vitejs/plugin-react": "^6.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "type": "module",
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}

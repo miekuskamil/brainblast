@@ -1,0 +1,473 @@
+<title>Difficulty Tiers</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #f6f3ec;
+    --surface: #ffffff;
+    --surface-2: #efe9dd;
+    --ink: #211d17;
+    --ink-soft: #4d473c;
+    --muted: #85796a;
+    --line: #ddd4c2;
+    --accent: #2c6e5c;
+    --accent-ink: #ffffff;
+    --accent-soft: #dfe9e0;
+    --easy: #3f8a5c;
+    --easy-soft: #e0efe3;
+    --standard: #b3811f;
+    --standard-soft: #f3e7cd;
+    --hard: #b04a34;
+    --hard-soft: #f5e0d8;
+    --code-bg: #211d17;
+    --code-ink: #efe6d3;
+    --shadow: 0 1px 2px rgba(33,29,23,.06), 0 8px 24px -12px rgba(33,29,23,.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1913;
+      --surface: #242019;
+      --surface-2: #2c281f;
+      --ink: #f1ead9;
+      --ink-soft: #d3c9b4;
+      --muted: #9a8f7b;
+      --line: #3a3529;
+      --accent: #6fbd9f;
+      --accent-ink: #14231d;
+      --accent-soft: #24352c;
+      --easy: #6fbd8b;
+      --easy-soft: #223327;
+      --standard: #e0b45c;
+      --standard-soft: #3a3020;
+      --hard: #e2795d;
+      --hard-soft: #3a2620;
+      --code-bg: #14120d;
+      --code-ink: #eee4cf;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1913;
+    --surface: #242019;
+    --surface-2: #2c281f;
+    --ink: #f1ead9;
+    --ink-soft: #d3c9b4;
+    --muted: #9a8f7b;
+    --line: #3a3529;
+    --accent: #6fbd9f;
+    --accent-ink: #14231d;
+    --accent-soft: #24352c;
+    --easy: #6fbd8b;
+    --easy-soft: #223327;
+    --standard: #e0b45c;
+    --standard-soft: #3a3020;
+    --hard: #e2795d;
+    --hard-soft: #3a2620;
+    --code-bg: #14120d;
+    --code-ink: #eee4cf;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 64px 24px 96px; }
+
+  header.hero { margin-bottom: 56px; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 22px; height: 1px;
+    background: var(--accent);
+    display: inline-block;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2.1rem, 4vw, 2.9rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin: 14px 0 16px;
+    text-wrap: balance;
+  }
+  .dek {
+    font-size: 1.08rem;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    text-wrap: balance;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 26px;
+  }
+  .pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 5px 11px;
+    border-radius: 100px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  .pill.good { color: var(--easy); border-color: color-mix(in srgb, var(--easy) 40%, var(--line)); background: var(--easy-soft); }
+
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+  }
+  .section { margin-top: 68px; }
+  .section-sub { color: var(--muted); font-size: .96rem; max-width: 60ch; margin-bottom: 28px; }
+
+  p { max-width: 68ch; }
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .88em;
+    background: var(--surface-2);
+    padding: .12em .4em;
+    border-radius: 4px;
+    color: var(--ink-soft);
+  }
+
+  /* ── diagram ───────────────────────────────────────────── */
+  .diagram-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+  }
+  .diagram-panel svg { display: block; min-width: 720px; width: 100%; height: auto; }
+  .diagram-caption {
+    margin-top: 16px;
+    font-size: .88rem;
+    color: var(--muted);
+  }
+
+  /* ── phase timeline ────────────────────────────────────── */
+  .timeline { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+  .phase {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 4px 22px;
+    padding: 30px 0;
+    border-top: 1px solid var(--line);
+  }
+  .phase:first-child { border-top: none; padding-top: 4px; }
+  .phase-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    color: var(--accent);
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .phase-body { min-width: 0; }
+  .phase-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.22rem;
+    margin: 0 0 6px;
+  }
+  .phase-status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--easy);
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .phase ul { margin: 12px 0 0; padding-left: 20px; }
+  .phase li { margin-bottom: 7px; max-width: 62ch; color: var(--ink-soft); }
+  .phase li b, .phase li strong { color: var(--ink); font-weight: 600; }
+  .phase .brainstorm {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    font-size: .92rem;
+    color: var(--ink-soft);
+  }
+  .phase .brainstorm b { color: var(--ink); }
+
+  /* ── tier swatches ─────────────────────────────────────── */
+  .tier-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 22px 0 8px; }
+  .tier-card {
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+  }
+  .tier-card.easy { background: var(--easy-soft); border-color: color-mix(in srgb, var(--easy) 35%, var(--line)); }
+  .tier-card.standard { background: var(--standard-soft); border-color: color-mix(in srgb, var(--standard) 35%, var(--line)); }
+  .tier-card.hard { background: var(--hard-soft); border-color: color-mix(in srgb, var(--hard) 35%, var(--line)); }
+  .tier-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+  .tier-card.easy .tier-label { color: var(--easy); }
+  .tier-card.standard .tier-label { color: var(--standard); }
+  .tier-card.hard .tier-label { color: var(--hard); }
+  .tier-example { font-family: 'IBM Plex Mono', monospace; font-size: .82rem; margin-top: 8px; color: var(--ink-soft); }
+
+  /* ── code block ────────────────────────────────────────── */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 12px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: .84rem;
+    line-height: 1.65;
+    box-shadow: var(--shadow);
+  }
+  pre .c { color: #9a8f7b; }
+  pre .k { color: #e0b45c; }
+  pre .s { color: #8fc9a8; }
+
+  /* ── coverage table ────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: 8px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  th { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .86rem;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .tier-row { grid-template-columns: 1fr; }
+    .phase { grid-template-columns: 40px 1fr; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Brain Blast · Engine</div>
+    <h1>Within-topic difficulty tiers</h1>
+    <p class="dek">Every procedural maths generator can now ease off or push harder inside the <em>same</em> topic, driven by rolling accuracy — instead of a fixed spread of numbers that never noticed whether a child was struggling or bored.</p>
+    <div class="meta-row">
+      <span class="pill good">150 / 150 tests passing</span>
+      <span class="pill">~70 question styles tiered</span>
+      <span class="pill">0 regressions in STANDARD tier</span>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>How a tier gets chosen</h2>
+    <p class="section-sub">One rule, one place it lives — every call site asks the same function rather than re-deriving a threshold.</p>
+    <div class="diagram-panel">
+      <svg viewBox="0 0 1180 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pipeline diagram: mastery state flows through tierFromMastery into buildRound, which calls topic.generate with a tier, which calls byTier inside a style to pick a numeric range, producing a question.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+        <style>
+          .node-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.4; }
+          .node-box.accent { stroke: var(--accent); stroke-width: 1.8; }
+          .node-title { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; fill: var(--ink); }
+          .node-sub { font-family: 'IBM Plex Sans', sans-serif; font-size: 11.5px; fill: var(--muted); }
+          .flow-line { stroke: var(--muted); stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+          .flow-label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; fill: var(--muted); }
+        </style>
+
+        <!-- 1: mastery -->
+        <rect x="10" y="90" width="170" height="90" rx="10" class="node-box"/>
+        <text x="30" y="122" class="node-title">masteryState</text>
+        <text x="30" y="140" class="node-sub">rolling accuracy</text>
+        <text x="30" y="156" class="node-sub">per topic key</text>
+
+        <path class="flow-line" d="M180,135 H228"/>
+
+        <!-- 2: tierFromMastery -->
+        <rect x="230" y="80" width="190" height="110" rx="10" class="node-box accent"/>
+        <text x="250" y="112" class="node-title">tierFromMastery()</text>
+        <text x="250" y="131" class="node-sub">LEARNING → EASY</text>
+        <text x="250" y="147" class="node-sub">PRACTISING → STANDARD</text>
+        <text x="250" y="163" class="node-sub">SECURE → HARD</text>
+
+        <path class="flow-line" d="M420,135 H468"/>
+
+        <!-- 3: buildRound -->
+        <rect x="470" y="90" width="180" height="90" rx="10" class="node-box"/>
+        <text x="490" y="122" class="node-title">session.buildRound</text>
+        <text x="490" y="140" class="node-sub">picks the topic</text>
+        <text x="490" y="156" class="node-sub">for this question</text>
+
+        <path class="flow-line" d="M650,135 H698"/>
+        <text x="655" y="122" class="flow-label">tier</text>
+
+        <!-- 4: topic.generate -->
+        <rect x="700" y="90" width="200" height="90" rx="10" class="node-box"/>
+        <text x="720" y="122" class="node-title">topic.generate(rng,</text>
+        <text x="720" y="138" class="node-title">  styleId, tier)</text>
+        <text x="720" y="158" class="node-sub">picks the style</text>
+
+        <path class="flow-line" d="M900,135 H948"/>
+
+        <!-- 5: byTier -->
+        <rect x="950" y="20" width="220" height="90" rx="10" class="node-box accent"/>
+        <text x="970" y="52" class="node-title">byTier(tier,</text>
+        <text x="970" y="68" class="node-title">  easy, std, hard)</text>
+        <text x="970" y="88" class="node-sub">picks the range</text>
+
+        <path class="flow-line" d="M1060,110 V150"/>
+
+        <!-- 6: question -->
+        <rect x="950" y="152" width="220" height="118" rx="10" class="node-box"/>
+        <text x="970" y="184" class="node-title">question</text>
+        <text x="970" y="203" class="node-sub">prompt · answer</text>
+        <text x="970" y="219" class="node-sub">hint · explain</text>
+        <text x="970" y="235" class="node-sub">visual (matched to</text>
+        <text x="970" y="251" class="node-sub">the same numbers)</text>
+
+        <!-- guarantee note -->
+        <path class="flow-line" d="M560,180 V226 H1060 V232" style="stroke-dasharray:3,4"/>
+        <text x="565" y="242" class="flow-label">STANDARD tier ≡ pre-tiering behaviour, byte for byte</text>
+      </svg>
+    </div>
+    <p class="diagram-caption">Reading left to right: a topic's recent accuracy decides a tier once per question, that tier rides through <code>generate()</code> down to whichever style builds the question, and each style's own <code>byTier()</code> call is the only place a range actually changes.</p>
+  </section>
+
+  <section class="section">
+    <h2>The three tiers</h2>
+    <p class="section-sub">Same question shape, same correct formula — only the magnitude of the random inputs moves.</p>
+    <div class="tier-row">
+      <div class="tier-card easy">
+        <span class="tier-label">Easy · Learning</span>
+        <div class="tier-example">"Find 10% of 120."</div>
+      </div>
+      <div class="tier-card standard">
+        <span class="tier-label">Standard · Practising</span>
+        <div class="tier-example">"Find 15% of 260."</div>
+      </div>
+      <div class="tier-card hard">
+        <span class="tier-label">Hard · Secure</span>
+        <div class="tier-example">"Find 65% of 1,080."</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>How it shipped</h2>
+    <p class="section-sub">Four phases, each verified against the full test suite before moving on — the standing rule for this codebase after the correctness audit that preceded this work.</p>
+
+    <div class="timeline">
+      <div class="phase">
+        <div class="phase-num">01</div>
+        <div class="phase-body">
+          <span class="phase-status">Shipped</span>
+          <h3 class="phase-title">Infrastructure</h3>
+          <ul>
+            <li><code>src/engine/difficulty.js</code> — <code>TIER</code>, <code>tierFromMastery()</code>, <code>byTier()</code>. One mapping from mastery status to tier, reusing <code>statusOf()</code> rather than re-deriving accuracy thresholds.</li>
+            <li><code>topic.js</code>'s <code>makeTopic()</code> now calls <code>style.build(rng, tier)</code> instead of <code>style.build(rng)</code>, defaulting to STANDARD.</li>
+            <li><code>index.js</code>'s <code>generate()</code> and <code>session.js</code>'s <code>buildRound()</code> thread a tier through, computed from the mastery of whichever topic is actually pinned.</li>
+          </ul>
+          <div class="brainstorm"><b>Weighed and rejected:</b> a per-question difficulty slider in the UI. Rejected — the app already has one lever (accuracy) that means the same thing to a child as it does to the engine; a second, manual one would just be more to configure for no teaching benefit.</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">02</div>
+        <div class="phase-body">
+          <span class="phase-status">Shipped</span>
+          <h3 class="phase-title">The six hand-rolled maths topics</h3>
+          <ul>
+            <li>Place value, factors, percentages, algebra, measure, angles — the oldest generators in the app, each an internal <code>rng.int(0,N)</code> switch rather than the newer style-list shape.</li>
+            <li>Every numeric range rewritten as <code>byTier(tier, easy, standard, hard)</code>, with <code>standard</code> pinned to the exact original bounds.</li>
+            <li>One correctness rule enforced throughout: <b>never</b> pass an <code>rng.int()</code> call as a <code>byTier</code> argument — <code>byTier</code>'s arguments evaluate eagerly, so a live-called argument would silently consume randomness even on the branch not taken, desyncing every seeded test.</li>
+          </ul>
+          <div class="brainstorm"><b>Brainstormed per style:</b> for the angle-classification style, HARD weights toward the obtuse/reflex boundary — the genuinely harder judgement call — rather than just picking bigger numbers, which would have made no conceptual difference to that particular question.</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">03</div>
+        <div class="phase-body">
+          <span class="phase-status">Shipped</span>
+          <h3 class="phase-title">The 16 style-list topics</h3>
+          <ul>
+            <li>8 topics in <code>topics-varied.js</code> (order of operations, negatives, time &amp; speed, averages, ratio, fractions, decimals, multi-step problems) and 8 multi-step challenges in <code>challenges.js</code> — around 55 more question styles.</li>
+            <li>Challenges got the most conservative tiering of all three phases: several back-compute one value from the others specifically to guarantee a clean division (no stray pennies), so ranges were widened without disturbing that structure, verified by hand against the guard clauses already in the file.</li>
+          </ul>
+          <div class="brainstorm"><b>Brainstormed:</b> whether HARD-tier bar-model visuals (one segment drawn per unit) could render an unreadable wall of segments — the exact bug class caught in the prior correctness audit. Kept every HARD range for a per-unit visual under the same ceiling already used elsewhere in the codebase.</div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">04</div>
+        <div class="phase-body">
+          <span class="phase-status">Shipped</span>
+          <h3 class="phase-title">Verify, test, ship</h3>
+          <ul>
+            <li>3,600 generated questions across every topic × style × tier, zero crashes, zero malformed questions.</li>
+            <li><code>tests/difficulty.test.js</code> added: tier-from-mastery mapping, a magnitude check (HARD &gt; EASY on average), and a full sweep confirming every topic still produces a valid question at every tier.</li>
+            <li>Full suite run after every phase — 150/150 passing, up from 141 before this work (9 new tests, 0 removed).</li>
+          </ul>
+          <div class="brainstorm"><b>Found along the way:</b> a real, pre-existing bug unrelated to tiering — a round pinned to a topic with no declared <code>styleIds</code> (all six Phase 02 topics, plus every book-style <code>me1</code>–<code>me16</code> bank) silently ignored the pin and served random-subject questions instead. Fixed in <code>session.js</code>, covered by a regression test, since it sat directly in the code this work was already touching.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>The one invariant that made this safe</h2>
+    <p class="section-sub">Every <code>byTier</code> call in the codebase follows this exact shape. The middle argument is never touched.</p>
+    <pre><span class="c">// easy · standard · hard — standard is the ORIGINAL range, unchanged</span>
+<span class="k">const</span> [lo, hi] = byTier(tier, [<span class="s">5, 10, 20, 25, 50</span>], [<span class="s">5, 10, 15, 20, 25, 30, 40, 50, 60, 75</span>], [<span class="s">55, 65, 70, 80, 85, 90, 95</span>]);
+<span class="k">const</span> pct = rng.pick(pctPool);
+
+<span class="c">// NEVER: rng.int()/rng.pick() as a byTier argument — evaluated eagerly,</span>
+<span class="c">// consumes randomness on the branch not taken, desyncs every seeded test.</span></pre>
+  </section>
+
+  <section class="section">
+    <h2>Coverage</h2>
+    <table>
+      <thead><tr><th>File</th><th>Topics</th><th>Styles tiered</th><th>Approach</th></tr></thead>
+      <tbody>
+        <tr><td>maths.js</td><td class="num">6</td><td class="num">21</td><td>Hand-rolled range rewrite</td></tr>
+        <tr><td>topics-varied.js</td><td class="num">8</td><td class="num">39</td><td>Style-list <code>build(rng, tier)</code></td></tr>
+        <tr><td>challenges.js</td><td class="num">1</td><td class="num">8</td><td>Conservative, guard-preserving</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <span>Brain Blast — internal engine documentation</span>
+    <span>150 tests · 0 known regressions</span>
+  </footer>
+
+</div>
