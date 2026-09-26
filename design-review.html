@@ -1,0 +1,501 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<title>Brain Blast Design Review</title>
+<style>
+  :root {
+    --paper:#eef0f4; --surface:#ffffff; --surface-2:#f6f7fb;
+    --line:#dde1ea; --line-2:#c7ccda;
+    --ink:#14161d; --ink-2:#484d5f; --ink-3:#787f92;
+    --accent:#4b40e0; --accent-soft:#ecebfc; --accent-ink:#ffffff;
+    --good:#10794e; --good-bg:#e3f3ea;
+    --warn:#a86608; --warn-bg:#fbf0da;
+    --crit:#bd3a33; --crit-bg:#fbe6e4;
+    --amber:#c9780f;
+    --shadow:0 1px 2px rgba(20,22,29,.05), 0 8px 28px rgba(20,22,29,.06);
+    --maxw:70ch;
+    --serif:'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0f1118; --surface:#171a23; --surface-2:#1e222e;
+      --line:#282d3a; --line-2:#39404f;
+      --ink:#eef0f6; --ink-2:#b1b7c7; --ink-3:#7d8497;
+      --accent:#948cff; --accent-soft:#25254c; --accent-ink:#0f1118;
+      --good:#4fc98d; --good-bg:#15301f;
+      --warn:#e0a24a; --warn-bg:#322510;
+      --crit:#f0776d; --crit-bg:#331917;
+      --amber:#e5a24a;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 32px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0f1118; --surface:#171a23; --surface-2:#1e222e;
+    --line:#282d3a; --line-2:#39404f;
+    --ink:#eef0f6; --ink-2:#b1b7c7; --ink-3:#7d8497;
+    --accent:#948cff; --accent-soft:#25254c; --accent-ink:#0f1118;
+    --good:#4fc98d; --good-bg:#15301f;
+    --warn:#e0a24a; --warn-bg:#322510;
+    --crit:#f0776d; --crit-bg:#331917;
+    --amber:#e5a24a;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 32px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans); line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    font-size:16.5px;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 120px; }
+  .col { max-width:var(--maxw); }
+
+  /* ---- type ---- */
+  h1,h2,h3 { font-family:var(--serif); font-weight:600; text-wrap:balance; letter-spacing:-.01em; line-height:1.1; }
+  h1 { font-size:clamp(2.6rem,6vw,4rem); font-weight:600; font-optical-sizing:auto; }
+  h2 { font-size:clamp(1.7rem,3.4vw,2.3rem); margin:0 0 .2em; }
+  h3 { font-size:1.18rem; font-weight:600; letter-spacing:0; }
+  p { margin:0 0 1em; color:var(--ink-2); }
+  strong { color:var(--ink); font-weight:600; }
+  a { color:var(--accent); }
+  .eyebrow {
+    font-family:var(--mono); font-size:.72rem; font-weight:500;
+    letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3);
+  }
+  .lead { font-size:1.15rem; color:var(--ink-2); }
+
+  /* ---- masthead ---- */
+  header { padding:88px 0 40px; border-bottom:1px solid var(--line); margin-bottom:56px; }
+  .rule-row { display:flex; align-items:center; gap:14px; margin-bottom:30px; }
+  .rule-row .line { height:1px; background:var(--line-2); flex:1; }
+  .mark {
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--ink-2); white-space:nowrap;
+  }
+  header h1 { margin:0 0 .28em; }
+  .subtitle { font-family:var(--serif); font-style:italic; font-weight:400; color:var(--ink-2); font-size:1.35rem; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px 10px; margin-top:34px; }
+
+  /* ---- chips / pills ---- */
+  .chip {
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:.7rem; font-weight:500; letter-spacing:.06em;
+    padding:5px 10px; border-radius:999px; border:1px solid var(--line-2); color:var(--ink-2);
+    background:var(--surface); text-transform:uppercase; white-space:nowrap;
+  }
+  .chip .dot { width:7px; height:7px; border-radius:50%; background:var(--ink-3); }
+  .chip.good  { color:var(--good); border-color:color-mix(in srgb,var(--good) 35%, var(--line)); background:var(--good-bg); }
+  .chip.good .dot{ background:var(--good); }
+  .chip.warn  { color:var(--warn); border-color:color-mix(in srgb,var(--warn) 35%, var(--line)); background:var(--warn-bg); }
+  .chip.warn .dot{ background:var(--warn); }
+  .chip.crit  { color:var(--crit); border-color:color-mix(in srgb,var(--crit) 40%, var(--line)); background:var(--crit-bg); }
+  .chip.crit .dot{ background:var(--crit); }
+
+  section { margin-top:76px; }
+  .section-head { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; }
+  .section-head .no {
+    font-family:var(--mono); font-size:.8rem; color:var(--accent); font-weight:600;
+    letter-spacing:.05em; padding-top:.35em;
+  }
+
+  /* ---- scorecard ---- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(248px,1fr)); gap:14px; margin-top:34px; }
+  .card {
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:20px 20px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+  }
+  .card .k { font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+  .card h3 { font-size:1.14rem; }
+  .card p { font-size:.9rem; margin:0; color:var(--ink-2); line-height:1.5; }
+  .card .foot { margin-top:auto; }
+
+  /* ---- finding blocks ---- */
+  .finding {
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); margin-top:22px; overflow:hidden;
+  }
+  .finding > .top {
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:20px 24px; border-bottom:1px solid var(--line);
+  }
+  .finding > .top h3 { font-family:var(--serif); font-size:1.45rem; font-weight:600; }
+  .grid3 { display:grid; grid-template-columns:1fr; }
+  @media (min-width:720px){ .grid3 { grid-template-columns:1fr 1fr 1fr; } }
+  .cell { padding:20px 24px; border-top:1px solid var(--line); }
+  @media (min-width:720px){
+    .cell { border-top:none; border-left:1px solid var(--line); }
+    .cell:first-child { border-left:none; }
+  }
+  .cell .lbl {
+    font-family:var(--mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase;
+    margin-bottom:10px; display:flex; align-items:center; gap:7px;
+  }
+  .cell.now .lbl { color:var(--ink-3); }
+  .cell.gap .lbl { color:var(--crit); }
+  .cell.dir .lbl { color:var(--accent); }
+  .cell p { font-size:.9rem; line-height:1.55; margin:0; }
+  .cell p + p { margin-top:.7em; }
+  .cell code {
+    font-family:var(--mono); font-size:.82em; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:5px; padding:.05em .35em; color:var(--ink);
+  }
+
+  /* ---- progression ladder ---- */
+  .feature {
+    background:var(--surface); border:1px solid var(--line); border-radius:18px;
+    box-shadow:var(--shadow); padding:30px; margin-top:26px;
+  }
+  .ladder { display:grid; gap:12px; margin-top:8px; }
+  .rung {
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:18px;
+    padding:16px 18px; border-radius:12px; border:1px solid var(--line); background:var(--surface-2);
+    position:relative;
+  }
+  .rung .tier { font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); }
+  .rung h4 { font-family:var(--serif); font-size:1.1rem; font-weight:600; margin:0 0 2px; }
+  .rung p { margin:0; font-size:.85rem; color:var(--ink-2); }
+  .rung .gate {
+    font-family:var(--mono); font-size:.7rem; color:var(--accent); white-space:nowrap;
+    padding:4px 9px; border:1px dashed color-mix(in srgb,var(--accent) 45%, var(--line)); border-radius:999px;
+  }
+  .rung.r1 { border-left:3px solid var(--ink-3); }
+  .rung.r2 { border-left:3px solid var(--warn); }
+  .rung.r3 { border-left:3px solid var(--good); }
+  .rung.r4 { border-left:3px solid var(--accent); background:var(--accent-soft); }
+  .two-up { display:grid; gap:20px; }
+  @media (min-width:760px){ .two-up { grid-template-columns:1fr 1fr; } }
+  .panel { border:1px solid var(--line); border-radius:14px; padding:20px; background:var(--surface-2); }
+  .panel .k { font-family:var(--mono); font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); margin-bottom:10px; }
+  .panel.now-panel { }
+  .panel .flow { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:.85rem; }
+  .node { background:var(--surface); border:1px solid var(--line-2); border-radius:8px; padding:6px 11px; font-weight:500; color:var(--ink); }
+  .node.dim { color:var(--ink-3); border-style:dashed; }
+  .arw { color:var(--ink-3); font-family:var(--mono); }
+
+  /* ---- architecture stack ---- */
+  .stack { display:grid; gap:10px; margin-top:8px; }
+  .layer {
+    border:1px solid var(--line); border-radius:12px; padding:16px 20px; background:var(--surface-2);
+    display:grid; grid-template-columns:120px 1fr; gap:18px; align-items:center;
+  }
+  @media (max-width:560px){ .layer{ grid-template-columns:1fr; gap:6px; } }
+  .layer .name { font-family:var(--mono); font-size:.75rem; letter-spacing:.06em; color:var(--ink); font-weight:600; }
+  .layer .desc { font-size:.88rem; color:var(--ink-2); }
+  .layer.ui { border-left:3px solid var(--accent); }
+  .layer.eng { border-left:3px solid var(--good); }
+  .layer.cur { border-left:3px solid var(--warn); }
+  .dep { text-align:center; font-family:var(--mono); font-size:.7rem; color:var(--ink-3); }
+
+  /* ---- roadmap ---- */
+  .phase { margin-top:34px; }
+  .phase-head { display:flex; align-items:baseline; gap:14px; margin-bottom:4px; }
+  .phase-head .tag {
+    font-family:var(--mono); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--accent-ink); background:var(--accent); padding:4px 10px; border-radius:6px;
+  }
+  .phase-head h3 { font-family:var(--serif); font-size:1.35rem; }
+  .phase-head .sub { font-size:.85rem; color:var(--ink-3); }
+  ol.moves { list-style:none; counter-reset:m; margin:16px 0 0; padding:0; display:grid; gap:2px; }
+  ol.moves li {
+    counter-increment:m; display:grid; grid-template-columns:auto 1fr auto; gap:16px; align-items:baseline;
+    padding:15px 4px; border-top:1px solid var(--line);
+  }
+  ol.moves li::before {
+    content:counter(m,decimal-leading-zero); font-family:var(--mono); font-size:.8rem;
+    color:var(--ink-3); font-weight:500;
+  }
+  ol.moves .txt { color:var(--ink); font-size:.98rem; }
+  ol.moves .txt span { color:var(--ink-2); }
+  .effort {
+    font-family:var(--mono); font-size:.64rem; letter-spacing:.08em; text-transform:uppercase;
+    padding:3px 8px; border-radius:5px; white-space:nowrap; border:1px solid var(--line-2); color:var(--ink-2);
+  }
+  .effort.q { color:var(--good); border-color:color-mix(in srgb,var(--good) 35%,var(--line)); background:var(--good-bg); }
+  .effort.m { color:var(--warn); border-color:color-mix(in srgb,var(--warn) 35%,var(--line)); background:var(--warn-bg); }
+  .effort.l { color:var(--crit); border-color:color-mix(in srgb,var(--crit) 35%,var(--line)); background:var(--crit-bg); }
+
+  /* ---- principles ---- */
+  .principles { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:26px; }
+  .principle { background:var(--surface); padding:22px; }
+  .principle .n { font-family:var(--mono); font-size:.7rem; color:var(--accent); letter-spacing:.1em; }
+  .principle h4 { font-family:var(--serif); font-size:1.12rem; font-weight:600; margin:8px 0 6px; }
+  .principle p { font-size:.86rem; margin:0; }
+
+  hr.soft { border:none; border-top:1px solid var(--line); margin:0; }
+  .foot-note { margin-top:80px; padding-top:24px; border-top:1px solid var(--line); font-size:.82rem; color:var(--ink-3); }
+  .foot-note .mono { font-family:var(--mono); }
+
+  @media (prefers-reduced-motion:no-preference){
+    .card,.finding,.rung { transition:transform .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="rule-row">
+      <span class="mark">Product &amp; Design Review</span>
+      <span class="line"></span>
+      <span class="mark">P7 / S1 · CfE</span>
+    </div>
+    <div class="eyebrow" style="margin-bottom:18px">Brain Blast — a maths &amp; literacy practice app for 11–12s</div>
+    <h1>The bones are strong.<br>The spine is missing.</h1>
+    <p class="subtitle" style="margin-top:.5em">A full read of the app as built — and where a modern rebuild should spend its effort.</p>
+    <div class="meta">
+      <span class="chip good"><span class="dot"></span>Engine &amp; tests: strong</span>
+      <span class="chip warn"><span class="dot"></span>Content depth: uneven</span>
+      <span class="chip crit"><span class="dot"></span>Progression: absent</span>
+      <span class="chip"><span class="dot"></span>140 tests passing</span>
+    </div>
+  </header>
+
+  <div class="col">
+    <p class="lead">Brain Blast is already well past hobby-grade. The layered architecture is clean, the spaced-repetition model is properly built, answer-checking is careful, and the test discipline is real. That's the good news, and it's worth saying plainly before the criticism: most of what follows is about a smaller number of high-leverage gaps, not a teardown.</p>
+    <p>Three of those gaps matter more than the rest. Difficulty never actually progresses — a child who has mastered fractions is served the same fractions forever. Half the content is deep and half is a short fixed list that a child exhausts in a round or two. And a handful of defaults quietly push <em>speed and pressure</em> onto exactly the children who struggle most. Fix those three and the app graduates from a good practice tool to something a child grows through.</p>
+  </div>
+
+  <!-- SCORECARD -->
+  <section>
+    <div class="section-head"><span class="no">A</span><h2>The read at a glance</h2></div>
+    <div class="col"><p>Seven dimensions, each scored on what's shipping today. Detail follows.</p></div>
+    <div class="cards">
+      <div class="card">
+        <span class="k">Interface &amp; motion</span>
+        <h3>Calm, current — with two cracks</h3>
+        <p>A considered token system, restrained motion, real dark mode. But Times Tables ignores the tokens and breaks in dark mode, and maths never shows a number keypad.</p>
+        <div class="foot"><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Navigation &amp; IA</span>
+        <h3>Legible, but doubled up</h3>
+        <p>Flat hub → subject → topic reads well. Yet maths carries two overlapping taxonomies — <code>angles</code> beside <code>me6 “Angles”</code> — and there's no routing, so Android back exits the app.</p>
+        <div class="foot"><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Content &amp; pedagogy</span>
+        <h3>High quality, shallow pool</h3>
+        <p>Genuinely good questions — scaffolded hints, worked explanations, deliberate distractors, a real no-spoiler rule. But vocab topics hold only 6–8 items each; they repeat fast.</p>
+        <div class="foot"><span class="chip warn"><span class="dot"></span>Strong but shallow</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Difficulty &amp; levels</span>
+        <h3>No progression at all</h3>
+        <p>Every topic declares a difficulty <code>level</code> — and nothing reads it. Mastery only biases <em>which</em> topic appears, never how hard it is. This is the biggest gap in the app.</p>
+        <div class="foot"><span class="chip crit"><span class="dot"></span>Critical gap</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Engagement &amp; wellbeing</span>
+        <h3>Kind by design — bar the defaults</h3>
+        <p>No ads, no IAP, no leaderboards, effort-based praise, capped rewards. But a 45s timer is on by default, hints cost coins, and the streak shows a guilt cue.</p>
+        <div class="foot"><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Accessibility</span>
+        <h3>Good foundation, real holes</h3>
+        <p>44px targets, ARIA on controls, reduced-motion, status by icon not colour alone. But feedback isn't announced, diagrams have no text alternative, and the dyslexia font silently falls back.</p>
+        <div class="foot"><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      </div>
+      <div class="card">
+        <span class="k">Architecture &amp; scale</span>
+        <h3>Clean core, rollout blockers</h3>
+        <p>Pure, testable, layered — genuinely nice. The ceiling is a 325-line <code>App</code> god-component, localStorage-only saves, and content-as-code with no authoring path.</p>
+        <div class="foot"><span class="chip good"><span class="dot"></span>Strong, with blockers</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE: PROGRESSION -->
+  <section>
+    <div class="section-head"><span class="no">B</span><h2>The missing spine — progression</h2></div>
+    <div class="col">
+      <p>Ask a child using Brain Blast today “what level are you on?” and there's no honest answer. The only thing that visibly grows is coins and a garden. Competence itself has no shape.</p>
+      <p>The parts to build a real progression already exist in the codebase, unused. Every topic carries a <code>level</code> band. Mastery is tracked per topic on a rolling window. Spaced repetition decides <em>timing</em> beautifully. What's absent is the piece that turns those into a felt climb: difficulty that moves with the child.</p>
+    </div>
+
+    <div class="feature">
+      <div class="two-up" style="margin-bottom:26px">
+        <div class="panel">
+          <div class="k">Today · difficulty is flat</div>
+          <div class="flow">
+            <span class="node">Rolling mastery</span>
+            <span class="arw">→</span>
+            <span class="node">picks which topic</span>
+            <span class="arw">→</span>
+            <span class="node dim">same difficulty, forever</span>
+          </div>
+          <p style="margin:14px 0 0;font-size:.85rem;color:var(--ink-2)">Mastering a topic changes nothing about the questions it serves. “Secure” is a dead end.</p>
+        </div>
+        <div class="panel" style="background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))">
+          <div class="k" style="color:var(--accent)">Proposed · difficulty tracks the child</div>
+          <div class="flow">
+            <span class="node">Placement</span>
+            <span class="arw">→</span>
+            <span class="node">tier</span>
+            <span class="arw">→</span>
+            <span class="node">mastery moves the tier</span>
+            <span class="arw">→</span>
+            <span class="node">Secure unlocks Stretch</span>
+          </div>
+          <p style="margin:14px 0 0;font-size:.85rem;color:var(--ink-2)">The same topic gets harder as the child gets better — and eases back after slips.</p>
+        </div>
+      </div>
+
+      <div class="eyebrow" style="margin-bottom:14px">A topic, as four rungs</div>
+      <div class="ladder">
+        <div class="rung r1">
+          <div><span class="tier">Tier 1</span></div>
+          <div><h4>Foundations</h4><p>Smallest numbers, most scaffolding, worked example on request. Where a new or shaky child starts.</p></div>
+          <div class="gate">start here</div>
+        </div>
+        <div class="rung r2">
+          <div><span class="tier">Tier 2</span></div>
+          <div><h4>Securing</h4><p>Fuller range, distractors sharpen, timer optional. The working middle.</p></div>
+          <div class="gate">≥ 60% recent</div>
+        </div>
+        <div class="rung r3">
+          <div><span class="tier">Tier 3</span></div>
+          <div><h4>Secure</h4><p>Full difficulty, multi-step framings, mixed contexts. Marks the topic as mastered.</p></div>
+          <div class="gate">≥ 85% recent</div>
+        </div>
+        <div class="rung r4">
+          <div><span class="tier">Stretch</span></div>
+          <div><h4>Stretch</h4><p>Reasoning and challenge problems that need paper. Optional, never gating — a reward for mastery, not a wall.</p></div>
+          <div class="gate">unlocked on Secure</div>
+        </div>
+      </div>
+      <p style="margin:22px 0 0;font-size:.88rem;color:var(--ink-2)">This is mostly wiring, not new theory: read <code>level</code>, gate it on the mastery number that already exists, and add a one-minute diagnostic per subject so a strong child doesn't have to grind Tier 1 to prove themselves.</p>
+    </div>
+  </section>
+
+  <!-- FINDINGS -->
+  <section>
+    <div class="section-head"><span class="no">C</span><h2>Findings in detail</h2></div>
+    <div class="col"><p>Each dimension as it stands, where it fails, and the direction to take it. Specifics are drawn from the shipping code.</p></div>
+
+    <div class="finding">
+      <div class="top"><h3>Interface &amp; motion</h3><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>Single-column card stack, one confident indigo accent, Nunito rounded type, token-driven light/dark, motion kept restrained and reduced-motion honoured. Answer feedback is a highlight — effort praise, a worked explanation every time.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p><code>TimesTable.jsx</code> is built from hardcoded hex and inline styles — white cards on a dark ground when dark mode is on. And <code>Quiz.jsx</code> has a dead ternary where the numeric keypad should be: maths answers are typed on a QWERTY keyboard on mobile.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Port Times Tables onto the token system so it themes with everything else. Set <code>inputMode="numeric"</code> for maths. Add one small, reduced-motion-safe correct-answer celebration — the reward moment is currently thin.</p></div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="top"><h3>Navigation &amp; information architecture</h3><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>Flat and clear: hub → subject → topic picker with a prominent “Mixed round”, a back button on every screen. The right shape for the app's size.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p>Maths shows 31 topics, many near-duplicates — <code>me6 “Angles”</code> next to <code>angles</code>, <code>me11</code> next to <code>ratio</code>. Content bolted on in layers, never merged. Screen state is a string, so the hardware back button exits the app and nothing deep-links.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Fold the <code>me1–me16</code> banks into their procedural topics as extra question styles; a child should see one “Angles”, not two. Sort topics by difficulty band. Add hash routing so back behaves.</p></div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="top"><h3>Content &amp; pedagogy</h3><span class="chip warn"><span class="dot"></span>Strong but shallow</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>Above-average teaching. Hints scaffold rather than reveal; every item has a worked explanation; distractors are real near-misses, so a guess isn't a free 25%. The “no visual reveals the answer” rule is enforced in code, across all four subjects.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p>Depth is wildly uneven. Procedural maths holds hundreds of distinct prompts; vocabulary topics hold <strong>6–8 items each</strong> and some grammar banks only 3–4. The anti-worksheet claim is only true for half the app.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Deepen the shallow pools — vocab first, target 30+ per topic — and move content to a validated data file with a QA pass, so scaling it isn't a code-and-rebuild slog. Add read-aloud for weaker readers on what is, after all, a literacy app.</p></div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="top"><h3>Engagement &amp; child wellbeing</h3><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>Much of this is genuinely child-respectful: effort praise not ability praise, streak rewards capped, a garden that grows on a real daily clock, no ads, no purchases, no social comparison, fully offline. Two extra modes — Turbo and a platformer — add variety.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p>The defaults lean on pressure. A <strong>45-second timer is on for every question</strong> — that drives maths anxiety in the kids who struggle most. Hints cost coins, so the child with fewest right answers can least afford help. The streak shows “best vs current”, a small guilt loop, and resets hard on one missed day.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Default the timer <em>off</em>. Make the first hint free. Add a streak grace/freeze day and drop the best-vs-current cue. Keep Turbo — but as one mode among several, so the whole app doesn't equate fast with good.</p></div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="top"><h3>Accessibility</h3><span class="chip warn"><span class="dot"></span>Mixed</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>Real foundations: a 44px tap-target token, ARIA roles on toggles and progress bars, global reduced-motion, mastery shown by icon <em>and</em> colour, and a dyslexia mode with evidence-based spacing.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p>Quiz feedback isn't announced (<code>no aria-live</code>), so a screen-reader user never hears if they were right. SVG diagrams are injected raw with no text alternative — every diagram question is invisible. The dyslexia font is <code>Comic Sans MS</code>, absent on most school devices, so it silently falls back.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Add <code>aria-live</code> to the feedback block and a short text description to each visual. Bundle a real dyslexia face (OpenDyslexic or Lexend). Nudge muted-text contrast up, and add an in-app text-size control.</p></div>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="top"><h3>Architecture &amp; scale</h3><span class="chip good"><span class="dot"></span>Strong, with blockers</span></div>
+      <div class="grid3">
+        <div class="cell now"><div class="lbl">Now</div><p>A clean three-layer split — UI over a pure, React-free engine over pure curriculum, dependencies pointing only downward — so the whole engine is Node-testable, and it is: 140 tests, including property-style checks across every topic and seed.</p></div>
+        <div class="cell gap"><div class="lbl">Where it breaks</div><p>One 325-line <code>App</code> god-component holds all routing and state as an <code>if (screen === …)</code> ladder — the one place the code violates its own open/closed ethic. Saves are localStorage-only (device-bound, silently lost in private mode). Content is hand-authored JS behind a rebuild.</p></div>
+        <div class="cell dir"><div class="lbl">Direction</div><p>Decompose <code>App</code> and add routing. Give content a validated data format with an authoring/QA step. Add optional cloud sync — or at least auto-export — for multi-device use. Bring the already-installed Playwright to bear on the quiz, timer and persistence paths.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section>
+    <div class="section-head"><span class="no">D</span><h2>How it's built</h2></div>
+    <div class="col"><p>The layering is the app's quiet strength — worth preserving through any rebuild. Dependencies run one way, top to bottom, which is exactly why the engine tests without a browser.</p></div>
+    <div class="feature">
+      <div class="stack">
+        <div class="layer ui"><span class="name">UI · React</span><span class="desc">Hub, Quiz, Times Tables, Game, screens. Presentational — reads state, calls up. <strong>The one weak point: <code>App.jsx</code> concentrates all routing + state here.</strong></span></div>
+        <div class="dep">↓ depends on</div>
+        <div class="layer eng"><span class="name">Engine · pure JS</span><span class="desc">session · mastery · review (Leitner) · storage · rng. No React import anywhere — the reason it's fully testable in Node.</span></div>
+        <div class="dep">↓ depends on</div>
+        <div class="layer cur"><span class="name">Curriculum · data + generators</span><span class="desc">Topics as named question styles, per subject. <strong>The scaling ceiling: it's code, not data — no authoring or QA path.</strong></span></div>
+      </div>
+      <p style="margin:22px 0 0;font-size:.88rem;color:var(--ink-2)">Keep the layers. Spend the refactor on the two labelled weak points — the god-component at the top, and content-as-code at the bottom — not on the healthy middle.</p>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section>
+    <div class="section-head"><span class="no">E</span><h2>Where to spend the effort</h2></div>
+    <div class="col"><p>Ordered by impact-per-effort, in three phases. Phase one is almost entirely flipped defaults and small fixes — a day's work that changes how the app <em>feels</em>. Phase two is the real product work. Phase three is what unblocks real users at scale.</p></div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="tag">Phase 1</span><h3>Flip the defaults</h3><span class="sub">days, not weeks</span></div>
+      <ol class="moves">
+        <li><span class="txt">Timer <strong>off</strong> by default, and make the first hint <strong>free</strong> — <span>removes the two biggest pressure and scaffolding-paywall problems at once.</span></span><span class="effort q">Quick win</span></li>
+        <li><span class="txt">Fix Times Tables dark mode and the maths numeric-keypad bug — <span>two visible defects, both small.</span></span><span class="effort q">Quick win</span></li>
+        <li><span class="txt">Soften the streak — <span>add a grace day, drop the “best vs current” guilt cue.</span></span><span class="effort q">Quick win</span></li>
+        <li><span class="txt">Bundle a real dyslexia font instead of Comic Sans, and announce quiz feedback with <code>aria-live</code>.</span><span class="effort q">Quick win</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="tag">Phase 2</span><h3>Build the product</h3><span class="sub">the real work</span></div>
+      <ol class="moves">
+        <li><span class="txt">Activate difficulty progression — <span>read <code>level</code>, add within-topic tiers driven by rolling mastery, plus a one-minute diagnostic per subject.</span></span><span class="effort l">Large</span></li>
+        <li><span class="txt">Deepen the shallow content pools — <span>vocabulary and the small grammar banks first.</span></span><span class="effort l">Large</span></li>
+        <li><span class="txt">Consolidate the duplicated maths taxonomy and sort topics by difficulty.</span><span class="effort m">Medium</span></li>
+        <li><span class="txt">Add text alternatives for diagrams and read-aloud for weaker readers.</span><span class="effort m">Medium</span></li>
+      </ol>
+    </div>
+
+    <div class="phase">
+      <div class="phase-head"><span class="tag">Phase 3</span><h3>Unblock real users</h3><span class="sub">scale &amp; reach</span></div>
+      <ol class="moves">
+        <li><span class="txt">Move content to a validated data format with an authoring/QA workflow — <span>the ceiling on everything else.</span></span><span class="effort l">Large</span></li>
+        <li><span class="txt">Add cloud/account sync — <span>localStorage-only blocks the multi-device, multi-child school reality.</span></span><span class="effort l">Large</span></li>
+        <li><span class="txt">Decompose <code>App</code>, add routing, and cover the quiz/timer/persistence paths with Playwright.</span><span class="effort m">Medium</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- PRINCIPLES -->
+  <section>
+    <div class="section-head"><span class="no">F</span><h2>Principles to hold the line on</h2></div>
+    <div class="col"><p>The redesign should be measured against these. Several are already true in the code — the point is to make them non-negotiable as the app grows.</p></div>
+    <div class="principles">
+      <div class="principle"><div class="n">01</div><h4>Effort, not speed</h4><p>Praise the work, not the wits — and never make a clock the default. Fast is one mode, not the goal.</p></div>
+      <div class="principle"><div class="n">02</div><h4>Help is free</h4><p>A struggling child needs the hint most and can afford it least. Scaffolding is never behind the reward currency.</p></div>
+      <div class="principle"><div class="n">03</div><h4>Never spoil the answer</h4><p>A picture is a scaffold, not a giveaway. Enforce it in code, across every subject — as the app now does.</p></div>
+      <div class="principle"><div class="n">04</div><h4>Progression you can feel</h4><p>Getting better should visibly change the work, not just a coin count. Difficulty tracks the child.</p></div>
+      <div class="principle"><div class="n">05</div><h4>Works on any device</h4><p>School tablet, home phone, a parent's laptop. Progress follows the child, not the browser.</p></div>
+      <div class="principle"><div class="n">06</div><h4>Kind by default</h4><p>No dark patterns, no guilt loops, no pressure the child didn't choose. The defaults carry the ethics.</p></div>
+    </div>
+  </section>
+
+  <div class="foot-note">
+    <p class="mono">Brain Blast · design &amp; product review</p>
+    <p>Assessment grounded in the shipping source — architecture, engine, curriculum generators, component styles, generated question samples across all four subjects, and the 140-test suite. Strengths and faults both cite what's actually in the code.</p>
+  </div>
+
+</div>
