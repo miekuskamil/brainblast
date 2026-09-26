@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { isCorrect } from '../curriculum/question.js';
 import { visualAltText } from '../curriculum/visual.js';
 import { getTopic } from '../curriculum/index.js';
@@ -8,533 +7,429 @@ import { playCoin, playCorrect, playFanfare, playWrong } from '../engine/sounds.
 import { ScratchPad, clearOtherPads } from './ScratchPad.jsx';
 import { canSpeak, speak, stopSpeaking } from '../engine/speech.js';
 
+// Shown (randomly) after a correct answer.
 const PRAISE = [
-    `You worked that out.`,
-    `That is exactly it.`,
-    `Good thinking.`,
-    `You got there.`,
-    `Nicely reasoned.`,
-    `That is right.`,
-    `Strong work.`,
-  ];
+  'You worked that out.',
+  'That is exactly it.',
+  'Good thinking.',
+  'You got there.',
+  'Nicely reasoned.',
+  'That is right.',
+  'Strong work.',
+];
 
+// Shown (randomly) after a wrong answer; the learner then retries the same question.
 const RETRY_MESSAGES = [
-    `Not quite — have another go.`,
-    `Close — give it another try.`,
-    `Not this time. Have another look.`,
-    `Almost — try again.`,
-  ];
+  'Not quite — have another go.',
+  'Close — give it another try.',
+  'Not this time. Have another look.',
+  'Almost — try again.',
+];
 
+// The first hint in a round is free; each later one costs HINT_COST coins.
 const HINT_COST = 3;
 
 const QUESTION_SECONDS = 45;
 
-function wantsNumericKeypad(e) {
-  let t = String(e.answer).trim();
-  return /^£?\d+(\.\d+)?\s*(p|%|°|cm²?|cm³?|m²?|m³?|km|kg|g|ml|litres?)?$/i.test(
-    t,
+// Answers that look like a number (optionally with £ or a unit) get the
+// decimal keypad on mobile; everything else gets the normal keyboard.
+function wantsNumericKeypad(question) {
+  const answer = String(question.answer).trim();
+  return /^£?\d+(\.\d+)?\s*(p|%|°|cm²?|cm³?|m²?|m³?|km|kg|g|ml|litres?)?$/i.test(answer);
+}
+
+// Free-text answer box used when a question has no multiple-choice options.
+// Autofocuses on mount; the parent remounts it (via `key`) for each new attempt
+// so the field starts empty. Blank answers are ignored. The Check button
+// disappears once the question is answered.
+export function AnswerInput({ question, disabled, verdict, onSubmit }) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+  const submit = () => {
+    const trimmed = value.trim();
+    if (!trimmed || disabled) return;
+    onSubmit(trimmed);
+  };
+  return (
+    <div className="stack">
+      <input
+        ref={inputRef}
+        className={`field ${verdict === true ? 'correct' : verdict === false ? 'wrong' : ''}`}
+        value={value}
+        disabled={disabled}
+        placeholder="Type your answer…"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        inputMode={wantsNumericKeypad(question) ? 'decimal' : 'text'}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') submit();
+        }}
+        aria-label="Your answer"
+      />
+      {!disabled && (
+        <button className="btn btn-primary" onClick={submit} disabled={!value.trim()}>
+          Check
+        </button>
+      )}
+    </div>
   );
 }
 
-export function AnswerInput({ question: e, disabled: t, verdict: n, onSubmit: r }) {
-  let [i, a] = (0, useState)(``),
-    o = (0, useRef)(null);
-  (0, useEffect)(() => {
-    o.current?.focus();
-  }, []);
-  let s = () => {
-    let e = i.trim();
-    !e || t || r(e);
-  };
-  return (0, jsxs)(`div`, {
-    className: `stack`,
-    children: [
-      (0, jsx)(`input`, {
-        ref: o,
-        className: `field ${n === !0 ? `correct` : n === !1 ? `wrong` : ``}`,
-        value: i,
-        disabled: t,
-        placeholder: `Type your answer…`,
-        autoComplete: `off`,
-        autoCorrect: `off`,
-        autoCapitalize: `off`,
-        spellCheck: !1,
-        inputMode: wantsNumericKeypad(e) ? `decimal` : `text`,
-        onChange: (e) => a(e.target.value),
-        onKeyDown: (e) => {
-          e.key === `Enter` && s();
-        },
-        "aria-label": `Your answer`,
-      }),
-      !t &&
-        (0, jsx)(`button`, {
-          className: `btn btn-primary`,
-          onClick: s,
-          disabled: !i.trim(),
-          children: `Check`,
-        }),
-    ],
-  });
-}
-
+// Practice round runner (topic practice, mixed rounds, daily challenge).
+// - A wrong answer shows a retry message and the learner tries again; only the
+//   FIRST attempt is recorded in history / reported via onAnswer (mastery).
+// - With the timer on, running out submits a blank (wrong) answer. Long-form
+//   questions hide the timer bar.
+// - Comprehension questions share a reading passage per cluster: it starts
+//   expanded the first time a cluster appears and collapsed afterwards, unless
+//   the learner toggles it.
+// - Maths questions get the scratch pad, keyed to the round.
 export function Quiz({
-  title: e,
-  questions: t,
-  reviewCount: n = 0,
-  coins: r,
-  timerOn: i,
-  onAnswer: a,
-  onSpendCoins: o,
-  onFinish: s,
-  onBack: c,
-  roundId: l = `round`,
+  title,
+  questions,
+  reviewCount = 0,
+  coins,
+  timerOn,
+  onAnswer,
+  onSpendCoins,
+  onFinish,
+  onBack,
+  roundId = 'round',
 }) {
-  let [u, d] = (0, useState)(0),
-    [f, p] = (0, useState)(`ask`),
-    [m, h] = (0, useState)(null),
-    [g, v] = (0, useState)(``),
-    [y, b] = (0, useState)(!1),
-    [x, S] = (0, useState)(!1),
-    [C, w] = (0, useState)(!1),
-    [ee, te] = (0, useState)([]),
-    [ne, T] = (0, useState)(QUESTION_SECONDS),
-    [E, re] = (0, useState)(``),
-    [ie, ae] = (0, useState)(null),
-    [oe, D] = (0, useState)(!1),
-    [O, k] = (0, useState)(0),
-    A = (0, useRef)(!1),
-    ce = (0, useRef)(new Set()),
-    [le, ue] = (0, useState)(null);
-  ((0, useEffect)(() => {
-    (clearOtherPads(l), S(!1));
-  }, [l]),
-    (0, useEffect)(() => {
-      (w(!1), stopSpeaking());
-    }, [u]),
-    (0, useEffect)(() => () => stopSpeaking(), []),
-    (0, useEffect)(() => {
-      ((A.current = !1), ue(null));
-    }, [u]));
-  let j = t[u],
-    M = j?.clusterId ?? null,
-    N = M ? ce.current.has(M) : !1;
-  M && !N && ce.current.add(M);
-  let de = !!j?.passage && (le?.clusterId === M ? le.expanded : !N),
-    fe = u >= t.length - 1,
-    pe = ee.filter((e) => e.ok).length,
-    P = (0, useCallback)(
-      (e) => {
-        if (f !== `ask`) return;
-        let t = isCorrect(e, j.answer, { exact: !!j.options });
-        if (
-          (A.current ||
-            ((A.current = !0),
-            te((n) => [
-              ...n,
-              {
-                prompt: j.prompt,
-                given: e,
-                answer: j.answer,
-                explain: j.explain,
-                ok: t,
-                isReview: j.isReview,
-              },
-            ]),
-            a(j, t)),
-          !t)
-        ) {
-          (playWrong(),
-            v(e),
-            ae(String(e)),
-            D(!0),
-            k((e) => e + 1),
-            re(RETRY_MESSAGES[Math.floor(Math.random() * RETRY_MESSAGES.length)]));
-          return;
-        }
-        (playCorrect(),
-          j.subject !== `maths` && playCoin(),
-          h(!0),
-          v(e),
-          ae(null),
-          D(!1),
-          p(`shown`),
-          re(PRAISE[Math.floor(Math.random() * PRAISE.length)]));
-      },
-      [f, j, a],
-    );
-  (0, useEffect)(() => {
-    if (!i || f !== `ask`) return;
-    T(QUESTION_SECONDS);
-    let e = setInterval(() => {
-      T((t) => (t <= 1 ? (clearInterval(e), P(``), 0) : t - 1));
-    }, 1e3);
-    return () => clearInterval(e);
-  }, [u, f, i, P]);
-  function me() {
-    if (fe) {
-      s({ score: pe, total: t.length, history: ee });
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState('ask');
+  const [verdict, setVerdict] = useState(null);
+  const [lastGiven, setLastGiven] = useState('');
+  const [hintShown, setHintShown] = useState(false);
+  const [freeHintUsed, setFreeHintUsed] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [secondsLeft, setSecondsLeft] = useState(QUESTION_SECONDS);
+  const [feedback, setFeedback] = useState('');
+  const [wrongOption, setWrongOption] = useState(null);
+  const [showTryAgain, setShowTryAgain] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const firstAttemptRecorded = useRef(false);
+  const seenClusters = useRef(new Set());
+  const [passageOverride, setPassageOverride] = useState(null);
+  useEffect(() => {
+    clearOtherPads(roundId);
+    setFreeHintUsed(false);
+  }, [roundId]);
+  useEffect(() => {
+    setSpeaking(false);
+    stopSpeaking();
+  }, [index]);
+  useEffect(() => () => stopSpeaking(), []);
+  useEffect(() => {
+    firstAttemptRecorded.current = false;
+    setPassageOverride(null);
+  }, [index]);
+  const question = questions[index];
+  const clusterId = question?.clusterId ?? null;
+  const clusterSeen = clusterId ? seenClusters.current.has(clusterId) : false;
+  if (clusterId && !clusterSeen) seenClusters.current.add(clusterId);
+  const passageExpanded =
+    !!question?.passage &&
+    (passageOverride?.clusterId === clusterId ? passageOverride.expanded : !clusterSeen);
+  const isLast = index >= questions.length - 1;
+  const correctCount = history.filter((entry) => entry.ok).length;
+  const submitAnswer = useCallback(
+    (given) => {
+      if (phase !== 'ask') return;
+      const ok = isCorrect(given, question.answer, { exact: !!question.options });
+      if (!firstAttemptRecorded.current) {
+        firstAttemptRecorded.current = true;
+        setHistory((prev) => [
+          ...prev,
+          {
+            prompt: question.prompt,
+            given,
+            answer: question.answer,
+            explain: question.explain,
+            ok,
+            isReview: question.isReview,
+          },
+        ]);
+        onAnswer(question, ok);
+      }
+      if (!ok) {
+        playWrong();
+        setLastGiven(given);
+        setWrongOption(String(given));
+        setShowTryAgain(true);
+        setAttempt((n) => n + 1);
+        setFeedback(RETRY_MESSAGES[Math.floor(Math.random() * RETRY_MESSAGES.length)]);
+        return;
+      }
+      playCorrect();
+      if (question.subject !== 'maths') playCoin();
+      setVerdict(true);
+      setLastGiven(given);
+      setWrongOption(null);
+      setShowTryAgain(false);
+      setPhase('shown');
+      setFeedback(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+    },
+    [phase, question, onAnswer],
+  );
+  useEffect(() => {
+    if (!timerOn || phase !== 'ask') return;
+    setSecondsLeft(QUESTION_SECONDS);
+    const timerId = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s > 1) return s - 1;
+        clearInterval(timerId);
+        submitAnswer('');
+        return 0;
+      });
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [index, phase, timerOn, submitAnswer]);
+  function handleNext() {
+    if (isLast) {
+      onFinish({ score: correctCount, total: questions.length, history });
       return;
     }
-    (d((e) => e + 1),
-      p(`ask`),
-      h(null),
-      v(``),
-      b(!1),
-      re(``),
-      ae(null),
-      D(!1),
-      k(0));
+    setIndex((i) => i + 1);
+    setPhase('ask');
+    setVerdict(null);
+    setLastGiven('');
+    setHintShown(false);
+    setFeedback('');
+    setWrongOption(null);
+    setShowTryAgain(false);
+    setAttempt(0);
   }
-  function F() {
-    if (C) {
-      (stopSpeaking(), w(!1));
+  function handleSpeak() {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
       return;
     }
-    let e = [j.prompt];
-    (j.options && e.push(`Options: ` + j.options.join(`, `)),
-      w(!0),
-      speak(e.join(`. `), { onend: () => w(!1) }));
+    const parts = [question.prompt];
+    if (question.options) parts.push('Options: ' + question.options.join(', '));
+    setSpeaking(true);
+    speak(parts.join('. '), { onend: () => setSpeaking(false) });
   }
-  function he() {
-    if (y) return;
-    let e = x ? HINT_COST : 0;
-    r < e || (e > 0 && o(e), S(!0), b(!0));
+  function handleShowHint() {
+    if (hintShown) return;
+    const cost = freeHintUsed ? HINT_COST : 0;
+    if (coins < cost) return;
+    if (cost > 0) onSpendCoins(cost);
+    setFreeHintUsed(true);
+    setHintShown(true);
   }
-  if (!j) return null;
-  let ge = j.options?.some((e) => String(e).length > 18),
-    _e = getTopic(j.subject, j.topic)?.label ?? null,
-    I = l;
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: c,
-        title: e,
-        sub: `Question ${u + 1} of ${t.length}`,
-        right: (0, jsx)(Coins, { n: r }),
-      }),
-      (0, jsxs)(`div`, {
-        className: `stack-sm`,
-        children: [
-          (0, jsx)(ProgressBar, { value: u, max: t.length }),
-          i &&
-            !j.longForm &&
-            f === `ask` &&
-            (0, jsx)(ProgressBar, {
-              value: ne,
-              max: QUESTION_SECONDS,
-              tone: `time`,
-              className: ne <= 8 ? `low` : ``,
-            }),
-        ],
-      }),
-      (0, jsxs)(`div`, {
-        className: `wrap`,
-        style: { marginTop: 12 },
-        children: [
-          _e &&
-            (0, jsx)(`span`, { className: `chip chip-topic`, children: _e }),
-          (0, jsx)(TierBadge, { tier: j.tier }),
-          j.isReview &&
-            (0, jsx)(`span`, {
-              className: `review-flag`,
-              children: `🔁 Practising this again`,
-            }),
-        ],
-      }),
-      j.passage &&
-        (0, jsx)(PassagePanel, {
-          passage: j.passage,
-          expanded: de,
-          onToggle: () => ue({ clusterId: M, expanded: !de }),
-        }),
-      j.visual &&
-        (0, jsx)(`div`, {
-          className: `q-visual`,
-          role: `img`,
-          "aria-label": visualAltText(j.visual),
-          dangerouslySetInnerHTML: { __html: j.visual },
-        }),
-      (0, jsxs)(`div`, {
-        className: `q-prompt-row`,
-        children: [
-          (0, jsx)(`div`, {
-            className: `qbox ${j.longForm ? `long` : !j.visual && j.prompt.length < 60 ? `lg` : ``}`,
-            children: j.prompt,
-          }),
-          canSpeak() &&
-            (0, jsx)(`button`, {
-              className: `speak-btn ${C ? `on` : ``}`,
-              onClick: F,
-              "aria-label": C ? `Stop reading` : `Read the question aloud`,
-              title: C ? `Stop reading` : `Read aloud`,
-              children: C ? `◼` : `🔊`,
-            }),
-        ],
-      }),
-      j.options
-        ? (0, jsx)(`div`, {
-            className: `opts ${ge ? `` : `two-up`}`,
-            children: j.options.map((e, t) => {
-              let n = `opt`;
-              return (
-                f === `shown`
-                  ? isCorrect(e, j.answer, { exact: !0 }) && (n += ` correct`)
-                  : ie === String(e) && (n += ` wrong`),
-                (0, jsx)(
-                  `button`,
-                  {
-                    className: n,
-                    disabled: f !== `ask`,
-                    onClick: () => P(e),
-                    children: e,
-                  },
-                  t,
-                )
-              );
-            }),
-          })
-        : (0, jsx)(
-            AnswerInput,
-            {
-              question: j,
-              disabled: f !== `ask`,
-              verdict: f === `shown` || null,
-              onSubmit: P,
-            },
-            `${u}-${O}`,
-          ),
-      f === `ask` &&
-        oe &&
-        (0, jsx)(`div`, {
-          className: `try-again`,
-          role: `status`,
-          "aria-live": `assertive`,
-          children: E,
-        }),
-      j.subject === `maths` &&
-        (0, jsx)(ScratchPad, { storageKey: I, defaultOpen: !!j.longForm }),
-      f === `ask` &&
-        j.hint &&
-        !y &&
-        (() => {
-          let e = x ? HINT_COST : 0,
-            t = r >= e;
-          return (0, jsxs)(`button`, {
-            className: `btn btn-ghost mt`,
-            onClick: he,
-            disabled: !t,
-            children: [
-              `💡 `,
-              e === 0
-                ? `Show a hint — free`
-                : t
-                  ? `Show a hint — ${e} coins`
-                  : `Hint needs ${e} coins`,
-            ],
-          });
-        })(),
-      y &&
-        j.hint &&
-        (0, jsxs)(`div`, { className: `hint`, children: [`💡 `, j.hint] }),
-      f === `shown` &&
-        (0, jsxs)(Fragment, {
-          children: [
-            (0, jsxs)(`div`, {
-              className: `feedback ok`,
-              role: `status`,
-              "aria-live": `assertive`,
-              children: [
-                (0, jsxs)(`div`, {
-                  className: `feedback-head`,
-                  children: [`✓ `, E],
-                }),
-                j.explain &&
-                  (0, jsxs)(`div`, {
-                    className: `feedback-body`,
-                    children: [
-                      (0, jsx)(`strong`, { children: `Why: ` }),
-                      j.explain,
-                    ],
-                  }),
-              ],
-            }),
-            (0, jsx)(`button`, {
-              className: `btn btn-primary mt`,
-              onClick: me,
-              autoFocus: !0,
-              children: fe ? `See results` : `Next question`,
-            }),
-          ],
-        }),
-      (0, jsxs)(`div`, {
-        className: `row-between mt-lg`,
-        children: [
-          (0, jsxs)(`span`, {
-            className: `tiny muted`,
-            children: [`✓ `, pe, ` correct so far`],
-          }),
-          n > 0 &&
-            (0, jsxs)(`span`, {
-              className: `tiny muted`,
-              children: [
-                n,
-                ` review `,
-                n === 1 ? `question` : `questions`,
-                ` in this round`,
-              ],
-            }),
-        ],
-      }),
-    ],
-  });
+  if (!question) return null;
+  const longOptions = question.options?.some((option) => String(option).length > 18);
+  const topicLabel = getTopic(question.subject, question.topic)?.label ?? null;
+  const padKey = roundId;
+  const hintCost = freeHintUsed ? HINT_COST : 0;
+  const canAffordHint = coins >= hintCost;
+  return (
+    <div className="card rise">
+      <TopBar
+        onBack={onBack}
+        title={title}
+        sub={`Question ${index + 1} of ${questions.length}`}
+        right={<Coins n={coins} />}
+      />
+      <div className="stack-sm">
+        <ProgressBar value={index} max={questions.length} />
+        {timerOn && !question.longForm && phase === 'ask' && (
+          <ProgressBar
+            value={secondsLeft}
+            max={QUESTION_SECONDS}
+            tone="time"
+            className={secondsLeft <= 8 ? 'low' : ''}
+          />
+        )}
+      </div>
+      <div className="wrap" style={{ marginTop: 12 }}>
+        {topicLabel && <span className="chip chip-topic">{topicLabel}</span>}
+        <TierBadge tier={question.tier} />
+        {question.isReview && <span className="review-flag">🔁 Practising this again</span>}
+      </div>
+      {question.passage && (
+        <PassagePanel
+          passage={question.passage}
+          expanded={passageExpanded}
+          onToggle={() => setPassageOverride({ clusterId, expanded: !passageExpanded })}
+        />
+      )}
+      {question.visual && (
+        <div
+          className="q-visual"
+          role="img"
+          aria-label={visualAltText(question.visual)}
+          dangerouslySetInnerHTML={{ __html: question.visual }}
+        />
+      )}
+      <div className="q-prompt-row">
+        <div
+          className={`qbox ${question.longForm ? 'long' : !question.visual && question.prompt.length < 60 ? 'lg' : ''}`}
+        >
+          {question.prompt}
+        </div>
+        {canSpeak() && (
+          <button
+            className={`speak-btn ${speaking ? 'on' : ''}`}
+            onClick={handleSpeak}
+            aria-label={speaking ? 'Stop reading' : 'Read the question aloud'}
+            title={speaking ? 'Stop reading' : 'Read aloud'}
+          >
+            {speaking ? '◼' : '🔊'}
+          </button>
+        )}
+      </div>
+      {question.options ? (
+        <div className={`opts ${longOptions ? '' : 'two-up'}`}>
+          {question.options.map((option, i) => {
+            let optionClass = 'opt';
+            if (phase === 'shown') {
+              if (isCorrect(option, question.answer, { exact: true })) optionClass += ' correct';
+            } else if (wrongOption === String(option)) {
+              optionClass += ' wrong';
+            }
+            return (
+              <button
+                key={i}
+                className={optionClass}
+                disabled={phase !== 'ask'}
+                onClick={() => submitAnswer(option)}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <AnswerInput
+          key={`${index}-${attempt}`}
+          question={question}
+          disabled={phase !== 'ask'}
+          verdict={phase === 'shown' || null}
+          onSubmit={submitAnswer}
+        />
+      )}
+      {phase === 'ask' && showTryAgain && (
+        <div className="try-again" role="status" aria-live="assertive">
+          {feedback}
+        </div>
+      )}
+      {question.subject === 'maths' && (
+        <ScratchPad storageKey={padKey} defaultOpen={!!question.longForm} />
+      )}
+      {phase === 'ask' && question.hint && !hintShown && (
+        <button className="btn btn-ghost mt" onClick={handleShowHint} disabled={!canAffordHint}>
+          💡{' '}
+          {hintCost === 0
+            ? 'Show a hint — free'
+            : canAffordHint
+              ? `Show a hint — ${hintCost} coins`
+              : `Hint needs ${hintCost} coins`}
+        </button>
+      )}
+      {hintShown && question.hint && <div className="hint">💡 {question.hint}</div>}
+      {phase === 'shown' && (
+        <>
+          <div className="feedback ok" role="status" aria-live="assertive">
+            <div className="feedback-head">✓ {feedback}</div>
+            {question.explain && (
+              <div className="feedback-body">
+                <strong>Why: </strong>
+                {question.explain}
+              </div>
+            )}
+          </div>
+          <button className="btn btn-primary mt" onClick={handleNext} autoFocus>
+            {isLast ? 'See results' : 'Next question'}
+          </button>
+        </>
+      )}
+      <div className="row-between mt-lg">
+        <span className="tiny muted">✓ {correctCount} correct so far</span>
+        {reviewCount > 0 && (
+          <span className="tiny muted">
+            {reviewCount} review {reviewCount === 1 ? 'question' : 'questions'} in this round
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
-export function Results({
-  score: e,
-  total: t,
-  history: n,
-  coinsEarned: r,
-  onAgain: i,
-  onHome: a,
-}) {
-  let o = Math.round((e / t) * 100);
-  (0, useEffect)(() => {
+// End-of-round summary: score ring, coins earned, and every answer with the
+// correct answer and explanation for misses. Plays a fanfare on mount.
+export function Results({ score, total, history, coinsEarned, onAgain, onHome }) {
+  const pct = Math.round((score / total) * 100);
+  useEffect(() => {
     playFanfare();
   }, []);
-  let s = o >= 80 ? `var(--good)` : o >= 50 ? `var(--gold)` : `var(--brand)`,
-    c = n.filter((e) => !e.ok);
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsxs)(`div`, {
-        className: `center`,
-        children: [
-          (0, jsx)(`div`, {
-            className: `score-ring`,
-            children: (0, jsxs)(`div`, {
-              className: `score-num`,
-              style: { color: s },
-              children: [
-                e,
-                (0, jsxs)(`span`, {
-                  style: { fontSize: `1.3rem`, color: `var(--ink-3)` },
-                  children: [`/`, t],
-                }),
-              ],
-            }),
-          }),
-          (0, jsx)(`h1`, {
-            children:
-              o >= 80
-                ? `Strong round`
-                : o >= 50
-                  ? `Good progress`
-                  : `Worth another go`,
-          }),
-          (0, jsx)(`p`, {
-            className: `small muted mt`,
-            style: { maxWidth: 380, margin: `8px auto 0` },
-            children:
-              c.length === 0
-                ? `Everything correct. Those questions move further down your review schedule.`
-                : `The ${c.length} you missed ${c.length === 1 ? `comes` : `come`} back tomorrow, then again a few days later, until ${c.length === 1 ? `it sticks` : `they stick`}.`,
-          }),
-          (0, jsxs)(`div`, {
-            className: `wrap mt-lg`,
-            style: { justifyContent: `center` },
-            children: [
-              (0, jsxs)(`span`, {
-                className: `chip chip-gold`,
-                children: [`🪙 +`, r, ` coins`],
-              }),
-              (0, jsxs)(`span`, {
-                className: `chip`,
-                children: [o, `% accuracy`],
-              }),
-            ],
-          }),
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`h2`, {
-        style: { marginBottom: 10 },
-        children: `Your answers`,
-      }),
-      (0, jsx)(`div`, {
-        children: n.map((e, t) =>
-          (0, jsxs)(
-            `div`,
-            {
-              className: `result-row ${e.ok ? `ok` : `no`}`,
-              children: [
-                (0, jsx)(`span`, {
-                  "aria-hidden": `true`,
-                  children: e.ok ? `✓` : `✗`,
-                }),
-                (0, jsxs)(`div`, {
-                  style: { flex: 1, minWidth: 0 },
-                  children: [
-                    (0, jsxs)(`div`, {
-                      className: `result-q`,
-                      children: [
-                        e.prompt
-                          .split(
-                            `
-`,
-                          )
-                          .filter(Boolean)[0]
-                          .slice(0, 90),
-                        e.prompt.length > 90 ? `…` : ``,
-                      ],
-                    }),
-                    !e.ok &&
-                      (0, jsxs)(Fragment, {
-                        children: [
-                          (0, jsxs)(`div`, {
-                            className: `result-a`,
-                            children: [
-                              e.given
-                                ? (0, jsx)(`s`, { children: e.given })
-                                : (0, jsx)(`em`, {
-                                    className: `muted`,
-                                    children: `no answer`,
-                                  }),
-                              ` → `,
-                              (0, jsx)(`b`, { children: e.answer }),
-                            ],
-                          }),
-                          e.explain &&
-                            (0, jsx)(`div`, {
-                              className: `result-a muted`,
-                              style: { marginTop: 2 },
-                              children: e.explain,
-                            }),
-                        ],
-                      }),
-                  ],
-                }),
-              ],
-            },
-            t,
-          ),
-        ),
-      }),
-      (0, jsxs)(`div`, {
-        className: `btn-row mt-lg`,
-        children: [
-          (0, jsx)(`button`, {
-            className: `btn btn-ghost`,
-            onClick: a,
-            children: `Home`,
-          }),
-          (0, jsx)(`button`, {
-            className: `btn btn-primary`,
-            onClick: i,
-            children: `Another round`,
-          }),
-        ],
-      }),
-    ],
-  });
+  const scoreColour = pct >= 80 ? 'var(--good)' : pct >= 50 ? 'var(--gold)' : 'var(--brand)';
+  const missed = history.filter((entry) => !entry.ok);
+  return (
+    <div className="card rise">
+      <div className="center">
+        <div className="score-ring">
+          <div className="score-num" style={{ color: scoreColour }}>
+            {score}
+            <span style={{ fontSize: '1.3rem', color: 'var(--ink-3)' }}>/{total}</span>
+          </div>
+        </div>
+        <h1>{pct >= 80 ? 'Strong round' : pct >= 50 ? 'Good progress' : 'Worth another go'}</h1>
+        <p className="small muted mt" style={{ maxWidth: 380, margin: '8px auto 0' }}>
+          {missed.length === 0
+            ? 'Everything correct. Those questions move further down your review schedule.'
+            : `The ${missed.length} you missed ${missed.length === 1 ? 'comes' : 'come'} back tomorrow, then again a few days later, until ${missed.length === 1 ? 'it sticks' : 'they stick'}.`}
+        </p>
+        <div className="wrap mt-lg" style={{ justifyContent: 'center' }}>
+          <span className="chip chip-gold">🪙 +{coinsEarned} coins</span>
+          <span className="chip">{pct}% accuracy</span>
+        </div>
+      </div>
+      <div className="divider" />
+      <h2 style={{ marginBottom: 10 }}>Your answers</h2>
+      <div>
+        {history.map((entry, i) => (
+          <div key={i} className={`result-row ${entry.ok ? 'ok' : 'no'}`}>
+            <span aria-hidden="true">{entry.ok ? '✓' : '✗'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="result-q">
+                {entry.prompt.split('\n').filter(Boolean)[0].slice(0, 90)}
+                {entry.prompt.length > 90 ? '…' : ''}
+              </div>
+              {!entry.ok && (
+                <>
+                  <div className="result-a">
+                    {entry.given ? <s>{entry.given}</s> : <em className="muted">no answer</em>} →{' '}
+                    <b>{entry.answer}</b>
+                  </div>
+                  {entry.explain && (
+                    <div className="result-a muted" style={{ marginTop: 2 }}>
+                      {entry.explain}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="btn-row mt-lg">
+        <button className="btn btn-ghost" onClick={onHome}>
+          Home
+        </button>
+        <button className="btn btn-primary" onClick={onAgain}>
+          Another round
+        </button>
+      </div>
+    </div>
+  );
 }

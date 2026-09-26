@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
+import { Fragment, useState } from 'react';
 import { reviewSummary } from '../engine/review.js';
 import { STATUS, STATUS_META, accuracy, masteryOverview, statusOf } from '../engine/mastery.js';
 import { TIER, TIER_META } from '../engine/difficulty.js';
@@ -9,1051 +8,743 @@ import { Coins, ProgressBar, SUBJECT_THEME, Segmented, Toggle, TopBar } from './
 import { getVolume, setVolume } from '../engine/sounds.js';
 import { Backup } from './Backup.jsx';
 
-export function Welcome({ onStart: e }) {
-  let [t, n] = (0, useState)(``);
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsxs)(`div`, {
-        className: `center`,
-        children: [
-          (0, jsx)(`div`, { style: { fontSize: `2.6rem` }, children: `🧠` }),
-          (0, jsx)(`div`, {
-            className: `wordmark mt`,
-            children: `Brain Blast`,
-          }),
-          (0, jsx)(`p`, {
-            className: `small muted mt`,
-            children: `Maths · Spelling · Grammar — P7 and S1`,
-          }),
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`label`, {
-        className: `small strong`,
-        htmlFor: `nm`,
-        children: `What should I call you?`,
-      }),
-      (0, jsx)(`input`, {
-        id: `nm`,
-        className: `field mt`,
-        value: t,
-        placeholder: `Your name`,
-        autoFocus: !0,
-        onChange: (e) => n(e.target.value),
-        onKeyDown: (n) => {
-          n.key === `Enter` && t.trim() && e(t.trim());
-        },
-      }),
-      (0, jsx)(`button`, {
-        className: `btn btn-primary mt`,
-        disabled: !t.trim(),
-        onClick: () => e(t.trim()),
-        children: `Start`,
-      }),
-      (0, jsx)(`p`, {
-        className: `tiny muted center mt`,
-        children: `You start with 50 coins. Hints cost a few — spend them wisely.`,
-      }),
-    ],
-  });
+export function Welcome({ onStart }) {
+  const [name, setName] = useState('');
+  return (
+    <div className="card rise">
+      <div className="center">
+        <div style={{ fontSize: '2.6rem' }}>🧠</div>
+        <div className="wordmark mt">Brain Blast</div>
+        <p className="small muted mt">Maths · Spelling · Grammar — P7 and S1</p>
+      </div>
+      <div className="divider" />
+      <label className="small strong" htmlFor="nm">
+        What should I call you?
+      </label>
+      <input
+        id="nm"
+        className="field mt"
+        value={name}
+        placeholder="Your name"
+        autoFocus
+        onChange={(event) => setName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && name.trim()) {
+            onStart(name.trim());
+          }
+        }}
+      />
+      <button
+        className="btn btn-primary mt"
+        disabled={!name.trim()}
+        onClick={() => onStart(name.trim())}
+      >
+        Start
+      </button>
+      <p className="tiny muted center mt">
+        You start with 50 coins. Hints cost a few — spend them wisely.
+      </p>
+    </div>
+  );
 }
 
-const STATUS_STARS = { [STATUS.UNSEEN]: 0, [STATUS.LEARNING]: 1, [STATUS.PRACTISING]: 2, [STATUS.SECURE]: 3 };
-
-function Stars({ count: e, accent: t }) {
-  return (0, jsx)(`span`, {
-    "aria-label": `${e} of 3 stars`,
-    style: { letterSpacing: 1, fontSize: 13 },
-    children: [0, 1, 2].map((n) =>
-      (0, jsx)(
-        `span`,
-        { style: { color: n < e ? t : `#dddde8` }, children: `★` },
-        n,
-      ),
-    ),
-  });
-}
-
-const LEVEL_LABELS = {
-  1: `Warm-up`,
-  2: `Core`,
-  3: `Building up`,
-  4: `Challenge`,
-  5: `Stretch`,
+const STATUS_STARS = {
+  [STATUS.UNSEEN]: 0,
+  [STATUS.LEARNING]: 1,
+  [STATUS.PRACTISING]: 2,
+  [STATUS.SECURE]: 3,
 };
 
-export function TopicPicker({ subjectId: e, mastery: t, review: n, onPick: r, onBack: i }) {
-  let a = SUBJECTS.find((t) => t.id === e),
-    o = SUBJECT_THEME[e] ?? SUBJECT_THEME.maths,
-    s = new Set(
-      Object.values(n ?? {})
-        .filter((e) => e.box < 5 && e.due <= Date.now())
-        .map((e) => e.key),
-    ),
-    c = a.topics
-      .map((n, r) => ({
-        t: n,
-        i: r,
-        level: n.level ?? 3,
-        status: statusOf(t[`${e}:${n.id}`]),
-      }))
-      .sort((e, t) => e.level - t.level || e.i - t.i),
-    l = c.find((e) => e.status !== STATUS.SECURE)?.t.id ?? c[0]?.t.id,
-    u = null;
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: i,
-        title: a.label,
-        sub: `Work up the path, or let me choose`,
-      }),
-      (0, jsx)(`button`, {
-        className: `btn btn-primary mb`,
-        onClick: () => r(null),
-        children: `✨ Mixed round — focuses on what needs work`,
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`div`, {
-        className: `stack-sm`,
-        children: c.map(({ t: n, level: i, status: a }) => {
-          let c = `${e}:${n.id}`,
-            d = accuracy(t[c]),
-            f = STATUS_STARS[a],
-            p =
-              s.has(c) ||
-              [...s].some((t) => t.startsWith(`${e}:`) && t.includes(n.id)),
-            m = Math.round(d * 100),
-            h = n.id === l,
-            g = LEVEL_LABELS[i] ?? `Level ${i}`,
-            v = g !== u;
+function Stars({ count, accent }) {
+  return (
+    <span aria-label={`${count} of 3 stars`} style={{ letterSpacing: 1, fontSize: 13 }}>
+      {[0, 1, 2].map((index) => (
+        <span key={index} style={{ color: index < count ? accent : '#dddde8' }}>
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const LEVEL_LABELS = { 1: 'Warm-up', 2: 'Core', 3: 'Building up', 4: 'Challenge', 5: 'Stretch' };
+
+export function TopicPicker({ subjectId, mastery, review, onPick, onBack }) {
+  const subject = SUBJECTS.find((s) => s.id === subjectId);
+  const theme = SUBJECT_THEME[subjectId] ?? SUBJECT_THEME.maths;
+  const dueKeys = new Set(
+    Object.values(review ?? {})
+      .filter((item) => item.box < 5 && item.due <= Date.now())
+      .map((item) => item.key),
+  );
+  const topics = subject.topics
+    .map((topic, index) => ({
+      topic,
+      index,
+      level: topic.level ?? 3,
+      status: statusOf(mastery[`${subjectId}:${topic.id}`]),
+    }))
+    .sort((a, b) => a.level - b.level || a.index - b.index);
+  const nextTopicId =
+    topics.find((entry) => entry.status !== STATUS.SECURE)?.topic.id ?? topics[0]?.topic.id;
+  let previousBand = null;
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title={subject.label} sub="Work up the path, or let me choose" />
+      <button className="btn btn-primary mb" onClick={() => onPick(null)}>
+        ✨ Mixed round — focuses on what needs work
+      </button>
+      <div className="divider" />
+      <div className="stack-sm">
+        {topics.map(({ topic, level, status }) => {
+          const key = `${subjectId}:${topic.id}`;
+          const acc = accuracy(mastery[key]);
+          const stars = STATUS_STARS[status];
+          const isDue =
+            dueKeys.has(key) ||
+            [...dueKeys].some(
+              (dueKey) => dueKey.startsWith(`${subjectId}:`) && dueKey.includes(topic.id),
+            );
+          const pct = Math.round(acc * 100);
+          const isNext = topic.id === nextTopicId;
+          const band = LEVEL_LABELS[level] ?? `Level ${level}`;
+          const startsBand = band !== previousBand;
+          previousBand = band;
           return (
-            (u = g),
-            (0, jsxs)(
-              Fragment,
-              {
-                children: [
-                  v &&
-                    (0, jsxs)(`div`, {
-                      className: `band-head`,
-                      "aria-hidden": `true`,
-                      children: [
-                        (0, jsx)(`span`, { children: g }),
-                        (0, jsx)(`span`, {
-                          className: `band-pips`,
-                          children: [1, 2, 3, 4, 5].map((e) =>
-                            (0, jsx)(
-                              `span`,
-                              { className: `pip ${e <= i ? `on` : ``}` },
-                              e,
-                            ),
-                          ),
-                        }),
-                      ],
-                    }),
-                  (0, jsxs)(`button`, {
-                    className: `tile`,
-                    style: {
-                      "--accent": o.accent,
-                      "--accent-soft": o.soft,
-                      marginBottom: 0,
-                    },
-                    onClick: () => r(n.id),
-                    children: [
-                      (0, jsx)(`span`, {
-                        className: `tile-ico`,
-                        style: { fontSize: 18 },
-                        children:
-                          a === STATUS.SECURE ? `✅` : a === STATUS.UNSEEN ? `📖` : `📝`,
-                      }),
-                      (0, jsxs)(`span`, {
-                        className: `tile-body`,
-                        children: [
-                          (0, jsxs)(`div`, {
-                            style: {
-                              display: `flex`,
-                              alignItems: `center`,
-                              gap: 8,
-                            },
-                            children: [
-                              (0, jsx)(`h3`, {
-                                style: { flex: 1 },
-                                children: n.label,
-                              }),
-                              h &&
-                                a !== STATUS.SECURE &&
-                                (0, jsx)(`span`, {
-                                  className: `chip-next`,
-                                  children: `Start here`,
-                                }),
-                              (0, jsx)(Stars, { count: f, accent: o.accent }),
-                              p &&
-                                (0, jsx)(`span`, {
-                                  className: `chip-due`,
-                                  title: `Due for review`,
-                                  children: `🔄`,
-                                }),
-                            ],
-                          }),
-                          (0, jsx)(`p`, {
-                            style: { marginTop: 2 },
-                            children:
-                              a === STATUS.UNSEEN
-                                ? `Not started yet`
-                                : a === STATUS.SECURE
-                                  ? `Secure ✓ · ${m}% recently · try a Stretch round`
-                                  : `${m}% recently · ${a === STATUS.PRACTISING ? `Getting there` : `Learning`}`,
-                          }),
-                        ],
-                      }),
-                      (0, jsx)(`span`, {
-                        className: `tile-end`,
-                        children: `›`,
-                      }),
-                    ],
-                  }),
-                ],
-              },
-              n.id,
-            )
+            <Fragment key={topic.id}>
+              {startsBand && (
+                <div className="band-head" aria-hidden="true">
+                  <span>{band}</span>
+                  <span className="band-pips">
+                    {[1, 2, 3, 4, 5].map((pip) => (
+                      <span key={pip} className={`pip ${pip <= level ? 'on' : ''}`} />
+                    ))}
+                  </span>
+                </div>
+              )}
+              <button
+                className="tile"
+                style={{ '--accent': theme.accent, '--accent-soft': theme.soft, marginBottom: 0 }}
+                onClick={() => onPick(topic.id)}
+              >
+                <span className="tile-ico" style={{ fontSize: 18 }}>
+                  {status === STATUS.SECURE ? '✅' : status === STATUS.UNSEEN ? '📖' : '📝'}
+                </span>
+                <span className="tile-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ flex: 1 }}>{topic.label}</h3>
+                    {isNext && status !== STATUS.SECURE && (
+                      <span className="chip-next">Start here</span>
+                    )}
+                    <Stars count={stars} accent={theme.accent} />
+                    {isDue && (
+                      <span className="chip-due" title="Due for review">
+                        🔄
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ marginTop: 2 }}>
+                    {status === STATUS.UNSEEN
+                      ? 'Not started yet'
+                      : status === STATUS.SECURE
+                        ? `Secure ✓ · ${pct}% recently · try a Stretch round`
+                        : `${pct}% recently · ${status === STATUS.PRACTISING ? 'Getting there' : 'Learning'}`}
+                  </p>
+                </span>
+                <span className="tile-end">›</span>
+              </button>
+            </Fragment>
           );
-        }),
-      }),
-    ],
-  });
+        })}
+      </div>
+    </div>
+  );
 }
 
-export function GameSetup({ settings: e, onStart: t, onBack: n }) {
-  let [r, i] = (0, useState)(`maths`),
-    [a, o] = (0, useState)(e.speed),
-    [s, c] = (0, useState)(e.gates),
-    [l, u] = (0, useState)(e.difficulty ?? 1);
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: n,
-        title: `Run & Learn`,
-        sub: `Set it up how you like it`,
-      }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Questions about`,
-      }),
-      (0, jsxs)(`div`, {
-        className: `stack-sm mb`,
-        children: [
-          SUBJECTS.map((e) =>
-            (0, jsxs)(
-              `button`,
-              {
-                className: `tile`,
-                style: {
-                  "--accent": SUBJECT_THEME[e.id].accent,
-                  "--accent-soft": SUBJECT_THEME[e.id].soft,
-                  marginBottom: 0,
-                  borderColor: r === e.id ? SUBJECT_THEME[e.id].accent : void 0,
-                  background: r === e.id ? SUBJECT_THEME[e.id].soft : void 0,
-                },
-                onClick: () => i(e.id),
-                children: [
-                  (0, jsx)(`span`, {
-                    className: `tile-ico`,
-                    children: e.icon,
-                  }),
-                  (0, jsx)(`span`, {
-                    className: `tile-body`,
-                    children: (0, jsx)(`h3`, { children: e.label }),
-                  }),
-                  (0, jsx)(`span`, {
-                    className: `tile-end`,
-                    children: r === e.id ? `●` : `○`,
-                  }),
-                ],
-              },
-              e.id,
-            ),
-          ),
-          (0, jsxs)(`button`, {
-            className: `tile`,
-            style: {
-              "--accent": `var(--gold)`,
-              "--accent-soft": `var(--gold-soft)`,
+export function GameSetup({ settings, onStart, onBack }) {
+  const [subject, setSubject] = useState('maths');
+  const [speed, setSpeed] = useState(settings.speed);
+  const [gates, setGates] = useState(settings.gates);
+  const [difficulty, setDifficulty] = useState(settings.difficulty ?? 1);
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="Run & Learn" sub="Set it up how you like it" />
+      <p className="small strong mb">Questions about</p>
+      <div className="stack-sm mb">
+        {SUBJECTS.map((s) => (
+          <button
+            key={s.id}
+            className="tile"
+            style={{
+              '--accent': SUBJECT_THEME[s.id].accent,
+              '--accent-soft': SUBJECT_THEME[s.id].soft,
               marginBottom: 0,
-              borderColor: r === `mixed` ? `var(--gold)` : void 0,
-              background: r === `mixed` ? `var(--gold-soft)` : void 0,
-            },
-            onClick: () => i(`mixed`),
-            children: [
-              (0, jsx)(`span`, { className: `tile-ico`, children: `🔥` }),
-              (0, jsxs)(`span`, {
-                className: `tile-body`,
-                children: [
-                  (0, jsx)(`h3`, { children: `Mixed` }),
-                  (0, jsx)(`p`, { children: `All subjects` }),
-                ],
-              }),
-              (0, jsx)(`span`, {
-                className: `tile-end`,
-                children: r === `mixed` ? `●` : `○`,
-              }),
-            ],
-          }),
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Running speed`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Running speed`,
-        value: a,
-        onChange: o,
-        options: [
-          { value: 0.65, label: `🐢 Gentle` },
-          { value: 1, label: `🚶 Normal` },
-          { value: 1.4, label: `🏃 Quick` },
-          { value: 1.9, label: `⚡ Turbo` },
-        ],
-      }),
-      (0, jsx)(`p`, {
-        className: `small strong mb mt-lg`,
-        children: `Jumps and gaps`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Course difficulty`,
-        value: l,
-        onChange: u,
-        options: [
-          { value: 1, label: `Easy` },
-          { value: 2, label: `Medium` },
-          { value: 3, label: `Hard` },
-          { value: 5, label: `Extreme` },
-        ],
-      }),
-      (0, jsx)(`p`, {
-        className: `small strong mb mt-lg`,
-        children: `How many gates`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Number of gates`,
-        value: s,
-        onChange: c,
-        options: [
-          { value: 3, label: `3` },
-          { value: 5, label: `5` },
-          { value: 8, label: `8` },
-          { value: 12, label: `12` },
-        ],
-      }),
-      (0, jsx)(`button`, {
-        className: `btn btn-primary mt-lg`,
-        onClick: () => t({ subject: r, speed: a, gates: s, difficulty: l }),
-        children: `Start running`,
-      }),
-    ],
-  });
+              borderColor: subject === s.id ? SUBJECT_THEME[s.id].accent : undefined,
+              background: subject === s.id ? SUBJECT_THEME[s.id].soft : undefined,
+            }}
+            onClick={() => setSubject(s.id)}
+          >
+            <span className="tile-ico">{s.icon}</span>
+            <span className="tile-body">
+              <h3>{s.label}</h3>
+            </span>
+            <span className="tile-end">{subject === s.id ? '●' : '○'}</span>
+          </button>
+        ))}
+        <button
+          className="tile"
+          style={{
+            '--accent': 'var(--gold)',
+            '--accent-soft': 'var(--gold-soft)',
+            marginBottom: 0,
+            borderColor: subject === 'mixed' ? 'var(--gold)' : undefined,
+            background: subject === 'mixed' ? 'var(--gold-soft)' : undefined,
+          }}
+          onClick={() => setSubject('mixed')}
+        >
+          <span className="tile-ico">🔥</span>
+          <span className="tile-body">
+            <h3>Mixed</h3>
+            <p>All subjects</p>
+          </span>
+          <span className="tile-end">{subject === 'mixed' ? '●' : '○'}</span>
+        </button>
+      </div>
+      <div className="divider" />
+      <p className="small strong mb">Running speed</p>
+      <Segmented
+        ariaLabel="Running speed"
+        value={speed}
+        onChange={setSpeed}
+        options={[
+          { value: 0.65, label: '🐢 Gentle' },
+          { value: 1, label: '🚶 Normal' },
+          { value: 1.4, label: '🏃 Quick' },
+          { value: 1.9, label: '⚡ Turbo' },
+        ]}
+      />
+      <p className="small strong mb mt-lg">Jumps and gaps</p>
+      <Segmented
+        ariaLabel="Course difficulty"
+        value={difficulty}
+        onChange={setDifficulty}
+        options={[
+          { value: 1, label: 'Easy' },
+          { value: 2, label: 'Medium' },
+          { value: 3, label: 'Hard' },
+          { value: 5, label: 'Extreme' },
+        ]}
+      />
+      <p className="small strong mb mt-lg">How many gates</p>
+      <Segmented
+        ariaLabel="Number of gates"
+        value={gates}
+        onChange={setGates}
+        options={[
+          { value: 3, label: '3' },
+          { value: 5, label: '5' },
+          { value: 8, label: '8' },
+          { value: 12, label: '12' },
+        ]}
+      />
+      <button
+        className="btn btn-primary mt-lg"
+        onClick={() => onStart({ subject, speed, gates, difficulty })}
+      >
+        Start running
+      </button>
+    </div>
+  );
 }
 
-export function Progress({ state: e, onBack: t }) {
-  let n = masteryOverview(e.mastery, ALL_TOPICS),
-    r = reviewSummary(e.review),
-    i = e.stats.answered
-      ? Math.round((e.stats.correct / e.stats.answered) * 100)
-      : 0,
-    a = SUBJECTS.map((e) => ({
-      subject: e,
-      rows: n.rows.filter((t) => t.subject === e.id),
-    }));
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: t,
-        title: `Progress`,
-        sub: `What is solid and what still needs work`,
-      }),
-      (0, jsx)(`div`, {
-        className: `grid-3`,
-        children: [
-          [`Answered`, e.stats.answered],
-          [`Accuracy`, `${i}%`],
-          [`Best streak`, `${e.streak.best}d`],
-        ].map(([e, t]) =>
-          (0, jsxs)(
-            `div`,
-            {
-              className: `panel center`,
-              children: [
-                (0, jsx)(`div`, {
-                  className: `strong`,
-                  style: { fontSize: `1.35rem` },
-                  children: t,
-                }),
-                (0, jsx)(`div`, {
-                  className: `tiny muted`,
-                  style: { marginTop: 2 },
-                  children: e,
-                }),
-              ],
-            },
-            e,
-          ),
-        ),
-      }),
-      r.struggling.length > 0 &&
-        (0, jsxs)(Fragment, {
-          children: [
-            (0, jsx)(`div`, { className: `divider` }),
-            (0, jsx)(`h2`, {
-              className: `mb`,
-              children: `Keeps catching her out`,
-            }),
-            (0, jsx)(`p`, {
-              className: `small muted mb`,
-              children: `These come back more often until they stick.`,
-            }),
-            (0, jsx)(`div`, {
-              className: `wrap`,
-              children: r.struggling
-                .slice(0, 8)
-                .map((e) =>
-                  (0, jsxs)(
-                    `span`,
-                    {
-                      className: `mdot learning`,
-                      children: [
-                        e.key
-                          .replace(`spelling:`, ``)
-                          .replace(`grammar:`, ``)
-                          .replace(`maths:`, ``),
-                        e.lapses > 0 && ` ·${e.lapses}`,
-                      ],
-                    },
-                    e.key,
-                  ),
-                ),
-            }),
-          ],
-        }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`h2`, { className: `mb`, children: `Topic by topic` }),
-      a.map(({ subject: e, rows: t }) =>
-        (0, jsxs)(
-          `div`,
-          {
-            style: { marginBottom: 18 },
-            children: [
-              (0, jsxs)(`div`, {
-                className: `row-between mb`,
-                children: [
-                  (0, jsxs)(`span`, {
-                    className: `small strong`,
-                    children: [e.icon, ` `, e.label],
-                  }),
-                  (0, jsxs)(`span`, {
-                    className: `tiny muted`,
-                    children: [
-                      t.filter((e) => e.status === STATUS.SECURE).length,
-                      `/`,
-                      t.length,
-                      ` secure`,
-                    ],
-                  }),
-                ],
-              }),
-              (0, jsx)(`div`, {
-                className: `mastery`,
-                children: t.map((e) =>
-                  (0, jsxs)(
-                    `span`,
-                    {
-                      className: `mdot ${e.status === STATUS.UNSEEN ? `` : e.status}`,
-                      children: [STATUS_META[e.status].icon, ` `, e.label],
-                    },
-                    e.key,
-                  ),
-                ),
-              }),
-            ],
-          },
-          e.id,
-        ),
-      ),
-      (0, jsx)(`div`, {
-        className: `panel`,
-        children: (0, jsxs)(`p`, {
-          className: `tiny muted`,
-          children: [
-            (0, jsx)(`strong`, { children: r.tracked }),
-            ` questions are in the review schedule ·`,
-            ` `,
-            (0, jsx)(`strong`, { children: r.mastered }),
-            ` have been retired as learned ·`,
-            ` `,
-            (0, jsx)(`strong`, { children: r.due }),
-            ` are due now.`,
-          ],
-        }),
-      }),
-    ],
-  });
+export function Progress({ state, onBack }) {
+  const overview = masteryOverview(state.mastery, ALL_TOPICS);
+  const reviews = reviewSummary(state.review);
+  const accuracyPct = state.stats.answered
+    ? Math.round((state.stats.correct / state.stats.answered) * 100)
+    : 0;
+  const bySubject = SUBJECTS.map((subject) => ({
+    subject,
+    rows: overview.rows.filter((row) => row.subject === subject.id),
+  }));
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="Progress" sub="What is solid and what still needs work" />
+      <div className="grid-3">
+        {[
+          ['Answered', state.stats.answered],
+          ['Accuracy', `${accuracyPct}%`],
+          ['Best streak', `${state.streak.best}d`],
+        ].map(([label, value]) => (
+          <div key={label} className="panel center">
+            <div className="strong" style={{ fontSize: '1.35rem' }}>
+              {value}
+            </div>
+            <div className="tiny muted" style={{ marginTop: 2 }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+      {reviews.struggling.length > 0 && (
+        <>
+          <div className="divider" />
+          <h2 className="mb">Keeps catching her out</h2>
+          <p className="small muted mb">These come back more often until they stick.</p>
+          <div className="wrap">
+            {reviews.struggling.slice(0, 8).map((item) => (
+              <span key={item.key} className="mdot learning">
+                {item.key.replace('spelling:', '').replace('grammar:', '').replace('maths:', '')}
+                {item.lapses > 0 && ` ·${item.lapses}`}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+      <div className="divider" />
+      <h2 className="mb">Topic by topic</h2>
+      {bySubject.map(({ subject, rows }) => (
+        <div key={subject.id} style={{ marginBottom: 18 }}>
+          <div className="row-between mb">
+            <span className="small strong">
+              {subject.icon} {subject.label}
+            </span>
+            <span className="tiny muted">
+              {rows.filter((row) => row.status === STATUS.SECURE).length}/{rows.length} secure
+            </span>
+          </div>
+          <div className="mastery">
+            {rows.map((row) => (
+              <span
+                key={row.key}
+                className={`mdot ${row.status === STATUS.UNSEEN ? '' : row.status}`}
+              >
+                {STATUS_META[row.status].icon} {row.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="panel">
+        <p className="tiny muted">
+          <strong>{reviews.tracked}</strong> questions are in the review schedule ·{' '}
+          <strong>{reviews.mastered}</strong> have been retired as learned ·{' '}
+          <strong>{reviews.due}</strong> are due now.
+        </p>
+      </div>
+    </div>
+  );
 }
 
-export function CustomWords({ words: e, onSave: t, onBack: n }) {
-  let [r, i] = (0, useState)(
-      e.join(`
-`),
-    ),
-    a = r
-      .split(/[\n,]+/)
-      .map((e) => e.trim())
-      .filter(Boolean);
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: n,
-        title: `My word list`,
-        sub: `This week’s spellings from school`,
-      }),
-      (0, jsx)(`p`, {
-        className: `small muted mb`,
-        children: `Type or paste the words, one per line. They get mixed into spelling rounds and follow the same review schedule as everything else.`,
-      }),
-      (0, jsx)(`textarea`, {
-        className: `field`,
-        value: r,
-        onChange: (e) => i(e.target.value),
-        placeholder: `necessary
-rhythm
-conscience`,
-        rows: 9,
-      }),
-      (0, jsxs)(`div`, {
-        className: `row-between mt`,
-        children: [
-          (0, jsxs)(`span`, {
-            className: `tiny muted`,
-            children: [a.length, ` `, a.length === 1 ? `word` : `words`],
-          }),
-          a.length > 0 &&
-            (0, jsxs)(`span`, {
-              className: `tiny muted`,
-              children: [
-                `Longest: `,
-                a.reduce((e, t) => (t.length > e.length ? t : e), ``),
-              ],
-            }),
-        ],
-      }),
-      (0, jsx)(`button`, {
-        className: `btn btn-primary mt`,
-        onClick: () => t(a),
-        children: `Save list`,
-      }),
-    ],
-  });
+export function CustomWords({ words, onSave, onBack }) {
+  const [text, setText] = useState(words.join('\n'));
+  const list = text
+    .split(/[\n,]+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="My word list" sub="This week’s spellings from school" />
+      <p className="small muted mb">
+        Type or paste the words, one per line. They get mixed into spelling rounds and follow the
+        same review schedule as everything else.
+      </p>
+      <textarea
+        className="field"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        placeholder={'necessary\nrhythm\nconscience'}
+        rows={9}
+      />
+      <div className="row-between mt">
+        <span className="tiny muted">
+          {list.length} {list.length === 1 ? 'word' : 'words'}
+        </span>
+        {list.length > 0 && (
+          <span className="tiny muted">
+            Longest:{' '}
+            {list.reduce((longest, word) => (word.length > longest.length ? word : longest), '')}
+          </span>
+        )}
+      </div>
+      <button className="btn btn-primary mt" onClick={() => onSave(list)}>
+        Save list
+      </button>
+    </div>
+  );
 }
 
 export function Settings({
-  settings: e,
-  onChange: t,
-  onSwitchProfile: n,
-  onExport: r,
-  onImport: i,
-  onBack: a,
-  onReset: o,
-  profileName: s,
+  settings,
+  onChange,
+  onSwitchProfile,
+  onExport,
+  onImport,
+  onBack,
+  onReset,
+  profileName,
 }) {
-  let [c, l] = (0, useState)(!1),
-    [u, d] = (0, useState)(getVolume);
-  function f(n) {
-    (d(n), setVolume(n), t({ ...e, sound: n > 0 }));
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [volume, setVolumeState] = useState(getVolume);
+  function changeVolume(value) {
+    setVolumeState(value);
+    setVolume(value);
+    onChange({ ...settings, sound: value > 0 });
   }
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, { onBack: a, title: `Settings` }),
-      (0, jsx)(Toggle, {
-        label: `Countdown timer`,
-        note: `Off is calmer — good for tricky topics and word problems`,
-        checked: e.timer,
-        onChange: (n) => t({ ...e, timer: n }),
-      }),
-      (0, jsx)(Toggle, {
-        label: `Dyslexia-friendly mode`,
-        note: `Wider spacing and a rounder font to make reading easier`,
-        checked: !!e.dyslexia,
-        onChange: (n) => t({ ...e, dyslexia: n }),
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Sound volume`,
-      }),
-      (0, jsx)(`input`, {
-        type: `range`,
-        min: `0`,
-        max: `1`,
-        step: `0.05`,
-        value: u,
-        onChange: (e) => f(parseFloat(e.target.value)),
-        style: { width: `100%`, accentColor: `var(--brand)` },
-        "aria-label": `Sound volume`,
-      }),
-      (0, jsxs)(`div`, {
-        className: `row-between mt`,
-        style: { fontSize: `0.78rem`, color: `var(--ink-3)` },
-        children: [
-          (0, jsx)(`span`, { children: `🔇 Off` }),
-          (0, jsx)(`span`, { children: `🔊 Full` }),
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Default running speed`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Default running speed`,
-        value: e.speed,
-        onChange: (n) => t({ ...e, speed: n }),
-        options: [
-          { value: 0.65, label: `🐢` },
-          { value: 1, label: `🚶` },
-          { value: 1.4, label: `🏃` },
-          { value: 1.9, label: `⚡` },
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Questions per practice round`,
-      }),
-      (0, jsx)(`p`, {
-        className: `tiny muted mb`,
-        children: `Practise and Daily challenge are separate — this only changes Practise.`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Questions per practice round`,
-        value: e.roundSize ?? 10,
-        onChange: (n) => t({ ...e, roundSize: n }),
-        options: [
-          { value: 5, label: `5` },
-          { value: 10, label: `10` },
-          { value: 15, label: `15` },
-          { value: 20, label: `20` },
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Maths difficulty`,
-      }),
-      (0, jsx)(`p`, {
-        className: `tiny muted mb`,
-        children: `Normally each maths topic eases off or gets trickier on its own, based on how your child is doing. Pin a level here to override that — spelling, grammar and vocabulary aren't affected either way.`,
-      }),
-      (0, jsx)(Segmented, {
-        ariaLabel: `Maths difficulty`,
-        value: e.difficultyOverride ?? `auto`,
-        onChange: (n) =>
-          t({ ...e, difficultyOverride: n === `auto` ? null : n }),
-        options: [
-          { value: `auto`, label: `Automatic` },
-          { value: TIER.EASY, label: `${TIER_META[TIER.EASY].emoji} ${TIER_META[TIER.EASY].short}` },
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="Settings" />
+      <Toggle
+        label="Countdown timer"
+        note="Off is calmer — good for tricky topics and word problems"
+        checked={settings.timer}
+        onChange={(timer) => onChange({ ...settings, timer })}
+      />
+      <Toggle
+        label="Dyslexia-friendly mode"
+        note="Wider spacing and a rounder font to make reading easier"
+        checked={!!settings.dyslexia}
+        onChange={(dyslexia) => onChange({ ...settings, dyslexia })}
+      />
+      <div className="divider" />
+      <p className="small strong mb">Sound volume</p>
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={volume}
+        onChange={(event) => changeVolume(parseFloat(event.target.value))}
+        style={{ width: '100%', accentColor: 'var(--brand)' }}
+        aria-label="Sound volume"
+      />
+      <div className="row-between mt" style={{ fontSize: '0.78rem', color: 'var(--ink-3)' }}>
+        <span>🔇 Off</span>
+        <span>🔊 Full</span>
+      </div>
+      <div className="divider" />
+      <p className="small strong mb">Default running speed</p>
+      <Segmented
+        ariaLabel="Default running speed"
+        value={settings.speed}
+        onChange={(speed) => onChange({ ...settings, speed })}
+        options={[
+          { value: 0.65, label: '🐢' },
+          { value: 1, label: '🚶' },
+          { value: 1.4, label: '🏃' },
+          { value: 1.9, label: '⚡' },
+        ]}
+      />
+      <div className="divider" />
+      <p className="small strong mb">Questions per practice round</p>
+      <p className="tiny muted mb">
+        Practise and Daily challenge are separate — this only changes Practise.
+      </p>
+      <Segmented
+        ariaLabel="Questions per practice round"
+        value={settings.roundSize ?? 10}
+        onChange={(roundSize) => onChange({ ...settings, roundSize })}
+        options={[
+          { value: 5, label: '5' },
+          { value: 10, label: '10' },
+          { value: 15, label: '15' },
+          { value: 20, label: '20' },
+        ]}
+      />
+      <div className="divider" />
+      <p className="small strong mb">Maths difficulty</p>
+      <p className="tiny muted mb">
+        Normally each maths topic eases off or gets trickier on its own, based on how your child is
+        doing. Pin a level here to override that — spelling, grammar and vocabulary aren't affected
+        either way.
+      </p>
+      <Segmented
+        ariaLabel="Maths difficulty"
+        value={settings.difficultyOverride ?? 'auto'}
+        onChange={(tier) =>
+          onChange({ ...settings, difficultyOverride: tier === 'auto' ? null : tier })
+        }
+        options={[
+          { value: 'auto', label: 'Automatic' },
+          {
+            value: TIER.EASY,
+            label: `${TIER_META[TIER.EASY].emoji} ${TIER_META[TIER.EASY].short}`,
+          },
           {
             value: TIER.STANDARD,
             label: `${TIER_META[TIER.STANDARD].emoji} ${TIER_META[TIER.STANDARD].short}`,
           },
-          { value: TIER.HARD, label: `${TIER_META[TIER.HARD].emoji} ${TIER_META[TIER.HARD].short}` },
-        ],
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(Backup, { getSave: r, onRestore: i, name: s }),
-      (0, jsx)(`div`, { className: `divider` }),
-      (0, jsx)(`button`, {
-        className: `btn btn-ghost`,
-        onClick: n,
-        children: `Switch profile`,
-      }),
-      (0, jsx)(`div`, { className: `divider` }),
-      c
-        ? (0, jsxs)(`div`, {
-            className: `panel`,
-            children: [
-              (0, jsx)(`p`, {
-                className: `small strong mb`,
-                children: `Erase everything?`,
-              }),
-              (0, jsx)(`p`, {
-                className: `tiny muted mb`,
-                children: `Coins, progress, review schedule and the garden all go.`,
-              }),
-              (0, jsxs)(`div`, {
-                className: `btn-row`,
-                children: [
-                  (0, jsx)(`button`, {
-                    className: `btn btn-ghost`,
-                    onClick: () => l(!1),
-                    children: `Keep it`,
-                  }),
-                  (0, jsx)(`button`, {
-                    className: `btn`,
-                    style: { background: `var(--bad)`, color: `#fff` },
-                    onClick: o,
-                    children: `Erase`,
-                  }),
-                ],
-              }),
-            ],
-          })
-        : (0, jsx)(`button`, {
-            className: `btn btn-ghost`,
-            onClick: () => l(!0),
-            children: `Start over`,
-          }),
-    ],
-  });
+          {
+            value: TIER.HARD,
+            label: `${TIER_META[TIER.HARD].emoji} ${TIER_META[TIER.HARD].short}`,
+          },
+        ]}
+      />
+      <div className="divider" />
+      <Backup getSave={onExport} onRestore={onImport} name={profileName} />
+      <div className="divider" />
+      <button className="btn btn-ghost" onClick={onSwitchProfile}>
+        Switch profile
+      </button>
+      <div className="divider" />
+      {confirmReset ? (
+        <div className="panel">
+          <p className="small strong mb">Erase everything?</p>
+          <p className="tiny muted mb">Coins, progress, review schedule and the garden all go.</p>
+          <div className="btn-row">
+            <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
+              Keep it
+            </button>
+            <button
+              className="btn"
+              style={{ background: 'var(--bad)', color: '#fff' }}
+              onClick={onReset}
+            >
+              Erase
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button className="btn btn-ghost" onClick={() => setConfirmReset(true)}>
+          Start over
+        </button>
+      )}
+    </div>
+  );
 }
 
-const AVATARS = [`🦊`, `🐼`, `🐸`, `🦄`];
+const AVATARS = ['🦊', '🐼', '🐸', '🦄'];
 
-export function ProfilePicker({
-  profiles: e,
-  activeSlot: t,
-  onSelect: n,
-  onNew: r,
-  onDelete: i,
-}) {
-  let [a, o] = (0, useState)(null);
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsxs)(`div`, {
-        className: `center mb`,
-        children: [
-          (0, jsx)(`div`, { style: { fontSize: `2.6rem` }, children: `⚡` }),
-          (0, jsx)(`div`, {
-            className: `wordmark mt`,
-            children: `Brain Blast`,
-          }),
-          (0, jsx)(`p`, {
-            className: `small muted mt`,
-            children: `Who is playing?`,
-          }),
-        ],
-      }),
-      (0, jsx)(`div`, {
-        className: `stack-sm`,
-        children: e.map((e, s) =>
-          e
-            ? a === s
-              ? (0, jsxs)(
-                  `div`,
-                  {
-                    className: `panel`,
-                    children: [
-                      (0, jsxs)(`p`, {
-                        className: `small strong mb`,
-                        children: [`Delete `, e.name, `?`],
-                      }),
-                      (0, jsx)(`p`, {
-                        className: `tiny muted mb`,
-                        children: `All progress, coins and the garden will be gone.`,
-                      }),
-                      (0, jsxs)(`div`, {
-                        className: `btn-row`,
-                        children: [
-                          (0, jsx)(`button`, {
-                            className: `btn btn-ghost`,
-                            onClick: () => o(null),
-                            children: `Keep`,
-                          }),
-                          (0, jsx)(`button`, {
-                            className: `btn`,
-                            style: { background: `var(--bad)`, color: `#fff` },
-                            onClick: () => {
-                              (i(s), o(null));
-                            },
-                            children: `Delete`,
-                          }),
-                        ],
-                      }),
-                    ],
-                  },
-                  s,
-                )
-              : (0, jsxs)(
-                  `div`,
-                  {
-                    style: { display: `flex`, gap: 8, alignItems: `center` },
-                    children: [
-                      (0, jsxs)(`button`, {
-                        className: `tile`,
-                        style: {
-                          "--accent": `var(--brand)`,
-                          "--accent-soft": `var(--brand-soft)`,
-                          flex: 1,
-                          borderColor: t === s ? `var(--brand)` : void 0,
-                          background: t === s ? `var(--brand-soft)` : void 0,
-                        },
-                        onClick: () => n(s),
-                        children: [
-                          (0, jsx)(`span`, {
-                            className: `tile-ico`,
-                            children: AVATARS[s],
-                          }),
-                          (0, jsxs)(`span`, {
-                            className: `tile-body`,
-                            children: [
-                              (0, jsx)(`h3`, { children: e.name }),
-                              (0, jsxs)(`p`, {
-                                children: [
-                                  e.answered,
-                                  ` questions answered · 🪙 `,
-                                  e.coins,
-                                  ` coins`,
-                                ],
-                              }),
-                            ],
-                          }),
-                          (0, jsx)(`span`, {
-                            className: `tile-end`,
-                            children: t === s ? `●` : `›`,
-                          }),
-                        ],
-                      }),
-                      (0, jsx)(`button`, {
-                        "aria-label": `Delete ${e.name}`,
-                        style: {
-                          background: `none`,
-                          border: `none`,
-                          cursor: `pointer`,
-                          fontSize: `1.2rem`,
-                          padding: `0 4px`,
-                          opacity: 0.5,
-                        },
-                        onClick: () => o(s),
-                        children: `🗑`,
-                      }),
-                    ],
-                  },
-                  s,
-                )
-            : (0, jsxs)(
-                `button`,
-                {
-                  className: `tile`,
-                  style: {
-                    "--accent": `var(--ink-3)`,
-                    "--accent-soft": `var(--bg-2)`,
-                  },
-                  onClick: () => r(s),
-                  children: [
-                    (0, jsx)(`span`, {
-                      className: `tile-ico`,
-                      style: { opacity: 0.4 },
-                      children: `➕`,
-                    }),
-                    (0, jsx)(`span`, {
-                      className: `tile-body`,
-                      children: (0, jsx)(`h3`, {
-                        style: { color: `var(--ink-3)` },
-                        children: `New profile`,
-                      }),
-                    }),
-                  ],
-                },
-                s,
-              ),
-        ),
-      }),
-    ],
-  });
+export function ProfilePicker({ profiles, activeSlot, onSelect, onNew, onDelete }) {
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  return (
+    <div className="card rise">
+      <div className="center mb">
+        <div style={{ fontSize: '2.6rem' }}>⚡</div>
+        <div className="wordmark mt">Brain Blast</div>
+        <p className="small muted mt">Who is playing?</p>
+      </div>
+      <div className="stack-sm">
+        {profiles.map((profile, slot) =>
+          profile ? (
+            confirmDelete === slot ? (
+              <div key={slot} className="panel">
+                <p className="small strong mb">Delete {profile.name}?</p>
+                <p className="tiny muted mb">All progress, coins and the garden will be gone.</p>
+                <div className="btn-row">
+                  <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>
+                    Keep
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ background: 'var(--bad)', color: '#fff' }}
+                    onClick={() => {
+                      onDelete(slot);
+                      setConfirmDelete(null);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div key={slot} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  className="tile"
+                  style={{
+                    '--accent': 'var(--brand)',
+                    '--accent-soft': 'var(--brand-soft)',
+                    flex: 1,
+                    borderColor: activeSlot === slot ? 'var(--brand)' : undefined,
+                    background: activeSlot === slot ? 'var(--brand-soft)' : undefined,
+                  }}
+                  onClick={() => onSelect(slot)}
+                >
+                  <span className="tile-ico">{AVATARS[slot]}</span>
+                  <span className="tile-body">
+                    <h3>{profile.name}</h3>
+                    <p>
+                      {profile.answered} questions answered · 🪙 {profile.coins} coins
+                    </p>
+                  </span>
+                  <span className="tile-end">{activeSlot === slot ? '●' : '›'}</span>
+                </button>
+                <button
+                  aria-label={`Delete ${profile.name}`}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '1.2rem',
+                    padding: '0 4px',
+                    opacity: 0.5,
+                  }}
+                  onClick={() => setConfirmDelete(slot)}
+                >
+                  🗑
+                </button>
+              </div>
+            )
+          ) : (
+            <button
+              key={slot}
+              className="tile"
+              style={{ '--accent': 'var(--ink-3)', '--accent-soft': 'var(--bg-2)' }}
+              onClick={() => onNew(slot)}
+            >
+              <span className="tile-ico" style={{ opacity: 0.4 }}>
+                ➕
+              </span>
+              <span className="tile-body">
+                <h3 style={{ color: 'var(--ink-3)' }}>New profile</h3>
+              </span>
+            </button>
+          ),
+        )}
+      </div>
+    </div>
+  );
 }
 
 export const SHOP_ITEMS = [
-  { emoji: `🌸`, name: `Blossom`, cost: 6 },
-  { emoji: `🪻`, name: `Bluebell`, cost: 6 },
-  { emoji: `🌻`, name: `Sunflower`, cost: 8 },
-  { emoji: `🦋`, name: `Butterfly`, cost: 10 },
-  { emoji: `🐝`, name: `Bee`, cost: 10 },
-  { emoji: `🪴`, name: `Pot plant`, cost: 12 },
-  { emoji: `🌳`, name: `Oak`, cost: 15 },
-  { emoji: `⛲`, name: `Fountain`, cost: 20 },
-  { emoji: `🐈`, name: `Cat`, cost: 24 },
-  { emoji: `🐕`, name: `Dog`, cost: 26 },
-  { emoji: `🦔`, name: `Hedgehog`, cost: 22 },
-  { emoji: `🦉`, name: `Owl`, cost: 28 },
-  { emoji: `🏡`, name: `Cottage`, cost: 40 },
-  { emoji: `🌈`, name: `Rainbow`, cost: 45 },
-  { emoji: `🦄`, name: `Unicorn`, cost: 60 },
-  { emoji: `🏰`, name: `Castle`, cost: 80 },
+  { emoji: '🌸', name: 'Blossom', cost: 6 },
+  { emoji: '🪻', name: 'Bluebell', cost: 6 },
+  { emoji: '🌻', name: 'Sunflower', cost: 8 },
+  { emoji: '🦋', name: 'Butterfly', cost: 10 },
+  { emoji: '🐝', name: 'Bee', cost: 10 },
+  { emoji: '🪴', name: 'Pot plant', cost: 12 },
+  { emoji: '🌳', name: 'Oak', cost: 15 },
+  { emoji: '⛲', name: 'Fountain', cost: 20 },
+  { emoji: '🐈', name: 'Cat', cost: 24 },
+  { emoji: '🐕', name: 'Dog', cost: 26 },
+  { emoji: '🦔', name: 'Hedgehog', cost: 22 },
+  { emoji: '🦉', name: 'Owl', cost: 28 },
+  { emoji: '🏡', name: 'Cottage', cost: 40 },
+  { emoji: '🌈', name: 'Rainbow', cost: 45 },
+  { emoji: '🦄', name: 'Unicorn', cost: 60 },
+  { emoji: '🏰', name: 'Castle', cost: 80 },
 ];
 
-export function Shop({ coins: e, inventory: t, onBuy: n, onBack: r }) {
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: r,
-        title: `Shop`,
-        right: (0, jsx)(Coins, { n: e }),
-      }),
-      (0, jsx)(`p`, {
-        className: `small muted mb`,
-        children: `Earn coins by answering questions. Everything you buy can go in your garden.`,
-      }),
-      (0, jsx)(`div`, {
-        className: `grid-3`,
-        children: SHOP_ITEMS.map((r) => {
-          let i = t.includes(r.emoji),
-            a = e >= r.cost;
-          return (0, jsxs)(
-            `button`,
-            {
-              className: `shop-item ${i ? `owned` : ``}`,
-              disabled: i || !a,
-              onClick: () => n(r),
-              children: [
-                (0, jsx)(`div`, { className: `shop-em`, children: r.emoji }),
-                (0, jsx)(`div`, { className: `shop-nm`, children: r.name }),
-                (0, jsx)(`div`, {
-                  className: `shop-px`,
-                  children: i ? `✓ owned` : `🪙 ${r.cost}`,
-                }),
-              ],
-            },
-            r.emoji,
+export function Shop({ coins, inventory, onBuy, onBack }) {
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="Shop" right={<Coins n={coins} />} />
+      <p className="small muted mb">
+        Earn coins by answering questions. Everything you buy can go in your garden.
+      </p>
+      <div className="grid-3">
+        {SHOP_ITEMS.map((item) => {
+          const owned = inventory.includes(item.emoji);
+          const affordable = coins >= item.cost;
+          return (
+            <button
+              key={item.emoji}
+              className={`shop-item ${owned ? 'owned' : ''}`}
+              disabled={owned || !affordable}
+              onClick={() => onBuy(item)}
+            >
+              <div className="shop-em">{item.emoji}</div>
+              <div className="shop-nm">{item.name}</div>
+              <div className="shop-px">{owned ? '✓ owned' : `🪙 ${item.cost}`}</div>
+            </button>
           );
-        }),
-      }),
-    ],
-  });
+        })}
+      </div>
+    </div>
+  );
 }
 
 const ROOM_COLS = 7;
 
 const ROOM_ROWS = 5;
 
-export function Room({ state: e, onPlace: t, onBack: n }) {
-  let [r, i] = (0, useState)(null),
-    a = stageFor(e.garden.grown),
-    o = canWater(e.garden),
-    s = daysSinceWatered(e.garden),
-    c = STAGES.find((t) => t.at > e.garden.grown),
-    l = Array.from({ length: ROOM_ROWS }, () => Array(ROOM_COLS).fill(null));
-  for (let { r: t, c: n, e: r } of e.room) t < ROOM_ROWS && n < ROOM_COLS && (l[t][n] = r);
-  function u(n, a) {
-    let o = e.room.filter((e) => e.r !== n || e.c !== a);
-    (r && (o.push({ r: n, c: a, e: r }), i(null)), t(o));
+export function Room({ state, onPlace, onBack }) {
+  const [placing, setPlacing] = useState(null);
+  const stage = stageFor(state.garden.grown);
+  const thirsty = canWater(state.garden);
+  const daysDry = daysSinceWatered(state.garden);
+  const nextStage = STAGES.find((s) => s.at > state.garden.grown);
+  const grid = Array.from({ length: ROOM_ROWS }, () => Array(ROOM_COLS).fill(null));
+  for (const { r: row, c: col, e: emoji } of state.room) {
+    if (row < ROOM_ROWS && col < ROOM_COLS) {
+      grid[row][col] = emoji;
+    }
   }
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: n,
-        title: `My room & garden`,
-        right: (0, jsx)(Coins, { n: e.coins }),
-      }),
-      (0, jsxs)(`div`, {
-        className: `plant mb`,
-        children: [
-          (0, jsx)(`div`, { className: `plant-em`, children: a.emoji }),
-          (0, jsx)(`div`, { className: `strong mt`, children: a.label }),
-          (0, jsx)(`p`, {
-            className: `tiny muted mt`,
-            children: o
-              ? `💧 Not watered yet today — finish any practice round to water it.`
-              : s === 0
-                ? `✓ Watered today, from your practice. Come back tomorrow.`
-                : `Watered recently.`,
-          }),
-          c &&
-            (0, jsxs)(`div`, {
-              style: { marginTop: 10 },
-              children: [
-                (0, jsx)(ProgressBar, {
-                  value: e.garden.grown,
-                  max: c.at,
-                  tone: `good`,
-                }),
-                (0, jsxs)(`p`, {
-                  className: `tiny muted`,
-                  style: { marginTop: 5 },
-                  children: [
-                    c.at - e.garden.grown,
-                    ` more `,
-                    c.at - e.garden.grown === 1
-                      ? `practice day`
-                      : `practice days`,
-                    ` → `,
-                    c.label,
-                  ],
-                }),
-              ],
-            }),
-        ],
-      }),
-      (0, jsx)(`div`, {
-        className: `room mb`,
-        style: { gridTemplateColumns: `repeat(${ROOM_COLS}, 1fr)` },
-        children: l.map((e, t) =>
-          e.map((e, n) =>
-            (0, jsx)(
-              `div`,
-              {
-                className: `cell ${r ? `armed` : ``}`,
-                onClick: () => u(t, n),
-                role: `button`,
-                tabIndex: 0,
-                onKeyDown: (e) => {
-                  e.key === `Enter` && u(t, n);
-                },
-                children: e || ``,
-              },
-              `${t}-${n}`,
-            ),
-          ),
-        ),
-      }),
-      e.inventory.length > 0
-        ? (0, jsxs)(Fragment, {
-            children: [
-              (0, jsx)(`p`, {
-                className: `tiny strong muted mb`,
-                children: r
-                  ? `Placing ${r} — tap a square`
-                  : `Tap something, then tap a square`,
-              }),
-              (0, jsx)(`div`, {
-                className: `tray`,
-                children: e.inventory.map((e) =>
-                  (0, jsx)(
-                    `button`,
-                    {
-                      className: `tray-item ${r === e ? `sel` : ``}`,
-                      onClick: () => i(r === e ? null : e),
-                      children: e,
-                    },
-                    e,
-                  ),
-                ),
-              }),
-            ],
-          })
-        : (0, jsx)(`p`, {
-            className: `small muted center`,
-            children: `Nothing to place yet — the shop has plants and animals.`,
-          }),
-      (0, jsx)(`p`, {
-        className: `tiny muted center mt`,
-        children: `Tap a placed item to take it away`,
-      }),
-    ],
-  });
+  function placeAt(row, col) {
+    const room = state.room.filter((item) => item.r !== row || item.c !== col);
+    if (placing) {
+      room.push({ r: row, c: col, e: placing });
+      setPlacing(null);
+    }
+    onPlace(room);
+  }
+  return (
+    <div className="card rise">
+      <TopBar onBack={onBack} title="My room & garden" right={<Coins n={state.coins} />} />
+      <div className="plant mb">
+        <div className="plant-em">{stage.emoji}</div>
+        <div className="strong mt">{stage.label}</div>
+        <p className="tiny muted mt">
+          {thirsty
+            ? '💧 Not watered yet today — finish any practice round to water it.'
+            : daysDry === 0
+              ? '✓ Watered today, from your practice. Come back tomorrow.'
+              : 'Watered recently.'}
+        </p>
+        {nextStage && (
+          <div style={{ marginTop: 10 }}>
+            <ProgressBar value={state.garden.grown} max={nextStage.at} tone="good" />
+            <p className="tiny muted" style={{ marginTop: 5 }}>
+              {nextStage.at - state.garden.grown} more{' '}
+              {nextStage.at - state.garden.grown === 1 ? 'practice day' : 'practice days'} →{' '}
+              {nextStage.label}
+            </p>
+          </div>
+        )}
+      </div>
+      <div className="room mb" style={{ gridTemplateColumns: `repeat(${ROOM_COLS}, 1fr)` }}>
+        {grid.map((cells, row) =>
+          cells.map((cell, col) => (
+            <div
+              key={`${row}-${col}`}
+              className={`cell ${placing ? 'armed' : ''}`}
+              onClick={() => placeAt(row, col)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  placeAt(row, col);
+                }
+              }}
+            >
+              {cell || ''}
+            </div>
+          )),
+        )}
+      </div>
+      {state.inventory.length > 0 ? (
+        <>
+          <p className="tiny strong muted mb">
+            {placing ? `Placing ${placing} — tap a square` : 'Tap something, then tap a square'}
+          </p>
+          <div className="tray">
+            {state.inventory.map((emoji) => (
+              <button
+                key={emoji}
+                className={`tray-item ${placing === emoji ? 'sel' : ''}`}
+                onClick={() => setPlacing(placing === emoji ? null : emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="small muted center">
+          Nothing to place yet — the shop has plants and animals.
+        </p>
+      )}
+      <p className="tiny muted center mt">Tap a placed item to take it away</p>
+    </div>
+  );
 }

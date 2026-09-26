@@ -1,1339 +1,1487 @@
+/**
+ * Style-based maths topics: order of operations, negative numbers, time &
+ * speed, averages, ratio, fractions, decimals and multi-step problems.
+ *
+ * Each topic is a list of question styles built with `makeTopic`. A style's
+ * `build(rng, tier)` returns the question-specific fields (prompt, answer,
+ * options, hint, visual, explain) or null when its random numbers don't make a
+ * good question, in which case `makeTopic` rolls again. Numbers scale with the
+ * difficulty tier through `byTier(tier, easy, standard, hard)`.
+ *
+ * Visuals are there to scaffold, never to give the answer away: a diagram that
+ * shows the value being asked for (a pie shaded to the answer, a bar labelled
+ * with the per-item price the hint asks for) defeats the question. Several
+ * styles below deliberately draw less than they could for that reason.
+ *
+ * All randomness comes from `rng`; keep the order of rng calls stable when
+ * editing so seeds keep replaying the same questions.
+ */
 import { formatNumber, numericAnswer, numericOptions, optionsFromCandidates } from './question.js';
-import { barChartSvg, barModelSvg, changeSvg, clockSvg, countersSvg, dotPlotSvg, fractionBarSvg, journeySvg, lineGraphSvg, numberLineSvg, pictogramSvg, pieRowSvg, pieSvg, ratioBarSvg, tableSvg, thermometerSvg } from './visual.js';
+import {
+  barChartSvg,
+  barModelSvg,
+  changeSvg,
+  clockSvg,
+  countersSvg,
+  dotPlotSvg,
+  fractionBarSvg,
+  journeySvg,
+  lineGraphSvg,
+  numberLineSvg,
+  pictogramSvg,
+  pieRowSvg,
+  pieSvg,
+  ratioBarSvg,
+  tableSvg,
+  thermometerSvg,
+} from './visual.js';
 import { TIER, byTier } from '../engine/difficulty.js';
 import { makeTopic } from './topic.js';
 
-const NAMES = [
-    `Aisha`,
-    `Callum`,
-    `Freya`,
-    `Jamie`,
-    `Lena`,
-    `Rory`,
-    `Skye`,
-    `Finlay`,
-    `Nadia`,
-    `Euan`,
-  ];
+const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
 
-const gcd = (e, t) => (t ? gcd(t, e % t) : Math.abs(e));
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 
-const pad2 = (e) => String(e).padStart(2, `0`);
+const pad2 = (value) => String(value).padStart(2, '0');
 
-const BRAND = `#7c6cff`;
+// Bar-model colours (match the palette in visual.js).
+const BRAND = '#7c6cff';
+const CORAL = '#ff8c6b';
+const MINT = '#4cceac';
+const AMBER = '#f0a020';
 
-const CORAL = `#ff8c6b`;
+/* ── Order of operations ─────────────────────────────────────────────── */
 
-const MINT = `#4cceac`;
+export const bodmasTopic = makeTopic('bodmas', 'Order of operations', 2, [
+  // a + b × c — the multiplication is written second but done first.
+  {
+    id: 'calc-mixed',
+    build(rng, tier = TIER.STANDARD) {
+      const [minA, maxA] = byTier(tier, [2, 8], [2, 12], [8, 20]);
+      const [minFactor, maxFactor] = byTier(tier, [2, 6], [2, 9], [4, 12]);
+      const a = rng.int(minA, maxA);
+      const b = rng.int(minFactor, maxFactor);
+      const c = rng.int(minFactor, maxFactor);
+      const answer = a + b * c;
+      return {
+        prompt: `Work out:  ${a} + ${b} × ${c}`,
+        answer,
+        options: numericOptions(rng, answer),
+        hint: 'Multiplication comes before addition — even though it is written second.',
+        explain: `${b} × ${c} = ${b * c}, then ${a} + ${b * c} = ${answer}.`,
+      };
+    },
+  },
 
-const AMBER = `#f0a020`;
+  // (a + b) × c — brackets first.
+  {
+    id: 'calc-brackets',
+    build(rng, tier = TIER.STANDARD) {
+      const [minA, maxA] = byTier(tier, [3, 8], [3, 12], [8, 18]);
+      const [minB, maxB] = byTier(tier, [2, 6], [2, 9], [4, 12]);
+      const [minC, maxC] = byTier(tier, [2, 4], [2, 6], [4, 9]);
+      const a = rng.int(minA, maxA);
+      const b = rng.int(minB, maxB);
+      const c = rng.int(minC, maxC);
+      const answer = (a + b) * c;
+      return {
+        prompt: `Work out:  (${a} + ${b}) × ${c}`,
+        answer,
+        options: numericOptions(rng, answer),
+        hint: 'Brackets first, always.',
+        explain: `(${a} + ${b}) = ${a + b}, then ${a + b} × ${c} = ${answer}.`,
+      };
+    },
+  },
 
-export const bodmasTopic = makeTopic(`bodmas`, `Order of operations`, 2, [
-    {
-      id: `calc-mixed`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 8], [2, 12], [8, 20]),
-          [i, a] = byTier(t, [2, 6], [2, 9], [4, 12]),
-          o = e.int(n, r),
-          s = e.int(i, a),
-          c = e.int(i, a),
-          l = o + s * c;
-        return {
-          prompt: `Work out:  ${o} + ${s} × ${c}`,
-          answer: l,
-          options: numericOptions(e, l),
-          hint: `Multiplication comes before addition — even though it is written second.`,
-          explain: `${s} × ${c} = ${s * c}, then ${o} + ${s * c} = ${l}.`,
-        };
-      },
+  // a² + b × c — indices before multiplication before addition.
+  {
+    id: 'calc-indices',
+    build(rng, tier = TIER.STANDARD) {
+      const [minBase, maxBase] = byTier(tier, [2, 4], [2, 6], [4, 9]);
+      const [minB, maxB] = byTier(tier, [2, 3], [2, 5], [3, 8]);
+      const [minC, maxC] = byTier(tier, [2, 6], [2, 9], [4, 12]);
+      const base = rng.int(minBase, maxBase);
+      const b = rng.int(minB, maxB);
+      const c = rng.int(minC, maxC);
+      const answer = base * base + b * c;
+      return {
+        prompt: `Work out:  ${base}² + ${b} × ${c}`,
+        answer,
+        options: numericOptions(rng, answer),
+        hint: 'Brackets, Indices, Division/Multiplication, Addition/Subtraction.',
+        explain: `${base}² = ${base * base}, ${b} × ${c} = ${b * c}, so ${base * base} + ${b * c} = ${answer}.`,
+      };
     },
-    {
-      id: `calc-brackets`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [3, 8], [3, 12], [8, 18]),
-          [i, a] = byTier(t, [2, 6], [2, 9], [4, 12]),
-          [o, s] = byTier(t, [2, 4], [2, 6], [4, 9]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = (c + l) * u;
-        return {
-          prompt: `Work out:  (${c} + ${l}) × ${u}`,
-          answer: d,
-          options: numericOptions(e, d),
-          hint: `Brackets first, always.`,
-          explain: `(${c} + ${l}) = ${c + l}, then ${c + l} × ${u} = ${d}.`,
-        };
-      },
-    },
-    {
-      id: `calc-indices`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 4], [2, 6], [4, 9]),
-          [i, a] = byTier(t, [2, 3], [2, 5], [3, 8]),
-          [o, s] = byTier(t, [2, 6], [2, 9], [4, 12]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = c * c + l * u;
-        return {
-          prompt: `Work out:  ${c}² + ${l} × ${u}`,
-          answer: d,
-          options: numericOptions(e, d),
-          hint: `Brackets, Indices, Division/Multiplication, Addition/Subtraction.`,
-          explain: `${c}² = ${c * c}, ${l} × ${u} = ${l * u}, so ${c * c} + ${l * u} = ${d}.`,
-        };
-      },
-    },
-    {
-      id: `scenario-cost`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.pick(NAMES),
-          [r, i] = byTier(t, [2, 5], [3, 8], [6, 12]),
-          [a, o] = byTier(t, [3, 8], [4, 12], [8, 18]),
-          [s, c] = byTier(t, [2, 5], [2, 9], [5, 14]),
-          l = e.int(r, i),
-          u = e.int(a, o),
-          d = e.int(s, c),
-          f = l * u + d;
-        return {
-          prompt: `${n} books ${l} cinema tickets at £${u} each.\nThere is also a £${d} booking fee.\n\nWhat is the total cost?`,
-          ...numericAnswer(e, f, { prefix: `£` }),
-          hint: `Work out the tickets first, then add the single booking fee.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `total cost`,
-                segments: [
-                  { span: l * u, text: `${l} × £${u}`, colour: BRAND },
-                  { span: Math.max(d, 1), text: `£${d}`, colour: AMBER },
-                ],
-              },
-            ],
-            `the fee is added once, not per ticket`,
-          ),
-          explain: `${l} × £${u} = £${l * u}, then + £${d} = £${f}.`,
-        };
-      },
-    },
-    {
-      id: `which-calculation`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 4], [3, 7], [6, 11]),
-          [i, a] = byTier(t, [2, 6], [3, 9], [6, 15]),
-          [o, s] = byTier(t, [1, 4], [2, 6], [4, 10]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = `${c} × ${l} + ${u}`;
-        return {
-          prompt: `A club charges £${l} per session and a one-off £${u} joining fee.\n\nWhich calculation gives the cost of ${c} sessions?`,
-          answer: d,
-          options: e.shuffle([
-            d,
-            `${c} × (${l} + ${u})`,
-            `${c} + ${l} × ${u}`,
-            `(${c} + ${l}) × ${u}`,
-          ]),
-          hint: `The joining fee is paid once. The session price is paid every time.`,
-          explain: `${c} sessions cost ${c} × ${l}. The £${u} is added once: ${d}.`,
-        };
-      },
-    },
-    {
-      id: `place-brackets`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 5], [2, 8], [5, 12]),
-          [i, a] = byTier(t, [2, 4], [2, 6], [4, 9]),
-          o = e.int(n, r),
-          s = e.int(n, r),
-          c = e.int(i, a),
-          l = (o + s) * c,
-          u = o + s * c;
-        return l === u
-          ? null
-          : {
-              prompt: `Where do the brackets go to make this true?\n\n${o} + ${s} × ${c} = ${l}`,
-              answer: `(${o} + ${s}) × ${c}`,
-              options: e.shuffle([
-                `(${o} + ${s}) × ${c}`,
-                `${o} + (${s} × ${c})`,
-                `(${o} + ${s} × ${c})`,
-                `${o} + ${s} × (${c})`,
-              ]),
-              hint: `Without brackets the answer would be ${u}. You need a bigger result.`,
-              explain: `(${o} + ${s}) = ${o + s}, and ${o + s} × ${c} = ${l}.`,
-            };
-      },
-    },
-  ]);
+  },
 
-export const negativesTopic = makeTopic(`negatives`, `Negative numbers`, 3, [
-    {
-      id: `temp-rise`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 8], [2, 15], [8, 25]),
-          [i, a] = byTier(t, [2, 12], [3, 25], [10, 40]),
-          o = -e.int(n, r),
-          s = e.int(i, a),
-          c = o + s;
-        return {
-          prompt: `At midnight the temperature in Aviemore was ${o}°C.\nBy midday it had risen by ${s}°C.\n\nWhat was the midday temperature?`,
-          answer: `${c}`,
-          hint: `Count up the number line from the negative number, through zero.`,
-          visual: numberLineSvg(o - 2, o + s + 2, o, `${o}°C at midnight`),
-          explain: `${o} + ${s} = ${c}°C`,
-        };
-      },
+  // Order of operations in context: n tickets plus a one-off fee.
+  {
+    id: 'scenario-cost',
+    build(rng, tier = TIER.STANDARD) {
+      const name = rng.pick(NAMES);
+      const [minTickets, maxTickets] = byTier(tier, [2, 5], [3, 8], [6, 12]);
+      const [minPrice, maxPrice] = byTier(tier, [3, 8], [4, 12], [8, 18]);
+      const [minFee, maxFee] = byTier(tier, [2, 5], [2, 9], [5, 14]);
+      const tickets = rng.int(minTickets, maxTickets);
+      const price = rng.int(minPrice, maxPrice);
+      const fee = rng.int(minFee, maxFee);
+      const total = tickets * price + fee;
+      return {
+        prompt: `${name} books ${tickets} cinema tickets at £${price} each.\nThere is also a £${fee} booking fee.\n\nWhat is the total cost?`,
+        ...numericAnswer(rng, total, { prefix: '£' }),
+        hint: 'Work out the tickets first, then add the single booking fee.',
+        visual: barModelSvg(
+          [
+            {
+              label: 'total cost',
+              segments: [
+                { span: tickets * price, text: `${tickets} × £${price}`, colour: BRAND },
+                { span: Math.max(fee, 1), text: `£${fee}`, colour: AMBER },
+              ],
+            },
+          ],
+          'the fee is added once, not per ticket',
+        ),
+        explain: `${tickets} × £${price} = £${tickets * price}, then + £${fee} = £${total}.`,
+      };
     },
-    {
-      id: `temp-difference`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 6], [1, 12], [8, 20]),
-          [i, a] = byTier(t, [2, 8], [2, 16], [10, 28]),
-          o = e.int(n, r),
-          s = -e.int(i, a),
-          c = o - s;
-        return {
-          prompt: `On Monday the temperature was ${s}°C.\nOn Tuesday it was ${o}°C.\n\nWhat is the difference between the two temperatures?`,
-          ...numericAnswer(e, c, { suffix: `°C` }),
-          hint: `Count from the lower number up to the higher one, passing through zero.`,
-          visual: thermometerSvg(s, o),
-          explain: `From ${s} up to 0 is ${Math.abs(s)}, then 0 up to ${o} is ${o}. Total ${c}°C.`,
-        };
-      },
-    },
-    {
-      id: `lift-floors`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 2], [1, 3], [3, 5]),
-          [i, a] = byTier(t, [3, 6], [4, 9], [8, 14]),
-          o = -e.int(n, r),
-          s = e.int(i, a),
-          c = o + s;
-        return {
-          prompt: `A lift starts on floor ${o} (a basement car park).\nIt goes up ${s} floors.\n\nWhich floor does it stop on?`,
-          answer: `${c}`,
-          options: numericOptions(e, c),
-          hint: `Ground floor is 0. Basements are negative.`,
-          visual: numberLineSvg(o - 1, c + 2, o, `starts on floor ${o}`),
-          explain: `${o} + ${s} = floor ${c}.`,
-        };
-      },
-    },
-    {
-      id: `bank-balance`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [8, 30], [15, 60], [40, 100]),
-          [i, a] = byTier(t, [40, 80], [70, 140], [120, 220]),
-          o = e.int(n, r),
-          s = e.int(i, a),
-          c = s - o;
-        return {
-          prompt: `${e.pick(NAMES)}'s account is £${o} overdrawn, shown as −£${o}.\nShe pays in £${s}.\n\nWhat is her balance now?`,
-          ...numericAnswer(e, c, { prefix: `£` }),
-          hint: `The first £${o} clears the overdraft. What is left after that?`,
-          visual: barModelSvg(
-            [
-              {
-                label: `pays in £${s}`,
-                segments: [
-                  { span: o, text: `£${o} clears debt`, colour: CORAL },
-                  { span: Math.max(c, 1), text: `?`, colour: MINT },
-                ],
-              },
-            ],
-            `clear the overdraft first`,
-          ),
-          explain: `−${o} + ${s} = ${c}, so the balance is £${c}.`,
-        };
-      },
-    },
-    {
-      id: `order-coldest`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [5, 12], [8, 18], [15, 28]),
-          [i, a] = byTier(t, [1, 5], [1, 7], [5, 12]),
-          [o, s] = byTier(t, [1, 6], [1, 9], [6, 15]),
-          c = e.shuffle([-e.int(n, r), -e.int(i, a), 0, e.int(o, s)]),
-          l = [...c].sort((e, t) => e - t),
-          u = [...c].sort((e, t) => t - e),
-          d = [...c].sort((e, t) => Math.abs(e) - Math.abs(t)),
-          f = (e) => e.join(`, `),
-          p = optionsFromCandidates(e, f(l), [f(u), f(d), f(c), f([l[1], l[0], l[2], l[3]])]);
-        return p
-          ? {
-              prompt: `Put these temperatures in order, coldest first:\n\n${c.join(`, `)} °C`,
-              answer: f(l),
-              options: p,
-              hint: `The further left on the number line, the colder. −12 is colder than −3.`,
-              visual: numberLineSvg(Math.min(...c) - 1, Math.max(...c) + 1, null),
-              explain: `Coldest to warmest: ${f(l)}.`,
-            }
-          : null;
-      },
-    },
-    {
-      id: `arithmetic`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 7], [2, 12], [8, 20]),
-          [i, a] = byTier(t, [2, 7], [2, 12], [8, 20]),
-          o = -e.int(n, r),
-          s = e.int(i, a),
-          c = e.next() > 0.5,
-          l = c ? o - s : o + s;
-        return {
-          prompt: `Work out:  ${o} ${c ? `−` : `+`} ${s}`,
-          answer: `${l}`,
-          hint: c
-            ? `Subtracting moves you further left on the number line.`
-            : `Adding moves you right.`,
-          visual: numberLineSvg(
-            Math.min(o, o - s) - 1,
-            Math.max(o, o + s) + 1,
-            o,
-            `start at ${o}`,
-          ),
-          explain: `${o} ${c ? `−` : `+`} ${s} = ${l}`,
-        };
-      },
-    },
-  ]);
+  },
 
-export const timeSpeedTopic = makeTopic(`time-speed`, `Time & speed`, 3, [
-    {
-      id: `arrival-time`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.int(6, 20),
-          r = e.pick([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]),
-          [i, a] = byTier(t, [20, 80], [35, 190], [150, 300]),
-          o = e.int(i, a),
-          s = n * 60 + r + o,
-          c = Math.floor(s / 60) % 24,
-          l = s % 60;
-        return {
-          prompt: `A train leaves Glasgow at ${pad2(n)}:${pad2(r)}.\nThe journey takes ${Math.floor(o / 60)} h ${o % 60} min.\n\nWhat time does it arrive? (24-hour clock, like 14:35)`,
-          answer: `${pad2(c)}:${pad2(l)}`,
-          hint: `Add the hours first, then the minutes. Carry over if the minutes pass 60.`,
-          visual: clockSvg(n % 12 == 0 ? 12 : n % 12, r),
-          explain: `${pad2(n)}:${pad2(r)} + ${Math.floor(o / 60)} h ${o % 60} min = ${pad2(c)}:${pad2(l)}`,
-        };
-      },
+  // Choose the calculation that models a situation (no arithmetic needed).
+  {
+    id: 'which-calculation',
+    build(rng, tier = TIER.STANDARD) {
+      const [minSessions, maxSessions] = byTier(tier, [2, 4], [3, 7], [6, 11]);
+      const [minPrice, maxPrice] = byTier(tier, [2, 6], [3, 9], [6, 15]);
+      const [minFee, maxFee] = byTier(tier, [1, 4], [2, 6], [4, 10]);
+      const sessions = rng.int(minSessions, maxSessions);
+      const price = rng.int(minPrice, maxPrice);
+      const fee = rng.int(minFee, maxFee);
+      const answer = `${sessions} × ${price} + ${fee}`;
+      return {
+        prompt: `A club charges £${price} per session and a one-off £${fee} joining fee.\n\nWhich calculation gives the cost of ${sessions} sessions?`,
+        answer,
+        options: rng.shuffle([
+          answer,
+          `${sessions} × (${price} + ${fee})`,
+          `${sessions} + ${price} × ${fee}`,
+          `(${sessions} + ${price}) × ${fee}`,
+        ]),
+        hint: 'The joining fee is paid once. The session price is paid every time.',
+        explain: `${sessions} sessions cost ${sessions} × ${price}. The £${fee} is added once: ${answer}.`,
+      };
     },
-    {
-      id: `timetable`,
-      build(e, t = TIER.STANDARD) {
-        let n = [`Glasgow`, `Falkirk`, `Linlithgow`, `Edinburgh`],
-          r = e.int(7, 18),
-          i = e.pick([0, 12, 24, 36, 48]),
-          [a, o] = byTier(t, [8, 14], [14, 22], [20, 32]),
-          [s, c] = byTier(t, [5, 10], [9, 16], [14, 24]),
-          [l, u] = byTier(t, [8, 15], [15, 25], [22, 36]),
-          d = [e.int(a, o), e.int(s, c), e.int(l, u)],
-          f = [r * 60 + i];
-        d.forEach((e) => f.push(f[f.length - 1] + e));
-        let p = (e) => `${pad2(Math.floor(e / 60) % 24)}:${pad2(e % 60)}`,
-          m = e.int(0, 2),
-          h = f[m + 1] - f[m];
-        return {
-          prompt: `The timetable shows one train's journey.\n\nHow many minutes does it take from ${n[m]} to ${n[m + 1]}?`,
-          ...numericAnswer(e, h, { suffix: ` min` }),
-          hint: `Find both stations in the table, then count the minutes between them.`,
-          visual: tableSvg(
-            [`Station`, `Time`],
-            n.map((e, t) => [e, p(f[t])]),
-            { title: `Train timetable` },
-          ),
-          explain: `${n[m]} ${p(f[m])} → ${n[m + 1]} ${p(f[m + 1])} = ${h} minutes.`,
-        };
-      },
-    },
-    {
-      id: `distance`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(
-            t,
-            [40, 50, 60],
-            [40, 50, 60, 70, 80, 90],
-            [70, 80, 90, 100, 110, 120],
-          ),
-          [r, i] = byTier(t, [2, 3], [2, 5], [4, 8]),
-          a = e.pick(n),
-          o = e.int(r, i);
-        return {
-          prompt: `A coach travels at a steady ${a} km/h for ${o} hours.\n\nHow far does it travel?`,
-          ...numericAnswer(e, a * o, { suffix: ` km` }),
-          hint: `Distance = speed × time.`,
-          visual: journeySvg(null, o, a),
-          explain: `${a} × ${o} = ${a * o} km`,
-        };
-      },
-    },
-    {
-      id: `speed`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [30, 40, 50], [30, 40, 50, 60, 80], [60, 80, 90, 100]),
-          [r, i] = byTier(t, [2, 4], [2, 6], [4, 9]),
-          a = e.pick(n),
-          o = e.int(r, i),
-          s = a * o;
-        return {
-          prompt: `A cyclist covers ${s} km in ${o} hours.\n\nWhat is her average speed in km/h?`,
-          ...numericAnswer(e, a, { suffix: ` km/h` }),
-          hint: `Speed = distance ÷ time.`,
-          visual: journeySvg(s, o, null),
-          explain: `${s} ÷ ${o} = ${a} km/h`,
-        };
-      },
-    },
-    {
-      id: `duration`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.int(13, 20),
-          r = e.pick([0, 10, 15, 20, 30, 40, 45, 50]),
-          i = byTier(
-            t,
-            [85, 95, 100],
-            [85, 95, 100, 110, 125, 135],
-            [110, 125, 135, 150, 165, 180],
-          ),
-          a = e.pick(i),
-          o = n * 60 + r + a;
-        return {
-          prompt: `A film starts at ${pad2(n)}:${pad2(r)} and finishes at ${pad2(Math.floor(o / 60) % 24)}:${pad2(o % 60)}.\n\nHow long is the film, in minutes?`,
-          ...numericAnswer(e, a, { suffix: ` min` }),
-          hint: `Count on to the next whole hour first, then add the rest.`,
-          visual: clockSvg(n % 12 == 0 ? 12 : n % 12, r),
-          explain: `From ${pad2(n)}:${pad2(r)} to ${pad2(Math.floor(o / 60) % 24)}:${pad2(o % 60)} is ${a} minutes.`,
-        };
-      },
-    },
-  ]);
+  },
 
-export const averagesTopic = makeTopic(`averages`, `Averages & data`, 3, [
-    {
-      id: `mean-list`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.int(4, 6),
-          [r, i] = byTier(t, [2, 15], [2, 30], [20, 60]),
-          a = Array.from({ length: n }, () => e.int(r, i)),
-          o = a.reduce((e, t) => e + t, 0);
-        a[0] += (n - (o % n)) % n;
-        let s = a.reduce((e, t) => e + t, 0),
-          c = s / n;
-        return {
-          prompt: `${e.pick(NAMES)} scored these points across ${n} games:\n\n${a.join(`, `)}\n\nWhat is the mean score?`,
-          answer: c,
-          hint: `Add all ${n} numbers, then divide by ${n}.`,
-          visual: dotPlotSvg(a),
-          explain: `Total = ${s}. ${s} ÷ ${n} = ${c}.`,
-        };
-      },
+  // Insert brackets to make a statement true. Skipped when brackets make no
+  // difference to the result.
+  {
+    id: 'place-brackets',
+    build(rng, tier = TIER.STANDARD) {
+      const [minAddend, maxAddend] = byTier(tier, [2, 5], [2, 8], [5, 12]);
+      const [minFactor, maxFactor] = byTier(tier, [2, 4], [2, 6], [4, 9]);
+      const a = rng.int(minAddend, maxAddend);
+      const b = rng.int(minAddend, maxAddend);
+      const c = rng.int(minFactor, maxFactor);
+      const withBrackets = (a + b) * c;
+      const withoutBrackets = a + b * c;
+      if (withBrackets === withoutBrackets) return null;
+      return {
+        prompt: `Where do the brackets go to make this true?\n\n${a} + ${b} × ${c} = ${withBrackets}`,
+        answer: `(${a} + ${b}) × ${c}`,
+        options: rng.shuffle([
+          `(${a} + ${b}) × ${c}`,
+          `${a} + (${b} × ${c})`,
+          `(${a} + ${b} × ${c})`,
+          `${a} + ${b} × (${c})`,
+        ]),
+        hint: `Without brackets the answer would be ${withoutBrackets}. You need a bigger result.`,
+        explain: `(${a} + ${b}) = ${a + b}, and ${a + b} × ${c} = ${withBrackets}.`,
+      };
     },
-    {
-      id: `mean-from-chart`,
-      build(e, t = TIER.STANDARD) {
-        let n = [`Mon`, `Tue`, `Wed`, `Thu`],
-          [r, i] = byTier(t, [5, 12], [6, 20], [15, 35]),
-          a = e.int(r, i),
-          o = e.shuffle([-3, -1, 1, 3]).map((e) => a + e);
-        return {
-          prompt: `The bar chart shows how many books were borrowed each day.
+  },
+]);
+
+/* ── Negative numbers ────────────────────────────────────────────────── */
+
+export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
+  // Temperature rising from below zero, crossing zero.
+  {
+    id: 'temp-rise',
+    build(rng, tier = TIER.STANDARD) {
+      const [minCold, maxCold] = byTier(tier, [2, 8], [2, 15], [8, 25]);
+      const [minRise, maxRise] = byTier(tier, [2, 12], [3, 25], [10, 40]);
+      const start = -rng.int(minCold, maxCold);
+      const rise = rng.int(minRise, maxRise);
+      const end = start + rise;
+      return {
+        prompt: `At midnight the temperature in Aviemore was ${start}°C.\nBy midday it had risen by ${rise}°C.\n\nWhat was the midday temperature?`,
+        answer: `${end}`,
+        hint: 'Count up the number line from the negative number, through zero.',
+        visual: numberLineSvg(start - 2, start + rise + 2, start, `${start}°C at midnight`),
+        explain: `${start} + ${rise} = ${end}°C`,
+      };
+    },
+  },
+
+  // Difference between a negative and a positive temperature.
+  {
+    id: 'temp-difference',
+    build(rng, tier = TIER.STANDARD) {
+      const [minWarm, maxWarm] = byTier(tier, [1, 6], [1, 12], [8, 20]);
+      const [minCold, maxCold] = byTier(tier, [2, 8], [2, 16], [10, 28]);
+      const warm = rng.int(minWarm, maxWarm);
+      const cold = -rng.int(minCold, maxCold);
+      const difference = warm - cold;
+      return {
+        prompt: `On Monday the temperature was ${cold}°C.\nOn Tuesday it was ${warm}°C.\n\nWhat is the difference between the two temperatures?`,
+        ...numericAnswer(rng, difference, { suffix: '°C' }),
+        hint: 'Count from the lower number up to the higher one, passing through zero.',
+        visual: thermometerSvg(cold, warm),
+        explain: `From ${cold} up to 0 is ${Math.abs(cold)}, then 0 up to ${warm} is ${warm}. Total ${difference}°C.`,
+      };
+    },
+  },
+
+  // A lift going up from a basement level.
+  {
+    id: 'lift-floors',
+    build(rng, tier = TIER.STANDARD) {
+      const [minBasement, maxBasement] = byTier(tier, [1, 2], [1, 3], [3, 5]);
+      const [minUp, maxUp] = byTier(tier, [3, 6], [4, 9], [8, 14]);
+      const start = -rng.int(minBasement, maxBasement);
+      const up = rng.int(minUp, maxUp);
+      const floor = start + up;
+      return {
+        prompt: `A lift starts on floor ${start} (a basement car park).\nIt goes up ${up} floors.\n\nWhich floor does it stop on?`,
+        answer: `${floor}`,
+        options: numericOptions(rng, floor),
+        hint: 'Ground floor is 0. Basements are negative.',
+        visual: numberLineSvg(start - 1, floor + 2, start, `starts on floor ${start}`),
+        explain: `${start} + ${up} = floor ${floor}.`,
+      };
+    },
+  },
+
+  // Paying into an overdrawn account. The bar model shows the payment
+  // splitting into "clears the debt" and the unknown remainder.
+  {
+    id: 'bank-balance',
+    build(rng, tier = TIER.STANDARD) {
+      const [minDebt, maxDebt] = byTier(tier, [8, 30], [15, 60], [40, 100]);
+      const [minPayment, maxPayment] = byTier(tier, [40, 80], [70, 140], [120, 220]);
+      const debt = rng.int(minDebt, maxDebt);
+      const payment = rng.int(minPayment, maxPayment);
+      const balance = payment - debt;
+      const name = rng.pick(NAMES);
+      return {
+        prompt: `${name}'s account is £${debt} overdrawn, shown as −£${debt}.\nShe pays in £${payment}.\n\nWhat is her balance now?`,
+        ...numericAnswer(rng, balance, { prefix: '£' }),
+        hint: `The first £${debt} clears the overdraft. What is left after that?`,
+        visual: barModelSvg(
+          [
+            {
+              label: `pays in £${payment}`,
+              segments: [
+                { span: debt, text: `£${debt} clears debt`, colour: CORAL },
+                { span: Math.max(balance, 1), text: '?', colour: MINT },
+              ],
+            },
+          ],
+          'clear the overdraft first',
+        ),
+        explain: `−${debt} + ${payment} = ${balance}, so the balance is £${balance}.`,
+      };
+    },
+  },
+
+  // Order temperatures coldest first. Distractors are the common mistakes:
+  // warmest first, ordering by size ignoring the sign, the original order,
+  // and swapping the two coldest.
+  {
+    id: 'order-coldest',
+    build(rng, tier = TIER.STANDARD) {
+      const [minVeryCold, maxVeryCold] = byTier(tier, [5, 12], [8, 18], [15, 28]);
+      const [minCold, maxCold] = byTier(tier, [1, 5], [1, 7], [5, 12]);
+      const [minWarm, maxWarm] = byTier(tier, [1, 6], [1, 9], [6, 15]);
+      const temperatures = rng.shuffle([
+        -rng.int(minVeryCold, maxVeryCold),
+        -rng.int(minCold, maxCold),
+        0,
+        rng.int(minWarm, maxWarm),
+      ]);
+      const ascending = [...temperatures].sort((a, b) => a - b);
+      const descending = [...temperatures].sort((a, b) => b - a);
+      const bySize = [...temperatures].sort((a, b) => Math.abs(a) - Math.abs(b));
+      const list = (values) => values.join(', ');
+      const options = optionsFromCandidates(rng, list(ascending), [
+        list(descending),
+        list(bySize),
+        list(temperatures),
+        list([ascending[1], ascending[0], ascending[2], ascending[3]]),
+      ]);
+      if (!options) return null;
+      return {
+        prompt: `Put these temperatures in order, coldest first:\n\n${temperatures.join(', ')} °C`,
+        answer: list(ascending),
+        options,
+        hint: 'The further left on the number line, the colder. −12 is colder than −3.',
+        visual: numberLineSvg(Math.min(...temperatures) - 1, Math.max(...temperatures) + 1, null),
+        explain: `Coldest to warmest: ${list(ascending)}.`,
+      };
+    },
+  },
+
+  // Add or subtract starting from a negative number.
+  {
+    id: 'arithmetic',
+    build(rng, tier = TIER.STANDARD) {
+      const [minStart, maxStart] = byTier(tier, [2, 7], [2, 12], [8, 20]);
+      const [minChange, maxChange] = byTier(tier, [2, 7], [2, 12], [8, 20]);
+      const start = -rng.int(minStart, maxStart);
+      const change = rng.int(minChange, maxChange);
+      const subtracting = rng.next() > 0.5;
+      const result = subtracting ? start - change : start + change;
+      const operator = subtracting ? '−' : '+';
+      return {
+        prompt: `Work out:  ${start} ${operator} ${change}`,
+        answer: `${result}`,
+        hint: subtracting
+          ? 'Subtracting moves you further left on the number line.'
+          : 'Adding moves you right.',
+        visual: numberLineSvg(
+          Math.min(start, start - change) - 1,
+          Math.max(start, start + change) + 1,
+          start,
+          `start at ${start}`,
+        ),
+        explain: `${start} ${operator} ${change} = ${result}`,
+      };
+    },
+  },
+]);
+
+/* ── Time & speed ────────────────────────────────────────────────────── */
+
+export const timeSpeedTopic = makeTopic('time-speed', 'Time & speed', 3, [
+  // Departure time + journey length → arrival time (24-hour clock). The
+  // clock shows the departure time only.
+  {
+    id: 'arrival-time',
+    build(rng, tier = TIER.STANDARD) {
+      const departHour = rng.int(6, 20);
+      const departMinute = rng.pick([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
+      const [minDuration, maxDuration] = byTier(tier, [20, 80], [35, 190], [150, 300]);
+      const duration = rng.int(minDuration, maxDuration);
+      const arrival = departHour * 60 + departMinute + duration;
+      const arriveHour = Math.floor(arrival / 60) % 24;
+      const arriveMinute = arrival % 60;
+      const departs = `${pad2(departHour)}:${pad2(departMinute)}`;
+      const takes = `${Math.floor(duration / 60)} h ${duration % 60} min`;
+      return {
+        prompt: `A train leaves Glasgow at ${departs}.\nThe journey takes ${takes}.\n\nWhat time does it arrive? (24-hour clock, like 14:35)`,
+        answer: `${pad2(arriveHour)}:${pad2(arriveMinute)}`,
+        hint: 'Add the hours first, then the minutes. Carry over if the minutes pass 60.',
+        visual: clockSvg(departHour % 12 === 0 ? 12 : departHour % 12, departMinute),
+        explain: `${departs} + ${takes} = ${pad2(arriveHour)}:${pad2(arriveMinute)}`,
+      };
+    },
+  },
+
+  // Read a timetable and find the time between two adjacent stations.
+  {
+    id: 'timetable',
+    build(rng, tier = TIER.STANDARD) {
+      const stations = ['Glasgow', 'Falkirk', 'Linlithgow', 'Edinburgh'];
+      const startHour = rng.int(7, 18);
+      const startMinute = rng.pick([0, 12, 24, 36, 48]);
+      const [minLeg1, maxLeg1] = byTier(tier, [8, 14], [14, 22], [20, 32]);
+      const [minLeg2, maxLeg2] = byTier(tier, [5, 10], [9, 16], [14, 24]);
+      const [minLeg3, maxLeg3] = byTier(tier, [8, 15], [15, 25], [22, 36]);
+      const legs = [rng.int(minLeg1, maxLeg1), rng.int(minLeg2, maxLeg2), rng.int(minLeg3, maxLeg3)];
+      const times = [startHour * 60 + startMinute];
+      legs.forEach((leg) => times.push(times[times.length - 1] + leg));
+      const clock = (minutes) => `${pad2(Math.floor(minutes / 60) % 24)}:${pad2(minutes % 60)}`;
+      const from = rng.int(0, 2);
+      const minutes = times[from + 1] - times[from];
+      return {
+        prompt: `The timetable shows one train's journey.\n\nHow many minutes does it take from ${stations[from]} to ${stations[from + 1]}?`,
+        ...numericAnswer(rng, minutes, { suffix: ' min' }),
+        hint: 'Find both stations in the table, then count the minutes between them.',
+        visual: tableSvg(
+          ['Station', 'Time'],
+          stations.map((station, i) => [station, clock(times[i])]),
+          { title: 'Train timetable' },
+        ),
+        explain: `${stations[from]} ${clock(times[from])} → ${stations[from + 1]} ${clock(times[from + 1])} = ${minutes} minutes.`,
+      };
+    },
+  },
+
+  // Distance = speed × time.
+  {
+    id: 'distance',
+    build(rng, tier = TIER.STANDARD) {
+      const speedPool = byTier(
+        tier,
+        [40, 50, 60],
+        [40, 50, 60, 70, 80, 90],
+        [70, 80, 90, 100, 110, 120],
+      );
+      const [minHours, maxHours] = byTier(tier, [2, 3], [2, 5], [4, 8]);
+      const speed = rng.pick(speedPool);
+      const hours = rng.int(minHours, maxHours);
+      return {
+        prompt: `A coach travels at a steady ${speed} km/h for ${hours} hours.\n\nHow far does it travel?`,
+        ...numericAnswer(rng, speed * hours, { suffix: ' km' }),
+        hint: 'Distance = speed × time.',
+        visual: journeySvg(null, hours, speed),
+        explain: `${speed} × ${hours} = ${speed * hours} km`,
+      };
+    },
+  },
+
+  // Speed = distance ÷ time. Distance is built from the speed so it divides exactly.
+  {
+    id: 'speed',
+    build(rng, tier = TIER.STANDARD) {
+      const speedPool = byTier(tier, [30, 40, 50], [30, 40, 50, 60, 80], [60, 80, 90, 100]);
+      const [minHours, maxHours] = byTier(tier, [2, 4], [2, 6], [4, 9]);
+      const speed = rng.pick(speedPool);
+      const hours = rng.int(minHours, maxHours);
+      const distance = speed * hours;
+      return {
+        prompt: `A cyclist covers ${distance} km in ${hours} hours.\n\nWhat is her average speed in km/h?`,
+        ...numericAnswer(rng, speed, { suffix: ' km/h' }),
+        hint: 'Speed = distance ÷ time.',
+        visual: journeySvg(distance, hours, null),
+        explain: `${distance} ÷ ${hours} = ${speed} km/h`,
+      };
+    },
+  },
+
+  // Duration between two afternoon/evening clock times, crossing the hour.
+  {
+    id: 'duration',
+    build(rng, tier = TIER.STANDARD) {
+      const startHour = rng.int(13, 20);
+      const startMinute = rng.pick([0, 10, 15, 20, 30, 40, 45, 50]);
+      const lengthPool = byTier(
+        tier,
+        [85, 95, 100],
+        [85, 95, 100, 110, 125, 135],
+        [110, 125, 135, 150, 165, 180],
+      );
+      const length = rng.pick(lengthPool);
+      const end = startHour * 60 + startMinute + length;
+      const starts = `${pad2(startHour)}:${pad2(startMinute)}`;
+      const finishes = `${pad2(Math.floor(end / 60) % 24)}:${pad2(end % 60)}`;
+      return {
+        prompt: `A film starts at ${starts} and finishes at ${finishes}.\n\nHow long is the film, in minutes?`,
+        ...numericAnswer(rng, length, { suffix: ' min' }),
+        hint: 'Count on to the next whole hour first, then add the rest.',
+        visual: clockSvg(startHour % 12 === 0 ? 12 : startHour % 12, startMinute),
+        explain: `From ${starts} to ${finishes} is ${length} minutes.`,
+      };
+    },
+  },
+]);
+
+/* ── Averages & data ─────────────────────────────────────────────────── */
+
+export const averagesTopic = makeTopic('averages', 'Averages & data', 3, [
+  // Mean of a short list. The first score is nudged up so the total divides
+  // exactly and the mean is a whole number.
+  {
+    id: 'mean-list',
+    build(rng, tier = TIER.STANDARD) {
+      const count = rng.int(4, 6);
+      const [min, max] = byTier(tier, [2, 15], [2, 30], [20, 60]);
+      const scores = Array.from({ length: count }, () => rng.int(min, max));
+      const rawTotal = scores.reduce((sum, score) => sum + score, 0);
+      scores[0] += (count - (rawTotal % count)) % count;
+      const total = scores.reduce((sum, score) => sum + score, 0);
+      const mean = total / count;
+      return {
+        prompt: `${rng.pick(NAMES)} scored these points across ${count} games:\n\n${scores.join(', ')}\n\nWhat is the mean score?`,
+        answer: mean,
+        hint: `Add all ${count} numbers, then divide by ${count}.`,
+        visual: dotPlotSvg(scores),
+        explain: `Total = ${total}. ${total} ÷ ${count} = ${mean}.`,
+      };
+    },
+  },
+
+  // Mean read from a bar chart. Values are mean ± 1 and ± 3, so they
+  // balance out and the mean is always a whole number.
+  {
+    id: 'mean-from-chart',
+    build(rng, tier = TIER.STANDARD) {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu'];
+      const [min, max] = byTier(tier, [5, 12], [6, 20], [15, 35]);
+      const mean = rng.int(min, max);
+      const values = rng.shuffle([-3, -1, 1, 3]).map((offset) => mean + offset);
+      return {
+        prompt: `The bar chart shows how many books were borrowed each day.
 
 What is the mean number borrowed per day?`,
-          answer: a,
-          options: numericOptions(e, a),
-          hint: `Read all four bars, add them, then divide by 4.`,
-          visual: barChartSvg(o, n, `books`),
-          explain: `${o.join(` + `)} = ${o.reduce((e, t) => e + t, 0)}. ÷ 4 = ${a}.`,
-        };
-      },
+        answer: mean,
+        options: numericOptions(rng, mean),
+        hint: 'Read all four bars, add them, then divide by 4.',
+        visual: barChartSvg(values, days, 'books'),
+        explain: `${values.join(' + ')} = ${values.reduce((sum, value) => sum + value, 0)}. ÷ 4 = ${mean}.`,
+      };
     },
-    {
-      id: `median`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 20], [2, 40], [30, 80]),
-          i = Array.from({ length: 5 }, () => e.int(n, r)),
-          a = [...i].sort((e, t) => e - t),
-          o = a[2];
-        return {
-          prompt: `Find the median of:\n\n${i.join(`, `)}`,
-          answer: o,
-          options: numericOptions(e, o),
-          hint: `Put them in order first, then find the middle one.`,
-          visual: dotPlotSvg(i),
-          explain: `In order: ${a.join(`, `)}. The middle value is ${o}.`,
-        };
-      },
+  },
+
+  // Median of five unordered numbers.
+  {
+    id: 'median',
+    build(rng, tier = TIER.STANDARD) {
+      const [min, max] = byTier(tier, [2, 20], [2, 40], [30, 80]);
+      const values = Array.from({ length: 5 }, () => rng.int(min, max));
+      const sorted = [...values].sort((a, b) => a - b);
+      const median = sorted[2];
+      return {
+        prompt: `Find the median of:\n\n${values.join(', ')}`,
+        answer: median,
+        options: numericOptions(rng, median),
+        hint: 'Put them in order first, then find the middle one.',
+        visual: dotPlotSvg(values),
+        explain: `In order: ${sorted.join(', ')}. The middle value is ${median}.`,
+      };
     },
-    {
-      id: `range-table`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.shuffle(NAMES).slice(0, 4),
-          [r, i] = byTier(t, [1, 5], [2, 8], [5, 12]),
-          [a, o] = byTier(t, [6, 10], [10, 16], [14, 22]),
-          [s, c] = byTier(t, [11, 17], [18, 26], [24, 34]),
-          [l, u] = byTier(t, [18, 28], [28, 40], [36, 55]),
-          d = e.shuffle([e.int(r, i), e.int(a, o), e.int(s, c), e.int(l, u)]),
-          f = Math.max(...d) - Math.min(...d);
-        return {
-          prompt: `The table shows how many lengths each pupil swam.
+  },
+
+  // Range read from a table. Each value comes from its own band so the
+  // largest and smallest are clear.
+  {
+    id: 'range-table',
+    build(rng, tier = TIER.STANDARD) {
+      const pupils = rng.shuffle(NAMES).slice(0, 4);
+      const [min1, max1] = byTier(tier, [1, 5], [2, 8], [5, 12]);
+      const [min2, max2] = byTier(tier, [6, 10], [10, 16], [14, 22]);
+      const [min3, max3] = byTier(tier, [11, 17], [18, 26], [24, 34]);
+      const [min4, max4] = byTier(tier, [18, 28], [28, 40], [36, 55]);
+      const lengths = rng.shuffle([
+        rng.int(min1, max1),
+        rng.int(min2, max2),
+        rng.int(min3, max3),
+        rng.int(min4, max4),
+      ]);
+      const range = Math.max(...lengths) - Math.min(...lengths);
+      return {
+        prompt: `The table shows how many lengths each pupil swam.
 
 What is the range?`,
-          answer: f,
-          options: numericOptions(e, f),
-          hint: `Range = largest value − smallest value.`,
-          visual: tableSvg(
-            [`Pupil`, `Lengths`],
-            n.map((e, t) => [e, d[t]]),
-            { title: `Swimming club` },
-          ),
-          explain: `${Math.max(...d)} − ${Math.min(...d)} = ${f}.`,
-        };
-      },
+        answer: range,
+        options: numericOptions(rng, range),
+        hint: 'Range = largest value − smallest value.',
+        visual: tableSvg(
+          ['Pupil', 'Lengths'],
+          pupils.map((pupil, i) => [pupil, lengths[i]]),
+          { title: 'Swimming club' },
+        ),
+        explain: `${Math.max(...lengths)} − ${Math.min(...lengths)} = ${range}.`,
+      };
     },
-    {
-      id: `mode-pictogram`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.pick([2, 5, 10]),
-          r = [`Football`, `Netball`, `Running`, `Swimming`],
-          i = byTier(t, [1, 2, 3, 4], [2, 3, 5, 6], [4, 6, 8, 10]),
-          a = e.shuffle(i).map((e) => e * n),
-          o = Math.max(...a),
-          s = r[a.indexOf(o)];
-        return {
-          prompt: `The pictogram shows which sport pupils chose.
+  },
+
+  // Mode from a pictogram where each symbol stands for 2, 5 or 10 pupils.
+  // Counts are distinct so there is exactly one most popular sport.
+  {
+    id: 'mode-pictogram',
+    build(rng, tier = TIER.STANDARD) {
+      const perSymbol = rng.pick([2, 5, 10]);
+      const sports = ['Football', 'Netball', 'Running', 'Swimming'];
+      const symbolCounts = byTier(tier, [1, 2, 3, 4], [2, 3, 5, 6], [4, 6, 8, 10]);
+      const pupils = rng.shuffle(symbolCounts).map((symbols) => symbols * perSymbol);
+      const most = Math.max(...pupils);
+      const answer = sports[pupils.indexOf(most)];
+      return {
+        prompt: `The pictogram shows which sport pupils chose.
 
 Which sport was the most popular?`,
-          answer: s,
-          options: e.shuffle([...r]),
-          hint: `Each symbol stands for ${n} pupils — count the symbols in each row.`,
-          visual: pictogramSvg(
-            r.map((e, t) => ({ label: e, value: a[t] })),
-            { icon: `●`, each: n, title: `Sport chosen` },
-          ),
-          explain: `${s} has the most symbols, so ${o} pupils chose it.`,
-        };
-      },
+        answer,
+        options: rng.shuffle([...sports]),
+        hint: `Each symbol stands for ${perSymbol} pupils — count the symbols in each row.`,
+        visual: pictogramSvg(
+          sports.map((sport, i) => ({ label: sport, value: pupils[i] })),
+          { icon: '●', each: perSymbol, title: 'Sport chosen' },
+        ),
+        explain: `${answer} has the most symbols, so ${most} pupils chose it.`,
+      };
     },
-    {
-      id: `missing-value`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [4, 10], [5, 15], [10, 22]),
-          [i, a] = byTier(t, [2, 15], [2, 25], [15, 40]),
-          o = e.int(n, r),
-          s = Array.from({ length: 3 }, () => e.int(i, a)),
-          c = o * 4 - s.reduce((e, t) => e + t, 0);
-        return c < 1 || c > 40
-          ? null
-          : {
-              prompt: `Four numbers have a mean of ${o}.\nThree of them are ${s.join(`, `)}.\n\nWhat is the fourth number?`,
-              answer: c,
-              options: numericOptions(e, c),
-              hint: `If the mean of 4 numbers is ${o}, what must they add up to?`,
-              visual: barModelSvg([
-                {
-                  label: `total must be 4 × ${o} = ${o * 4}`,
-                  segments: [
-                    {
-                      span: s.reduce((e, t) => e + t, 0),
-                      text: `${s.join(` + `)}`,
-                      colour: BRAND,
-                    },
-                    { span: Math.max(c, 1), text: `?`, colour: `#ffffff` },
-                  ],
-                },
-              ]),
-              explain: `Total needed = 4 × ${o} = ${o * 4}. ${o * 4} − ${s.reduce((e, t) => e + t, 0)} = ${c}.`,
-            };
-      },
+  },
+
+  // Work backwards from a mean to a missing value.
+  {
+    id: 'missing-value',
+    build(rng, tier = TIER.STANDARD) {
+      const [minMean, maxMean] = byTier(tier, [4, 10], [5, 15], [10, 22]);
+      const [min, max] = byTier(tier, [2, 15], [2, 25], [15, 40]);
+      const mean = rng.int(minMean, maxMean);
+      const known = Array.from({ length: 3 }, () => rng.int(min, max));
+      const knownTotal = () => known.reduce((sum, value) => sum + value, 0);
+      const missing = mean * 4 - knownTotal();
+      if (missing < 1 || missing > 40) return null;
+      return {
+        prompt: `Four numbers have a mean of ${mean}.\nThree of them are ${known.join(', ')}.\n\nWhat is the fourth number?`,
+        answer: missing,
+        options: numericOptions(rng, missing),
+        hint: `If the mean of 4 numbers is ${mean}, what must they add up to?`,
+        visual: barModelSvg([
+          {
+            label: `total must be 4 × ${mean} = ${mean * 4}`,
+            segments: [
+              { span: knownTotal(), text: `${known.join(' + ')}`, colour: BRAND },
+              { span: Math.max(missing, 1), text: '?', colour: '#ffffff' },
+            ],
+          },
+        ]),
+        explain: `Total needed = 4 × ${mean} = ${mean * 4}. ${mean * 4} − ${knownTotal()} = ${missing}.`,
+      };
     },
-    {
-      id: `line-graph`,
-      build(e, t = TIER.STANDARD) {
-        let n = [`Jan`, `Feb`, `Mar`, `Apr`, `May`],
-          [r, i] = byTier(t, [8, 20], [10, 30], [25, 50]),
-          a = e.int(r, i),
-          [o, s] = byTier(t, [3, 7], [4, 10], [8, 16]),
-          [c, l] = byTier(t, [8, 14], [12, 20], [18, 30]),
-          [u, d] = byTier(t, [4, 8], [6, 11], [9, 17]),
-          [f, p] = byTier(t, [10, 18], [16, 26], [22, 38]),
-          m = [
-            a,
-            a + e.int(o, s),
-            a + e.int(c, l),
-            a + e.int(u, d),
-            a + e.int(f, p),
-          ],
-          h = Math.max(...m),
-          g = n[m.indexOf(h)],
-          _ = Math.min(...m);
-        return e.next() > 0.5
-          ? {
-              prompt: `The line graph shows how many members the club had each month.
+  },
+
+  // Read a line graph: either the peak month, or highest − lowest.
+  {
+    id: 'line-graph',
+    build(rng, tier = TIER.STANDARD) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May'];
+      const [minStart, maxStart] = byTier(tier, [8, 20], [10, 30], [25, 50]);
+      const start = rng.int(minStart, maxStart);
+      const [minFeb, maxFeb] = byTier(tier, [3, 7], [4, 10], [8, 16]);
+      const [minMar, maxMar] = byTier(tier, [8, 14], [12, 20], [18, 30]);
+      const [minApr, maxApr] = byTier(tier, [4, 8], [6, 11], [9, 17]);
+      const [minMay, maxMay] = byTier(tier, [10, 18], [16, 26], [22, 38]);
+      const members = [
+        start,
+        start + rng.int(minFeb, maxFeb),
+        start + rng.int(minMar, maxMar),
+        start + rng.int(minApr, maxApr),
+        start + rng.int(minMay, maxMay),
+      ];
+      const highest = Math.max(...members);
+      const peakMonth = months[members.indexOf(highest)];
+      const lowest = Math.min(...members);
+      const graph = () =>
+        lineGraphSvg(
+          months.map((month, i) => [month, members[i]]),
+          { title: 'Club members' },
+        );
+
+      if (rng.next() > 0.5) {
+        return {
+          prompt: `The line graph shows how many members the club had each month.
 
 In which month were there the most members?`,
-              answer: g,
-              options: e.shuffle([
-                g,
-                ...e.sample(
-                  n.filter((e) => e !== g),
-                  3,
-                ),
-              ]),
-              hint: `Find the highest point on the line.`,
-              visual: lineGraphSvg(
-                n.map((e, t) => [e, m[t]]),
-                { title: `Club members` },
-              ),
-              explain: `The line peaks in ${g} at ${h} members.`,
-            }
-          : {
-              prompt: `The line graph shows how many members the club had each month.
+          answer: peakMonth,
+          options: rng.shuffle([
+            peakMonth,
+            ...rng.sample(
+              months.filter((month) => month !== peakMonth),
+              3,
+            ),
+          ]),
+          hint: 'Find the highest point on the line.',
+          visual: graph(),
+          explain: `The line peaks in ${peakMonth} at ${highest} members.`,
+        };
+      }
+      return {
+        prompt: `The line graph shows how many members the club had each month.
 
 What is the difference between the highest and lowest months?`,
-              answer: h - _,
-              options: numericOptions(e, h - _),
-              hint: `Read the highest point and the lowest point, then subtract.`,
-              visual: lineGraphSvg(
-                n.map((e, t) => [e, m[t]]),
-                { title: `Club members` },
-              ),
-              explain: `${h} − ${_} = ${h - _} members.`,
-            };
-      },
+        answer: highest - lowest,
+        options: numericOptions(rng, highest - lowest),
+        hint: 'Read the highest point and the lowest point, then subtract.',
+        visual: graph(),
+        explain: `${highest} − ${lowest} = ${highest - lowest} members.`,
+      };
     },
-  ]);
+  },
+]);
 
-export const ratioTopic = makeTopic(`ratio`, `Ratio & proportion`, 3, [
-    {
-      id: `share-amount`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 3], [1, 5], [4, 8]),
-          [i, a] = byTier(t, [1, 4], [1, 6], [5, 9]),
-          [o, s] = byTier(t, [2, 8], [3, 14], [10, 25]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = (c + l) * u,
-          [f, p] = e.sample(NAMES, 2);
-        return {
-          prompt: `£${d} is shared between ${f} and ${p} in the ratio ${c} : ${l}.\n\nHow much does ${f} get?`,
-          answer: c * u,
-          hint: `There are ${c + l} shares altogether. One share is £${d} ÷ ${c + l}.`,
-          visual: ratioBarSvg([c, l], [f, p]),
-          explain: `£${d} ÷ ${c + l} = £${u} per share. ${c} shares = £${c * u}.`,
-        };
-      },
+/* ── Ratio & proportion ──────────────────────────────────────────────── */
+
+export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
+  // Share an amount in a given ratio.
+  {
+    id: 'share-amount',
+    build(rng, tier = TIER.STANDARD) {
+      const [minA, maxA] = byTier(tier, [1, 3], [1, 5], [4, 8]);
+      const [minB, maxB] = byTier(tier, [1, 4], [1, 6], [5, 9]);
+      const [minShare, maxShare] = byTier(tier, [2, 8], [3, 14], [10, 25]);
+      const partsA = rng.int(minA, maxA);
+      const partsB = rng.int(minB, maxB);
+      const oneShare = rng.int(minShare, maxShare);
+      const total = (partsA + partsB) * oneShare;
+      const [first, second] = rng.sample(NAMES, 2);
+      return {
+        prompt: `£${total} is shared between ${first} and ${second} in the ratio ${partsA} : ${partsB}.\n\nHow much does ${first} get?`,
+        answer: partsA * oneShare,
+        hint: `There are ${partsA + partsB} shares altogether. One share is £${total} ÷ ${partsA + partsB}.`,
+        visual: ratioBarSvg([partsA, partsB], [first, second]),
+        explain: `£${total} ÷ ${partsA + partsB} = £${oneShare} per share. ${partsA} shares = £${partsA * oneShare}.`,
+      };
     },
-    {
-      id: `simplify`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 5], [2, 9], [6, 14]),
-          [i, a] = byTier(t, [2, 5], [2, 8], [5, 10]),
-          [o, s] = byTier(t, [2, 5], [2, 9], [5, 11]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = gcd(l, u);
-        return {
-          prompt: `Simplify the ratio  ${l * c} : ${u * c}\n(Write it like  2:3 )`,
-          answer: `${l / d}:${u / d}`,
-          hint: `Divide both sides by their highest common factor.`,
-          visual: ratioBarSvg([l * c, u * c]),
-          explain: `${l * c} : ${u * c} = ${l / d} : ${u / d}`,
-        };
-      },
+  },
+
+  // Simplify a ratio that has been scaled up by a common factor.
+  {
+    id: 'simplify',
+    build(rng, tier = TIER.STANDARD) {
+      const [minScale, maxScale] = byTier(tier, [2, 5], [2, 9], [6, 14]);
+      const [minA, maxA] = byTier(tier, [2, 5], [2, 8], [5, 10]);
+      const [minB, maxB] = byTier(tier, [2, 5], [2, 9], [5, 11]);
+      const scale = rng.int(minScale, maxScale);
+      const a = rng.int(minA, maxA);
+      const b = rng.int(minB, maxB);
+      const divisor = gcd(a, b);
+      return {
+        prompt: `Simplify the ratio  ${a * scale} : ${b * scale}\n(Write it like  2:3 )`,
+        answer: `${a / divisor}:${b / divisor}`,
+        hint: 'Divide both sides by their highest common factor.',
+        visual: ratioBarSvg([a * scale, b * scale]),
+        explain: `${a * scale} : ${b * scale} = ${a / divisor} : ${b / divisor}`,
+      };
     },
-    {
-      id: `unit-rate`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 5], [2, 8], [6, 14]),
-          [i, a] = byTier(t, [2, 4], [3, 6], [5, 9]),
-          [o, s] = byTier(t, [5, 8], [7, 12], [10, 18]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s);
-        return {
-          prompt: `${l} identical notebooks cost £${l * c}.\n\nAt the same rate, what would ${u} notebooks cost?`,
-          answer: u * c,
-          hint: `Find the cost of one notebook first: £${l * c} ÷ ${l}.`,
-          visual: barModelSvg([
+  },
+
+  // Unitary method: find the cost of one, then scale. The blocks are left
+  // unlabelled — printing the per-item price would do the hint's first step.
+  {
+    id: 'unit-rate',
+    build(rng, tier = TIER.STANDARD) {
+      const [minUnitPrice, maxUnitPrice] = byTier(tier, [1, 5], [2, 8], [6, 14]);
+      const [minKnown, maxKnown] = byTier(tier, [2, 4], [3, 6], [5, 9]);
+      const [minWanted, maxWanted] = byTier(tier, [5, 8], [7, 12], [10, 18]);
+      const unitPrice = rng.int(minUnitPrice, maxUnitPrice);
+      const known = rng.int(minKnown, maxKnown);
+      const wanted = rng.int(minWanted, maxWanted);
+      const blocks = (count, colour) =>
+        Array.from({ length: count }, () => ({ span: 1, text: '', colour }));
+      return {
+        prompt: `${known} identical notebooks cost £${known * unitPrice}.\n\nAt the same rate, what would ${wanted} notebooks cost?`,
+        answer: wanted * unitPrice,
+        hint: `Find the cost of one notebook first: £${known * unitPrice} ÷ ${known}.`,
+        visual: barModelSvg([
+          { label: `${known} notebooks = £${known * unitPrice}`, segments: blocks(known, BRAND) },
+          { label: `${wanted} notebooks = ?`, segments: blocks(wanted, CORAL) },
+        ]),
+        explain: `One notebook costs £${unitPrice}, so ${wanted} cost £${wanted * unitPrice}.`,
+      };
+    },
+  },
+
+  // Scale one ingredient of a recipe to feed more people (the table
+  // highlights the row being asked about).
+  {
+    id: 'recipe-table',
+    build(rng, tier = TIER.STANDARD) {
+      const serves = rng.pick([2, 3, 4]);
+      const [minScale, maxScale] = byTier(tier, [2, 3], [2, 4], [4, 6]);
+      const people = serves * rng.int(minScale, maxScale);
+      const [minFlour, maxFlour] = byTier(tier, [1, 3], [2, 4], [3, 6]);
+      const [minSugar, maxSugar] = byTier(tier, [1, 2], [1, 3], [2, 4]);
+      const [minMilk, maxMilk] = byTier(tier, [1, 3], [2, 5], [4, 7]);
+      const ingredients = [
+        ['Flour', rng.int(minFlour, maxFlour) * 50, 'g'],
+        ['Sugar', rng.int(minSugar, maxSugar) * 40, 'g'],
+        ['Milk', rng.int(minMilk, maxMilk) * 50, 'ml'],
+      ];
+      const row = rng.int(0, 2);
+      const [ingredient, amount, unit] = ingredients[row];
+      const needed = (amount / serves) * people;
+      const scaleFactor = people / serves;
+      return {
+        prompt: `This recipe serves ${serves} people.\n\nHow much ${ingredient.toLowerCase()} is needed for ${people} people?`,
+        ...numericAnswer(rng, needed, { suffix: ` ${unit}` }),
+        hint: `${people} ÷ ${serves} = ${scaleFactor}, so multiply every amount by ${scaleFactor}.`,
+        visual: tableSvg(
+          ['Ingredient', `Serves ${serves}`],
+          ingredients.map(([name, quantity, units]) => [name, `${quantity} ${units}`]),
+          { title: 'Recipe', highlight: row },
+        ),
+        explain: `Scale factor is ${people} ÷ ${serves} = ${scaleFactor}. ${amount} × ${scaleFactor} = ${needed} ${unit}.`,
+      };
+    },
+  },
+
+  // Given one part of a ratio, find the other. Counters show one repeat of
+  // the bead pattern, not the full necklace (that would be countable).
+  {
+    id: 'ratio-counters',
+    build(rng, tier = TIER.STANDARD) {
+      const [minParts, maxParts] = byTier(tier, [1, 3], [2, 4], [3, 6]);
+      const blueParts = rng.int(minParts, maxParts);
+      const redParts = rng.int(minParts, maxParts);
+      const [minRepeats, maxRepeats] = byTier(tier, [2, 3], [2, 4], [3, 6]);
+      const repeats = rng.int(minRepeats, maxRepeats);
+      const red = redParts * repeats;
+      return {
+        prompt: `A necklace uses blue and red beads in the ratio ${blueParts} : ${redParts}.\nThere are ${blueParts * repeats} blue beads.\n\nHow many red beads are there?`,
+        answer: red,
+        options: numericOptions(rng, red),
+        hint: `${blueParts * repeats} ÷ ${blueParts} = ${repeats}, so each part of the ratio is worth ${repeats} beads.`,
+        visual: countersSvg(
+          [
+            { count: blueParts, colour: '#4f7cf0' },
+            { count: redParts, colour: CORAL },
+          ],
+          `one repeat of the pattern: ${blueParts} blue, ${redParts} red`,
+        ),
+        explain: `Each share is ${repeats} beads, so red = ${redParts} × ${repeats} = ${red}.`,
+      };
+    },
+  },
+
+  // Ratio → fraction of the whole. Uses a labelled ratio bar rather than a
+  // pie: a pie shaded to the answer's proportion gave the fraction away.
+  {
+    id: 'ratio-fraction',
+    build(rng, tier = TIER.STANDARD) {
+      const [minSquash, maxSquash] = byTier(tier, [1, 3], [1, 4], [3, 6]);
+      const [minWater, maxWater] = byTier(tier, [1, 3], [1, 5], [4, 8]);
+      const squash = rng.int(minSquash, maxSquash);
+      const water = rng.int(minWater, maxWater);
+      const whole = squash + water;
+      const divisor = gcd(squash, whole);
+      return {
+        prompt: `A drink is made from squash and water in the ratio ${squash} : ${water}.\n\nWhat fraction of the drink is squash?\n(Write it like 3/4)`,
+        answer: `${squash / divisor}/${whole / divisor}`,
+        hint: `There are ${whole} parts altogether, and ${squash} of them are squash.`,
+        visual: ratioBarSvg([squash, water], ['Squash', 'Water']),
+        explain: `${squash} out of ${whole} parts = ${squash / divisor}/${whole / divisor}.`,
+      };
+    },
+  },
+]);
+
+/* ── Fractions ───────────────────────────────────────────────────────── */
+
+export const fractionsTopic = makeTopic('fractions', 'Fractions', 2, [
+  // Fraction of an amount; the amount is a multiple of the denominator.
+  {
+    id: 'fraction-of-amount',
+    build(rng, tier = TIER.STANDARD) {
+      const denominatorPool = byTier(tier, [4, 5, 6], [4, 5, 6, 8, 10, 12], [8, 10, 12, 15, 16]);
+      const denominator = rng.pick(denominatorPool);
+      const numerator = rng.int(1, denominator - 1);
+      const [minMultiple, maxMultiple] = byTier(tier, [2, 8], [3, 15], [10, 30]);
+      const distance = denominator * rng.int(minMultiple, maxMultiple);
+      const walked = (distance / denominator) * numerator;
+      return {
+        prompt: `A charity walk is ${formatNumber(distance)} m long.\n${rng.pick(NAMES)} has walked ${numerator}/${denominator} of the way.\n\nHow many metres is that?`,
+        answer: walked,
+        hint: `Divide ${formatNumber(distance)} by ${denominator} first, then multiply by ${numerator}.`,
+        visual: barModelSvg(
+          [
             {
-              label: `${l} notebooks = £${l * c}`,
-              segments: Array.from({ length: l }, () => ({
+              label: `${formatNumber(distance)} m split into ${denominator} equal parts`,
+              segments: Array.from({ length: denominator }, (_, i) => ({
                 span: 1,
-                text: ``,
+                text: '',
+                colour: i < numerator ? BRAND : '#e8e8f0',
+              })),
+            },
+          ],
+          `${numerator} of the ${denominator} parts have been walked`,
+        ),
+        explain: `${formatNumber(distance)} ÷ ${denominator} = ${formatNumber(distance / denominator)}, × ${numerator} = ${formatNumber(walked)} m.`,
+      };
+    },
+  },
+
+  // Simplify a fraction that has been scaled up by a common factor.
+  {
+    id: 'simplify',
+    build(rng, tier = TIER.STANDARD) {
+      const denominatorPool = byTier(tier, [6, 8, 9], [6, 8, 9, 10, 12], [10, 12, 15, 18, 20]);
+      const denominator = rng.pick(denominatorPool);
+      const [minScale, maxScale] = byTier(tier, [2, 3], [2, 4], [3, 5]);
+      const scale = rng.int(minScale, maxScale);
+      const numerator = rng.int(1, denominator - 1);
+      const divisor = gcd(numerator, denominator);
+      return {
+        prompt: `Write ${numerator * scale}/${denominator * scale} in its simplest form.\n(Write it like  3/4 )`,
+        answer: `${numerator / divisor}/${denominator / divisor}`,
+        hint: 'Divide the top and the bottom by their highest common factor.',
+        visual: fractionBarSvg(numerator * scale, denominator * scale),
+        explain: `${numerator * scale}/${denominator * scale} simplifies to ${numerator / divisor}/${denominator / divisor}.`,
+      };
+    },
+  },
+
+  // Add two fractions with the same denominator (sum stays below 1).
+  {
+    id: 'add-same-denominator',
+    build(rng, tier = TIER.STANDARD) {
+      const denominatorPool = byTier(tier, [5, 6, 8], [5, 6, 8, 10, 12], [10, 12, 15, 18, 20]);
+      const denominator = rng.pick(denominatorPool);
+      const a = rng.int(1, denominator - 2);
+      const b = rng.int(1, denominator - a - 1) || 1;
+      const sum = a + b;
+      const divisor = gcd(sum, denominator);
+      const bar = (numerator, colour) => ({
+        label: `${numerator}/${denominator}`,
+        segments: [
+          { span: numerator, text: String(numerator), colour },
+          { span: denominator - numerator, text: '', colour: '#e8e8f0' },
+        ],
+      });
+      return {
+        prompt: `Work out  ${a}/${denominator} + ${b}/${denominator}\nGive your answer in its simplest form.`,
+        answer: `${sum / divisor}/${denominator / divisor}`,
+        hint: 'Same denominator — just add the tops, then simplify.',
+        visual: barModelSvg([bar(a, BRAND), bar(b, CORAL)], `each bar is ${denominator} equal parts`),
+        explain: `${a}/${denominator} + ${b}/${denominator} = ${sum}/${denominator}${divisor > 1 ? ` = ${sum / divisor}/${denominator / divisor}` : ''}.`,
+      };
+    },
+  },
+
+  // Equivalent fractions. Distractors add instead of multiply, or scale only
+  // one part.
+  {
+    id: 'equivalent-pie',
+    build(rng, tier = TIER.STANDARD) {
+      const denominatorPool = byTier(tier, [2, 3], [2, 3, 4, 5], [4, 5, 6, 8]);
+      const denominator = rng.pick(denominatorPool);
+      const numerator = rng.int(1, denominator - 1);
+      const [minScale, maxScale] = byTier(tier, [2, 3], [2, 4], [3, 5]);
+      const scale = rng.int(minScale, maxScale);
+      const answer = `${numerator * scale}/${denominator * scale}`;
+      return {
+        prompt: `Which fraction is equivalent to ${numerator}/${denominator}?`,
+        answer,
+        options: optionsFromCandidates(
+          rng,
+          answer,
+          [
+            `${numerator + scale}/${denominator + scale}`,
+            `${numerator * scale}/${denominator + scale}`,
+            `${numerator + 1}/${denominator * scale}`,
+          ],
+          [
+            `${numerator * scale}/${denominator * scale + 1}`,
+            `${numerator * scale + 1}/${denominator * scale}`,
+            `${numerator}/${denominator * scale}`,
+          ],
+        ),
+        hint: 'Multiply the top and the bottom by the same number.',
+        visual: pieSvg(numerator, denominator, `${numerator}/${denominator} shaded`),
+        explain: `Multiply both parts by ${scale}: ${numerator}/${denominator} = ${answer}.`,
+      };
+    },
+  },
+
+  // Read a mixed number off a subdivided number line. The line draws the
+  // minor ticks the hint refers to.
+  {
+    id: 'on-number-line',
+    build(rng, tier = TIER.STANDARD) {
+      const denominatorPool = byTier(tier, [4, 5], [4, 5, 8, 10], [8, 10, 12]);
+      const denominator = rng.pick(denominatorPool);
+      const numerator = rng.int(1, denominator - 1);
+      const [minWhole, maxWhole] = byTier(tier, [1, 4], [1, 6], [4, 10]);
+      const whole = rng.int(minWhole, maxWhole);
+      const answer = `${whole} ${numerator}/${denominator}`;
+      return {
+        prompt: 'Which mixed number does the arrow point to?',
+        answer,
+        options: rng.shuffle([
+          answer,
+          `${whole + 1} ${numerator}/${denominator}`,
+          `${whole} ${denominator - numerator}/${denominator}`,
+          `${numerator}/${denominator}`,
+        ]),
+        hint: `The line is split into ${denominator} equal steps between each whole number.`,
+        visual: numberLineSvg(whole, whole + 1, whole + numerator / denominator, '▼', denominator),
+        explain: `The arrow is ${numerator} steps of 1/${denominator} past ${whole}, so it is ${answer}.`,
+      };
+    },
+  },
+
+  // Which of two fractions is bigger? Both pies are drawn side by side,
+  // matching the hint's "two shaded circles". Equal fractions are re-rolled.
+  {
+    id: 'compare',
+    build(rng, tier = TIER.STANDARD) {
+      const fractionPool = byTier(
+        tier,
+        [
+          [1, 2],
+          [1, 3],
+          [2, 3],
+          [1, 4],
+          [3, 4],
+        ],
+        [
+          [1, 2],
+          [1, 3],
+          [2, 3],
+          [1, 4],
+          [3, 4],
+          [2, 5],
+          [3, 5],
+          [5, 8],
+        ],
+        [
+          [2, 5],
+          [3, 5],
+          [5, 8],
+          [3, 8],
+          [5, 6],
+          [7, 10],
+          [4, 9],
+        ],
+      );
+      const [[topA, bottomA], [topB, bottomB]] = rng.sample(fractionPool, 2);
+      if (topA / bottomA === topB / bottomB) return null;
+      const aIsBigger = topA / bottomA > topB / bottomB;
+      const larger = aIsBigger ? `${topA}/${bottomA}` : `${topB}/${bottomB}`;
+      const [nameA, nameB] = rng.sample(NAMES, 2);
+      return {
+        prompt: `${nameA} ate ${topA}/${bottomA} of a pizza. ${nameB} ate ${topB}/${bottomB} of an identical pizza.\n\nWho ate more?`,
+        answer: aIsBigger ? nameA : nameB,
+        options: rng.shuffle([nameA, nameB]),
+        hint: 'Compare the two shaded circles, or change both to the same denominator.',
+        visual: pieRowSvg([
+          [topA, bottomA, `${nameA}: ${topA}/${bottomA}`],
+          [topB, bottomB, `${nameB}: ${topB}/${bottomB}`],
+        ]),
+        explain: `${topA}/${bottomA} = ${(topA / bottomA).toFixed(3)} and ${topB}/${bottomB} = ${(topB / bottomB).toFixed(3)}, so ${larger} is larger.`,
+      };
+    },
+  },
+
+  // Common fraction ↔ decimal / percentage equivalents. No visual: a
+  // hundred-square would let learners count the percentage straight off it.
+  {
+    id: 'to-decimal-percent',
+    build(rng, tier = TIER.STANDARD) {
+      const equivalents = [
+        ['1/2', '0.5', '50%'],
+        ['1/4', '0.25', '25%'],
+        ['3/4', '0.75', '75%'],
+        ['1/5', '0.2', '20%'],
+        ['2/5', '0.4', '40%'],
+        ['3/5', '0.6', '60%'],
+        ['1/10', '0.1', '10%'],
+        ['7/10', '0.7', '70%'],
+        ['1/8', '0.125', '12.5%'],
+      ];
+      const pool = byTier(tier, equivalents.slice(0, 3), equivalents, equivalents.slice(3));
+      const [fraction, decimal, percent] = rng.pick(pool);
+      const asPercent = rng.int(0, 1);
+      // Distractors come from the full table, even on easy tier.
+      const optionsFrom = (column, answer) =>
+        rng.shuffle([
+          answer,
+          ...rng.sample(
+            equivalents.map((row) => row[column]).filter((value) => value !== answer),
+            3,
+          ),
+        ]);
+      return {
+        prompt: `Write  ${fraction}  as a ${asPercent ? 'percentage' : 'decimal'}.`,
+        answer: asPercent ? percent : decimal,
+        options: asPercent ? optionsFrom(2, percent) : optionsFrom(1, decimal),
+        hint: asPercent ? 'Fraction → decimal → × 100.' : 'Divide the top by the bottom.',
+        visual: null,
+        explain: `${fraction} = ${decimal} = ${percent}`,
+      };
+    },
+  },
+]);
+
+/* ── Decimals ────────────────────────────────────────────────────────── */
+
+/** Round to 2 d.p., cleaning up floating-point noise in money sums. */
+const round2 = (value) => Math.round(value * 100) / 100;
+
+export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
+  // Add two prices.
+  {
+    id: 'money-total',
+    build(rng, tier = TIER.STANDARD) {
+      const [minBookPence, maxBookPence] = byTier(tier, [100, 900], [150, 2400], [1800, 4500]);
+      const [minPenPence, maxPenPence] = byTier(tier, [50, 700], [80, 1900], [1400, 3800]);
+      const book = round2(rng.int(minBookPence, maxBookPence) / 100);
+      const pen = round2(rng.int(minPenPence, maxPenPence) / 100);
+      const total = round2(book + pen);
+      return {
+        prompt: `${rng.pick(NAMES)} buys a book for £${book.toFixed(2)} and a pen for £${pen.toFixed(2)}.\n\nWhat is the total?`,
+        answer: total.toFixed(2),
+        hint: 'Line up the decimal points before you add.',
+        visual: barModelSvg(
+          [
+            {
+              segments: [
+                { span: book, text: `£${book.toFixed(2)}`, colour: BRAND },
+                { span: pen, text: `£${pen.toFixed(2)}`, colour: CORAL },
+              ],
+            },
+          ],
+          'total = ?',
+        ),
+        explain: `£${book.toFixed(2)} + £${pen.toFixed(2)} = £${total.toFixed(2)}`,
+      };
+    },
+  },
+
+  // Change from a note (re-rolled if the note doesn't cover the cost).
+  {
+    id: 'money-change',
+    build(rng, tier = TIER.STANDARD) {
+      const [minPence, maxPence] = byTier(tier, [80, 900], [120, 1750], [1000, 1950]);
+      const cost = round2(rng.int(minPence, maxPence) / 100);
+      const notePool = byTier(tier, [5, 10], [5, 10, 20], [10, 20]);
+      const note = rng.pick(notePool);
+      if (cost >= note) return null;
+      const change = round2(note - cost);
+      return {
+        prompt: `${rng.pick(NAMES)} spends £${cost.toFixed(2)} and pays with a £${note} note.\n\nHow much change does she get?`,
+        answer: change.toFixed(2),
+        hint: `Count up from £${cost.toFixed(2)} to £${note}.`,
+        visual: changeSvg(note, cost),
+        explain: `£${note} − £${cost.toFixed(2)} = £${change.toFixed(2)}`,
+      };
+    },
+  },
+
+  // Multiply a 1-d.p. decimal by a whole number.
+  {
+    id: 'multiply',
+    build(rng, tier = TIER.STANDARD) {
+      const [minTenths, maxTenths] = byTier(tier, [10, 60], [15, 95], [80, 180]);
+      const [minBags, maxBags] = byTier(tier, [2, 5], [3, 8], [6, 12]);
+      const weight = round2(rng.int(minTenths, maxTenths) / 10);
+      const bags = rng.int(minBags, maxBags);
+      const total = round2(weight * bags);
+      return {
+        prompt: `One bag of compost weighs ${weight.toFixed(1)} kg.\n\nWhat do ${bags} bags weigh?`,
+        answer: String(total),
+        hint: `Work out ${weight * 10} × ${bags}, then divide by 10.`,
+        visual: barModelSvg(
+          [
+            {
+              label: `${bags} bags`,
+              segments: Array.from({ length: bags }, () => ({
+                span: 1,
+                text: `${weight.toFixed(1)}`,
                 colour: BRAND,
               })),
             },
+          ],
+          'total weight = ?',
+        ),
+        explain: `${weight.toFixed(1)} × ${bags} = ${total} kg`,
+      };
+    },
+  },
+
+  // Divide a money total equally. The total is built from the answer so it
+  // divides exactly.
+  {
+    id: 'divide',
+    build(rng, tier = TIER.STANDARD) {
+      const countPool = byTier(tier, [3, 4, 5], [4, 5, 8, 10], [8, 10, 12]);
+      const count = rng.pick(countPool);
+      const [minTenths, maxTenths] = byTier(tier, [10, 60], [15, 90], [70, 150]);
+      const each = round2(rng.int(minTenths, maxTenths) / 10);
+      const total = round2(each * count);
+      return {
+        prompt: `${count} identical drinks cost £${total.toFixed(2)} altogether.\n\nHow much is one drink?`,
+        answer: each.toFixed(2),
+        hint: `Divide £${total.toFixed(2)} by ${count}.`,
+        visual: barModelSvg(
+          [
             {
-              label: `${u} notebooks = ?`,
-              segments: Array.from({ length: u }, () => ({
-                span: 1,
-                text: ``,
-                colour: CORAL,
-              })),
+              label: `£${total.toFixed(2)} altogether`,
+              segments: Array.from({ length: count }, () => ({ span: 1, text: '?' })),
             },
-          ]),
-          explain: `One notebook costs £${c}, so ${u} cost £${u * c}.`,
-        };
-      },
-    },
-    {
-      id: `recipe-table`,
-      build(e, t = TIER.STANDARD) {
-        let n = e.pick([2, 3, 4]),
-          [r, i] = byTier(t, [2, 3], [2, 4], [4, 6]),
-          a = n * e.int(r, i),
-          [o, s] = byTier(t, [1, 3], [2, 4], [3, 6]),
-          [c, l] = byTier(t, [1, 2], [1, 3], [2, 4]),
-          [u, d] = byTier(t, [1, 3], [2, 5], [4, 7]),
-          f = [
-            [`Flour`, e.int(o, s) * 50, `g`],
-            [`Sugar`, e.int(c, l) * 40, `g`],
-            [`Milk`, e.int(u, d) * 50, `ml`],
           ],
-          p = e.int(0, 2),
-          [m, h, g] = f[p],
-          _ = (h / n) * a;
-        return {
-          prompt: `This recipe serves ${n} people.\n\nHow much ${m.toLowerCase()} is needed for ${a} people?`,
-          ...numericAnswer(e, _, { suffix: ` ${g}` }),
-          hint: `${a} ÷ ${n} = ${a / n}, so multiply every amount by ${a / n}.`,
-          visual: tableSvg(
-            [`Ingredient`, `Serves ${n}`],
-            f.map(([e, t, n]) => [e, `${t} ${n}`]),
-            { title: `Recipe`, highlight: p },
-          ),
-          explain: `Scale factor is ${a} ÷ ${n} = ${a / n}. ${h} × ${a / n} = ${_} ${g}.`,
-        };
-      },
+          `${count} drinks, all the same price`,
+        ),
+        explain: `£${total.toFixed(2)} ÷ ${count} = £${each.toFixed(2)}`,
+      };
     },
-    {
-      id: `ratio-counters`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 3], [2, 4], [3, 6]),
-          i = e.int(n, r),
-          a = e.int(n, r),
-          [o, s] = byTier(t, [2, 3], [2, 4], [3, 6]),
-          c = e.int(o, s),
-          l = a * c;
-        return {
-          prompt: `A necklace uses blue and red beads in the ratio ${i} : ${a}.\nThere are ${i * c} blue beads.\n\nHow many red beads are there?`,
-          answer: l,
-          options: numericOptions(e, l),
-          hint: `${i * c} ÷ ${i} = ${c}, so each part of the ratio is worth ${c} beads.`,
-          visual: countersSvg(
-            [
-              { count: i, colour: `#4f7cf0` },
-              { count: a, colour: CORAL },
-            ],
-            `one repeat of the pattern: ${i} blue, ${a} red`,
-          ),
-          explain: `Each share is ${c} beads, so red = ${a} × ${c} = ${l}.`,
-        };
-      },
-    },
-    {
-      id: `ratio-fraction`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 3], [1, 4], [3, 6]),
-          [i, a] = byTier(t, [1, 3], [1, 5], [4, 8]),
-          o = e.int(n, r),
-          s = e.int(i, a),
-          c = gcd(o, o + s);
-        return {
-          prompt: `A drink is made from squash and water in the ratio ${o} : ${s}.\n\nWhat fraction of the drink is squash?\n(Write it like 3/4)`,
-          answer: `${o / c}/${(o + s) / c}`,
-          hint: `There are ${o + s} parts altogether, and ${o} of them are squash.`,
-          visual: ratioBarSvg([o, s], [`Squash`, `Water`]),
-          explain: `${o} out of ${o + s} parts = ${o / c}/${(o + s) / c}.`,
-        };
-      },
-    },
-  ]);
+  },
 
-export const fractionsTopic = makeTopic(`fractions`, `Fractions`, 2, [
-    {
-      id: `fraction-of-amount`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [4, 5, 6], [4, 5, 6, 8, 10, 12], [8, 10, 12, 15, 16]),
-          r = e.pick(n),
-          i = e.int(1, r - 1),
-          [a, o] = byTier(t, [2, 8], [3, 15], [10, 30]),
-          s = r * e.int(a, o),
-          c = (s / r) * i;
-        return {
-          prompt: `A charity walk is ${formatNumber(s)} m long.\n${e.pick(NAMES)} has walked ${i}/${r} of the way.\n\nHow many metres is that?`,
-          answer: c,
-          hint: `Divide ${formatNumber(s)} by ${r} first, then multiply by ${i}.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `${formatNumber(s)} m split into ${r} equal parts`,
-                segments: Array.from({ length: r }, (e, t) => ({
-                  span: 1,
-                  text: ``,
-                  colour: t < i ? BRAND : `#e8e8f0`,
-                })),
-              },
-            ],
-            `${i} of the ${r} parts have been walked`,
-          ),
-          explain: `${formatNumber(s)} ÷ ${r} = ${formatNumber(s / r)}, × ${i} = ${formatNumber(c)} m.`,
-        };
-      },
-    },
-    {
-      id: `simplify`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [6, 8, 9], [6, 8, 9, 10, 12], [10, 12, 15, 18, 20]),
-          r = e.pick(n),
-          [i, a] = byTier(t, [2, 3], [2, 4], [3, 5]),
-          o = e.int(i, a),
-          s = e.int(1, r - 1),
-          c = gcd(s, r);
-        return {
-          prompt: `Write ${s * o}/${r * o} in its simplest form.\n(Write it like  3/4 )`,
-          answer: `${s / c}/${r / c}`,
-          hint: `Divide the top and the bottom by their highest common factor.`,
-          visual: fractionBarSvg(s * o, r * o),
-          explain: `${s * o}/${r * o} simplifies to ${s / c}/${r / c}.`,
-        };
-      },
-    },
-    {
-      id: `add-same-denominator`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [5, 6, 8], [5, 6, 8, 10, 12], [10, 12, 15, 18, 20]),
-          r = e.pick(n),
-          i = e.int(1, r - 2),
-          a = e.int(1, r - i - 1) || 1,
-          o = i + a,
-          s = gcd(o, r);
-        return {
-          prompt: `Work out  ${i}/${r} + ${a}/${r}\nGive your answer in its simplest form.`,
-          answer: `${o / s}/${r / s}`,
-          hint: `Same denominator — just add the tops, then simplify.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `${i}/${r}`,
-                segments: [
-                  { span: i, text: String(i), colour: BRAND },
-                  { span: r - i, text: ``, colour: `#e8e8f0` },
-                ],
-              },
-              {
-                label: `${a}/${r}`,
-                segments: [
-                  { span: a, text: String(a), colour: CORAL },
-                  { span: r - a, text: ``, colour: `#e8e8f0` },
-                ],
-              },
-            ],
-            `each bar is ${r} equal parts`,
-          ),
-          explain: `${i}/${r} + ${a}/${r} = ${o}/${r}${s > 1 ? ` = ${o / s}/${r / s}` : ``}.`,
-        };
-      },
-    },
-    {
-      id: `equivalent-pie`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [2, 3], [2, 3, 4, 5], [4, 5, 6, 8]),
-          r = e.pick(n),
-          i = e.int(1, r - 1),
-          [a, o] = byTier(t, [2, 3], [2, 4], [3, 5]),
-          s = e.int(a, o);
-        return {
-          prompt: `Which fraction is equivalent to ${i}/${r}?`,
-          answer: `${i * s}/${r * s}`,
-          options: optionsFromCandidates(
-            e,
-            `${i * s}/${r * s}`,
-            [`${i + s}/${r + s}`, `${i * s}/${r + s}`, `${i + 1}/${r * s}`],
-            [`${i * s}/${r * s + 1}`, `${i * s + 1}/${r * s}`, `${i}/${r * s}`],
-          ),
-          hint: `Multiply the top and the bottom by the same number.`,
-          visual: pieSvg(i, r, `${i}/${r} shaded`),
-          explain: `Multiply both parts by ${s}: ${i}/${r} = ${i * s}/${r * s}.`,
-        };
-      },
-    },
-    {
-      id: `on-number-line`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [4, 5], [4, 5, 8, 10], [8, 10, 12]),
-          r = e.pick(n),
-          i = e.int(1, r - 1),
-          [a, o] = byTier(t, [1, 4], [1, 6], [4, 10]),
-          s = e.int(a, o);
-        return {
-          prompt: `Which mixed number does the arrow point to?`,
-          answer: `${s} ${i}/${r}`,
-          options: e.shuffle([
-            `${s} ${i}/${r}`,
-            `${s + 1} ${i}/${r}`,
-            `${s} ${r - i}/${r}`,
-            `${i}/${r}`,
-          ]),
-          hint: `The line is split into ${r} equal steps between each whole number.`,
-          visual: numberLineSvg(s, s + 1, s + i / r, `▼`, r),
-          explain: `The arrow is ${i} steps of 1/${r} past ${s}, so it is ${s} ${i}/${r}.`,
-        };
-      },
-    },
-    {
-      id: `compare`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(
-            t,
-            [
-              [1, 2],
-              [1, 3],
-              [2, 3],
-              [1, 4],
-              [3, 4],
-            ],
-            [
-              [1, 2],
-              [1, 3],
-              [2, 3],
-              [1, 4],
-              [3, 4],
-              [2, 5],
-              [3, 5],
-              [5, 8],
-            ],
-            [
-              [2, 5],
-              [3, 5],
-              [5, 8],
-              [3, 8],
-              [5, 6],
-              [7, 10],
-              [4, 9],
-            ],
-          ),
-          [[r, i], [a, o]] = e.sample(n, 2);
-        if (r / i === a / o) return null;
-        let s = r / i > a / o ? `${r}/${i}` : `${a}/${o}`,
-          [c, l] = e.sample(NAMES, 2);
-        return {
-          prompt: `${c} ate ${r}/${i} of a pizza. ${l} ate ${a}/${o} of an identical pizza.\n\nWho ate more?`,
-          answer: r / i > a / o ? c : l,
-          options: e.shuffle([c, l]),
-          hint: `Compare the two shaded circles, or change both to the same denominator.`,
-          visual: pieRowSvg([
-            [r, i, `${c}: ${r}/${i}`],
-            [a, o, `${l}: ${a}/${o}`],
-          ]),
-          explain: `${r}/${i} = ${(r / i).toFixed(3)} and ${a}/${o} = ${(a / o).toFixed(3)}, so ${s} is larger.`,
-        };
-      },
-    },
-    {
-      id: `to-decimal-percent`,
-      build(e, t = TIER.STANDARD) {
-        let n = [
-            [`1/2`, `0.5`, `50%`],
-            [`1/4`, `0.25`, `25%`],
-            [`3/4`, `0.75`, `75%`],
-            [`1/5`, `0.2`, `20%`],
-            [`2/5`, `0.4`, `40%`],
-            [`3/5`, `0.6`, `60%`],
-            [`1/10`, `0.1`, `10%`],
-            [`7/10`, `0.7`, `70%`],
-            [`1/8`, `0.125`, `12.5%`],
-          ],
-          r = byTier(t, n.slice(0, 3), n, n.slice(3)),
-          [i, a, o] = e.pick(r),
-          s = e.int(0, 1),
-          [c, l] = i.split(`/`).map(Number);
-        return {
-          prompt: `Write  ${i}  as a ${s ? `percentage` : `decimal`}.`,
-          answer: s ? o : a,
-          options: s
-            ? e.shuffle([
-                o,
-                ...e.sample(
-                  n.map((e) => e[2]).filter((e) => e !== o),
-                  3,
-                ),
-              ])
-            : e.shuffle([
-                a,
-                ...e.sample(
-                  n.map((e) => e[1]).filter((e) => e !== a),
-                  3,
-                ),
-              ]),
-          hint: s
-            ? `Fraction → decimal → × 100.`
-            : `Divide the top by the bottom.`,
-          visual: null,
-          explain: `${i} = ${a} = ${o}`,
-        };
-      },
-    },
-  ]);
-
-const round2 = (e) => Math.round(e * 100) / 100;
-
-export const decimalsTopic = makeTopic(`decimals`, `Decimals`, 2, [
-    {
-      id: `money-total`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [100, 900], [150, 2400], [1800, 4500]),
-          [i, a] = byTier(t, [50, 700], [80, 1900], [1400, 3800]),
-          o = round2(e.int(n, r) / 100),
-          s = round2(e.int(i, a) / 100),
-          c = round2(o + s);
-        return {
-          prompt: `${e.pick(NAMES)} buys a book for £${o.toFixed(2)} and a pen for £${s.toFixed(2)}.\n\nWhat is the total?`,
-          answer: c.toFixed(2),
-          hint: `Line up the decimal points before you add.`,
-          visual: barModelSvg(
-            [
-              {
-                segments: [
-                  { span: o, text: `£${o.toFixed(2)}`, colour: BRAND },
-                  { span: s, text: `£${s.toFixed(2)}`, colour: CORAL },
-                ],
-              },
-            ],
-            `total = ?`,
-          ),
-          explain: `£${o.toFixed(2)} + £${s.toFixed(2)} = £${c.toFixed(2)}`,
-        };
-      },
-    },
-    {
-      id: `money-change`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [80, 900], [120, 1750], [1e3, 1950]),
-          i = round2(e.int(n, r) / 100),
-          a = byTier(t, [5, 10], [5, 10, 20], [10, 20]),
-          o = e.pick(a);
-        if (i >= o) return null;
-        let s = round2(o - i);
-        return {
-          prompt: `${e.pick(NAMES)} spends £${i.toFixed(2)} and pays with a £${o} note.\n\nHow much change does she get?`,
-          answer: s.toFixed(2),
-          hint: `Count up from £${i.toFixed(2)} to £${o}.`,
-          visual: changeSvg(o, i),
-          explain: `£${o} − £${i.toFixed(2)} = £${s.toFixed(2)}`,
-        };
-      },
-    },
-    {
-      id: `multiply`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [10, 60], [15, 95], [80, 180]),
-          [i, a] = byTier(t, [2, 5], [3, 8], [6, 12]),
-          o = round2(e.int(n, r) / 10),
-          s = e.int(i, a),
-          c = round2(o * s);
-        return {
-          prompt: `One bag of compost weighs ${o.toFixed(1)} kg.\n\nWhat do ${s} bags weigh?`,
-          answer: String(c),
-          hint: `Work out ${o * 10} × ${s}, then divide by 10.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `${s} bags`,
-                segments: Array.from({ length: s }, () => ({
-                  span: 1,
-                  text: `${o.toFixed(1)}`,
-                  colour: BRAND,
-                })),
-              },
-            ],
-            `total weight = ?`,
-          ),
-          explain: `${o.toFixed(1)} × ${s} = ${c} kg`,
-        };
-      },
-    },
-    {
-      id: `divide`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [3, 4, 5], [4, 5, 8, 10], [8, 10, 12]),
-          r = e.pick(n),
-          [i, a] = byTier(t, [10, 60], [15, 90], [70, 150]),
-          o = round2(e.int(i, a) / 10),
-          s = round2(o * r);
-        return {
-          prompt: `${r} identical drinks cost £${s.toFixed(2)} altogether.\n\nHow much is one drink?`,
-          answer: o.toFixed(2),
-          hint: `Divide £${s.toFixed(2)} by ${r}.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `£${s.toFixed(2)} altogether`,
-                segments: Array.from({ length: r }, () => ({
-                  span: 1,
-                  text: `?`,
-                })),
-              },
-            ],
-            `${r} drinks, all the same price`,
-          ),
-          explain: `£${s.toFixed(2)} ÷ ${r} = £${o.toFixed(2)}`,
-        };
-      },
-    },
-    {
-      id: `best-value`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [20, 60], [30, 90], [70, 150]),
-          i = round2(e.int(n, r) / 100),
-          [a, o] = byTier(t, [2, 2], [2, 3], [3, 4]),
-          [s, c] = byTier(t, [3, 5], [4, 6], [5, 8]),
-          [l, u] = byTier(t, [6, 8], [8, 10], [9, 13]),
-          [d, f] = byTier(t, [9, 12], [12, 16], [14, 20]),
-          p = [e.int(a, o), e.int(s, c), e.int(l, u), e.int(d, f)],
-          m = e.int(0, 3),
-          h = p.map((e, t) => {
-            let n = round2(t === m ? i * 0.78 : i * (1 + t * 0.05));
-            return { sz: e, price: round2(e * n), perItem: n };
-          }),
-          g = h[m];
-        return {
-          prompt: `The table shows three pack sizes of the same yoghurt.
+  // Best value: compare price per pot. The winning pack is priced at 78% of
+  // the base unit price; the others at 100%, 105%, 110%… so the gap is clear.
+  {
+    id: 'best-value',
+    build(rng, tier = TIER.STANDARD) {
+      const [minPence, maxPence] = byTier(tier, [20, 60], [30, 90], [70, 150]);
+      const basePrice = round2(rng.int(minPence, maxPence) / 100);
+      const [min1, max1] = byTier(tier, [2, 2], [2, 3], [3, 4]);
+      const [min2, max2] = byTier(tier, [3, 5], [4, 6], [5, 8]);
+      const [min3, max3] = byTier(tier, [6, 8], [8, 10], [9, 13]);
+      const [min4, max4] = byTier(tier, [9, 12], [12, 16], [14, 20]);
+      const sizes = [
+        rng.int(min1, max1),
+        rng.int(min2, max2),
+        rng.int(min3, max3),
+        rng.int(min4, max4),
+      ];
+      const bestIndex = rng.int(0, 3);
+      const packs = sizes.map((size, i) => {
+        const perItem = round2(i === bestIndex ? basePrice * 0.78 : basePrice * (1 + i * 0.05));
+        return { size, price: round2(size * perItem), perItem };
+      });
+      const best = packs[bestIndex];
+      return {
+        prompt: `The table shows three pack sizes of the same yoghurt.
 
 Which pack is the best value per pot?`,
-          answer: `${g.sz} pots`,
-          options: e.shuffle(h.map((e) => `${e.sz} pots`)),
-          hint: `For each pack, divide the price by the number of pots.`,
-          visual: tableSvg(
-            [`Pack`, `Price`],
-            h.map((e) => [`${e.sz} pots`, `£${e.price.toFixed(2)}`]),
-            { title: `Yoghurt prices` },
-          ),
-          explain: `${g.sz} pots works out at £${g.perItem.toFixed(2)} each — the lowest price per pot.`,
-        };
-      },
+        answer: `${best.size} pots`,
+        options: rng.shuffle(packs.map((pack) => `${pack.size} pots`)),
+        hint: 'For each pack, divide the price by the number of pots.',
+        visual: tableSvg(
+          ['Pack', 'Price'],
+          packs.map((pack) => [`${pack.size} pots`, `£${pack.price.toFixed(2)}`]),
+          { title: 'Yoghurt prices' },
+        ),
+        explain: `${best.size} pots works out at £${best.perItem.toFixed(2)} each — the lowest price per pot.`,
+      };
     },
-    {
-      id: `order-decimals`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 5], [2, 8], [6, 15]),
-          i = e.int(n, r),
-          a = e.shuffle([
-            round2(i + e.int(5, 9) / 10),
-            round2(i + e.int(1, 4) / 10),
-            round2(i + e.int(11, 49) / 100),
-            round2(i + e.int(60, 95) / 100),
-          ]),
-          o = [...a].sort((e, t) => e - t);
-        return new Set(a).size < 4
-          ? null
-          : {
-              prompt: `Put these in order, smallest first:\n\n${a.map((e) => e.toFixed(2)).join(`, `)}`,
-              answer: o.map((e) => e.toFixed(2)).join(`, `),
-              options: optionsFromCandidates(e, o.map((e) => e.toFixed(2)).join(`, `), [
-                [...o]
-                  .reverse()
-                  .map((e) => e.toFixed(2))
-                  .join(`, `),
-                a.map((e) => e.toFixed(2)).join(`, `),
-                [...o]
-                  .sort((e, t) => String(e).localeCompare(String(t)))
-                  .map((e) => e.toFixed(2))
-                  .join(`, `),
-                [o[1], o[0], o[2], o[3]].map((e) => e.toFixed(2)).join(`, `),
-              ]),
-              hint: `Compare the tenths first. If they match, compare the hundredths.`,
-              visual: numberLineSvg(i, i + 1, null),
-              explain: `Smallest to largest: ${o.map((e) => e.toFixed(2)).join(`, `)}.`,
-            };
-      },
-    },
-  ]);
+  },
 
-export const problemSolvingTopic = makeTopic(`problem-solving`, `Multi-step problems`, 4, [
-    {
-      id: `change-from-note`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 8], [3, 12], [10, 20]),
-          [i, a] = byTier(t, [2, 5], [3, 9], [7, 14]),
-          [o, s] = byTier(t, [30, 70], [50, 100], [90, 200]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = u - c * l;
-        return d <= 0
-          ? null
-          : {
-              prompt: `${e.pick(NAMES)} buys ${l} tickets at £${c} each.\nShe pays with £${u}.\n\nHow much change does she get?`,
-              answer: d,
-              hint: `Work out the total cost first (${l} × £${c}), then subtract from £${u}.`,
-              visual: barModelSvg(
-                [
-                  {
-                    label: `paid £${u}`,
-                    segments: [
-                      { span: c * l, text: `${l} × £${c}`, colour: BRAND },
-                      { span: Math.max(d, 1), text: `?` },
-                    ],
-                  },
-                ],
-                `cost + change = £${u}`,
-              ),
-              explain: `${l} × £${c} = £${c * l}. £${u} − £${c * l} = £${d}.`,
-            };
-      },
+  // Order decimals with mixed numbers of decimal places. Distractors include
+  // a string sort (the "longer means bigger" misconception).
+  {
+    id: 'order-decimals',
+    build(rng, tier = TIER.STANDARD) {
+      const [minWhole, maxWhole] = byTier(tier, [1, 5], [2, 8], [6, 15]);
+      const whole = rng.int(minWhole, maxWhole);
+      const values = rng.shuffle([
+        round2(whole + rng.int(5, 9) / 10),
+        round2(whole + rng.int(1, 4) / 10),
+        round2(whole + rng.int(11, 49) / 100),
+        round2(whole + rng.int(60, 95) / 100),
+      ]);
+      const sorted = [...values].sort((a, b) => a - b);
+      if (new Set(values).size < 4) return null;
+      const list = (numbers) => numbers.map((value) => value.toFixed(2)).join(', ');
+      return {
+        prompt: `Put these in order, smallest first:\n\n${list(values)}`,
+        answer: list(sorted),
+        options: optionsFromCandidates(rng, list(sorted), [
+          list([...sorted].reverse()),
+          list(values),
+          list([...sorted].sort((a, b) => String(a).localeCompare(String(b)))),
+          list([sorted[1], sorted[0], sorted[2], sorted[3]]),
+        ]),
+        hint: 'Compare the tenths first. If they match, compare the hundredths.',
+        visual: numberLineSvg(whole, whole + 1, null),
+        explain: `Smallest to largest: ${list(sorted)}.`,
+      };
     },
-    {
-      id: `collect-then-use`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [8, 35], [15, 60], [45, 100]),
-          [i, a] = byTier(t, [3, 8], [5, 14], [10, 21]),
-          [o, s] = byTier(t, [15, 120], [30, 200], [150, 400]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = c * l;
-        return u >= d
-          ? null
-          : {
-              prompt: `A school collects ${c} plastic bottles a day for ${l} days.\nThey then recycle ${u} of them.\n\nHow many bottles are left to recycle?`,
-              answer: d - u,
-              hint: `First find the total collected: ${c} × ${l}.`,
-              visual: barModelSvg(
-                [
-                  {
-                    label: `bottles collected`,
-                    segments: [
-                      { span: u, text: `${u} recycled`, colour: CORAL },
-                      { span: Math.max(d - u, 1), text: `?` },
-                    ],
-                  },
-                ],
-                `${c} a day for ${l} days`,
-              ),
-              explain: `${c} × ${l} = ${d}. ${d} − ${u} = ${d - u}.`,
-            };
-      },
-    },
-    {
-      id: `fraction-of-group`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [4, 12], [6, 20], [16, 40]),
-          i = byTier(t, [3, 4], [3, 4, 6], [4, 6, 12]),
-          a = e.int(n, r) * 12,
-          o = e.pick(i),
-          s = a / o;
-        return {
-          prompt: `There are ${a} pupils in P7.\n1/${o} of them walk to school.\n\nHow many do NOT walk?`,
-          answer: a - s,
-          hint: `Find 1/${o} of ${a} first, then take it away from ${a}.`,
-          visual: pieSvg(1, o, `1/${o} walk to school`),
-          explain: `${a} ÷ ${o} = ${s} walk. ${a} − ${s} = ${a - s} do not.`,
-        };
-      },
-    },
-    {
-      id: `shopping-table`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [1, 3], [2, 4], [3, 6]),
-          [i, a] = byTier(t, [2, 4], [3, 6], [5, 9]),
-          [o, s] = byTier(t, [1, 2], [1, 3], [2, 4]),
-          c = [
-            [`Notebook`, e.int(n, r)],
-            [`Pens (pack)`, e.int(i, a)],
-            [`Ruler`, e.int(o, s)],
+  },
+]);
+
+/* ── Multi-step problems ─────────────────────────────────────────────── */
+
+export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step problems', 4, [
+  // Multiply, then subtract from the amount paid.
+  {
+    id: 'change-from-note',
+    build(rng, tier = TIER.STANDARD) {
+      const [minPrice, maxPrice] = byTier(tier, [2, 8], [3, 12], [10, 20]);
+      const [minTickets, maxTickets] = byTier(tier, [2, 5], [3, 9], [7, 14]);
+      const [minPaid, maxPaid] = byTier(tier, [30, 70], [50, 100], [90, 200]);
+      const price = rng.int(minPrice, maxPrice);
+      const tickets = rng.int(minTickets, maxTickets);
+      const paid = rng.int(minPaid, maxPaid);
+      const change = paid - price * tickets;
+      if (change <= 0) return null;
+      return {
+        prompt: `${rng.pick(NAMES)} buys ${tickets} tickets at £${price} each.\nShe pays with £${paid}.\n\nHow much change does she get?`,
+        answer: change,
+        hint: `Work out the total cost first (${tickets} × £${price}), then subtract from £${paid}.`,
+        visual: barModelSvg(
+          [
+            {
+              label: `paid £${paid}`,
+              segments: [
+                { span: price * tickets, text: `${tickets} × £${price}`, colour: BRAND },
+                { span: Math.max(change, 1), text: '?' },
+              ],
+            },
           ],
-          [l, u] = byTier(t, [2, 3], [2, 4], [4, 7]),
-          [d, f] = byTier(t, [2, 2], [2, 3], [3, 5]),
-          p = e.int(l, u),
-          m = e.int(d, f),
-          h = c[0][1] * p + c[1][1] * m,
-          g = Math.ceil((h + e.int(2, 9)) / 5) * 5;
-        return {
-          prompt: `Using the price list, ${e.pick(NAMES)} buys ${p} notebooks and ${m} packs of pens.\nHe pays with £${g}.\n\nHow much change does he get?`,
-          answer: g - h,
-          hint: `Work out each item, add them, then subtract from what he paid.`,
-          visual: tableSvg(
-            [`Item`, `Price`],
-            c.map(([e, t]) => [e, `£${t}`]),
-            { title: `Price list` },
-          ),
-          explain: `${p} × £${c[0][1]} = £${c[0][1] * p}, ${m} × £${c[1][1]} = £${c[1][1] * m}. Total £${h}. £${g} − £${h} = £${g - h}.`,
-        };
-      },
+          `cost + change = £${paid}`,
+        ),
+        explain: `${tickets} × £${price} = £${price * tickets}. £${paid} − £${price * tickets} = £${change}.`,
+      };
     },
-    {
-      id: `chart-two-step`,
-      build(e, t = TIER.STANDARD) {
-        let n = [`Mon`, `Tue`, `Wed`, `Thu`],
-          [r, i] = byTier(t, [5, 20], [8, 30], [20, 45]),
-          a = n.map(() => e.int(r, i)),
-          [o, s] = byTier(t, [60, 100], [90, 140], [130, 200]),
-          c = e.int(o, s),
-          l = a.reduce((e, t) => e + t, 0),
-          u = c - l;
-        return u <= 0
-          ? null
-          : {
-              prompt: `The chart shows how many lengths ${e.pick(NAMES)} swam over four days.\nHer target for the week is ${c} lengths.\n\nHow many more does she need?`,
-              answer: u,
-              options: numericOptions(e, u),
-              hint: `Add the four bars first, then take that away from the target.`,
-              visual: barChartSvg(a, n, `lengths`),
-              explain: `${a.join(` + `)} = ${l}. ${c} − ${l} = ${u}.`,
-            };
-      },
+  },
+
+  // Multiply to find a total collected, then subtract what's been used.
+  {
+    id: 'collect-then-use',
+    build(rng, tier = TIER.STANDARD) {
+      const [minPerDay, maxPerDay] = byTier(tier, [8, 35], [15, 60], [45, 100]);
+      const [minDays, maxDays] = byTier(tier, [3, 8], [5, 14], [10, 21]);
+      const [minRecycled, maxRecycled] = byTier(tier, [15, 120], [30, 200], [150, 400]);
+      const perDay = rng.int(minPerDay, maxPerDay);
+      const days = rng.int(minDays, maxDays);
+      const recycled = rng.int(minRecycled, maxRecycled);
+      const collected = perDay * days;
+      if (recycled >= collected) return null;
+      return {
+        prompt: `A school collects ${perDay} plastic bottles a day for ${days} days.\nThey then recycle ${recycled} of them.\n\nHow many bottles are left to recycle?`,
+        answer: collected - recycled,
+        hint: `First find the total collected: ${perDay} × ${days}.`,
+        visual: barModelSvg(
+          [
+            {
+              label: 'bottles collected',
+              segments: [
+                { span: recycled, text: `${recycled} recycled`, colour: CORAL },
+                { span: Math.max(collected - recycled, 1), text: '?' },
+              ],
+            },
+          ],
+          `${perDay} a day for ${days} days`,
+        ),
+        explain: `${perDay} × ${days} = ${collected}. ${collected} − ${recycled} = ${collected - recycled}.`,
+      };
     },
-    {
-      id: `boxes-and-leftovers`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [2, 7], [4, 12], [10, 20]),
-          [i, a] = byTier(t, [3, 14], [6, 24], [18, 40]),
-          [o, s] = byTier(t, [2, 10], [3, 20], [15, 35]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s);
-        return {
-          prompt: `${e.pick(NAMES)} packs ${c} boxes with ${l} apples in each.\nShe has ${u} apples left over.\n\nHow many apples did she start with?`,
-          answer: c * l + u,
-          hint: `Multiply first, then add the leftovers.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `${c} boxes of ${l}`,
-                segments: [
-                  { span: c * l, text: `${c} × ${l}`, colour: BRAND },
-                  { span: Math.max(u, 1), text: `+${u}`, colour: MINT },
-                ],
-              },
-            ],
-            `how many at the start?`,
-          ),
-          explain: `${c} × ${l} = ${c * l}, + ${u} = ${c * l + u}.`,
-        };
-      },
+  },
+
+  // Unit fraction of a group, then the complement ("how many do NOT…").
+  // Class sizes are multiples of 12 so every denominator divides them.
+  {
+    id: 'fraction-of-group',
+    build(rng, tier = TIER.STANDARD) {
+      const [minDozens, maxDozens] = byTier(tier, [4, 12], [6, 20], [16, 40]);
+      const denominatorPool = byTier(tier, [3, 4], [3, 4, 6], [4, 6, 12]);
+      const pupils = rng.int(minDozens, maxDozens) * 12;
+      const denominator = rng.pick(denominatorPool);
+      const walkers = pupils / denominator;
+      return {
+        prompt: `There are ${pupils} pupils in P7.\n1/${denominator} of them walk to school.\n\nHow many do NOT walk?`,
+        answer: pupils - walkers,
+        hint: `Find 1/${denominator} of ${pupils} first, then take it away from ${pupils}.`,
+        visual: pieSvg(1, denominator, `1/${denominator} walk to school`),
+        explain: `${pupils} ÷ ${denominator} = ${walkers} walk. ${pupils} − ${walkers} = ${pupils - walkers} do not.`,
+      };
     },
-    {
-      id: `rate-scenario`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [6, 24], [12, 40], [30, 60]),
-          [i, a] = byTier(t, [2, 5], [3, 7], [6, 10]),
-          [o, s] = byTier(t, [2, 3], [2, 4], [3, 6]),
-          c = e.int(n, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = c * l * u;
-        return {
-          prompt: `${u} volunteers each plant ${c} bulbs an hour.\nThey work for ${l} hours.\n\nHow many bulbs do they plant altogether?`,
-          answer: d,
-          options: numericOptions(e, d),
-          hint: `One volunteer plants ${c} × ${l} bulbs. Then account for all ${u}.`,
-          explain: `${c} × ${l} = ${c * l} each. × ${u} = ${d}.`,
-        };
-      },
+  },
+
+  // Read prices from a table, total two items, then work out change. The
+  // ruler is a distractor row that isn't bought.
+  {
+    id: 'shopping-table',
+    build(rng, tier = TIER.STANDARD) {
+      const [minNotebook, maxNotebook] = byTier(tier, [1, 3], [2, 4], [3, 6]);
+      const [minPens, maxPens] = byTier(tier, [2, 4], [3, 6], [5, 9]);
+      const [minRuler, maxRuler] = byTier(tier, [1, 2], [1, 3], [2, 4]);
+      const prices = [
+        ['Notebook', rng.int(minNotebook, maxNotebook)],
+        ['Pens (pack)', rng.int(minPens, maxPens)],
+        ['Ruler', rng.int(minRuler, maxRuler)],
+      ];
+      const [minNotebooks, maxNotebooks] = byTier(tier, [2, 3], [2, 4], [4, 7]);
+      const [minPacks, maxPacks] = byTier(tier, [2, 2], [2, 3], [3, 5]);
+      const notebooks = rng.int(minNotebooks, maxNotebooks);
+      const packs = rng.int(minPacks, maxPacks);
+      const notebookPrice = prices[0][1];
+      const packPrice = prices[1][1];
+      const total = notebookPrice * notebooks + packPrice * packs;
+      // Pay with the next multiple of £5 at least £2 above the total.
+      const paid = Math.ceil((total + rng.int(2, 9)) / 5) * 5;
+      return {
+        prompt: `Using the price list, ${rng.pick(NAMES)} buys ${notebooks} notebooks and ${packs} packs of pens.\nHe pays with £${paid}.\n\nHow much change does he get?`,
+        answer: paid - total,
+        hint: 'Work out each item, add them, then subtract from what he paid.',
+        visual: tableSvg(
+          ['Item', 'Price'],
+          prices.map(([item, price]) => [item, `£${price}`]),
+          { title: 'Price list' },
+        ),
+        explain: `${notebooks} × £${notebookPrice} = £${notebookPrice * notebooks}, ${packs} × £${packPrice} = £${packPrice * packs}. Total £${total}. £${paid} − £${total} = £${paid - total}.`,
+      };
     },
-  ]);
+  },
+
+  // Read and total a bar chart, then find the shortfall against a target.
+  {
+    id: 'chart-two-step',
+    build(rng, tier = TIER.STANDARD) {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu'];
+      const [min, max] = byTier(tier, [5, 20], [8, 30], [20, 45]);
+      const lengths = days.map(() => rng.int(min, max));
+      const [minTarget, maxTarget] = byTier(tier, [60, 100], [90, 140], [130, 200]);
+      const target = rng.int(minTarget, maxTarget);
+      const swum = lengths.reduce((sum, value) => sum + value, 0);
+      const remaining = target - swum;
+      if (remaining <= 0) return null;
+      const name = rng.pick(NAMES);
+      return {
+        prompt: `The chart shows how many lengths ${name} swam over four days.\nHer target for the week is ${target} lengths.\n\nHow many more does she need?`,
+        answer: remaining,
+        options: numericOptions(rng, remaining),
+        hint: 'Add the four bars first, then take that away from the target.',
+        visual: barChartSvg(lengths, days, 'lengths'),
+        explain: `${lengths.join(' + ')} = ${swum}. ${target} − ${swum} = ${remaining}.`,
+      };
+    },
+  },
+
+  // Work backwards: boxes × per box + leftovers = starting amount.
+  {
+    id: 'boxes-and-leftovers',
+    build(rng, tier = TIER.STANDARD) {
+      const [minBoxes, maxBoxes] = byTier(tier, [2, 7], [4, 12], [10, 20]);
+      const [minPerBox, maxPerBox] = byTier(tier, [3, 14], [6, 24], [18, 40]);
+      const [minLeft, maxLeft] = byTier(tier, [2, 10], [3, 20], [15, 35]);
+      const boxes = rng.int(minBoxes, maxBoxes);
+      const perBox = rng.int(minPerBox, maxPerBox);
+      const leftOver = rng.int(minLeft, maxLeft);
+      return {
+        prompt: `${rng.pick(NAMES)} packs ${boxes} boxes with ${perBox} apples in each.\nShe has ${leftOver} apples left over.\n\nHow many apples did she start with?`,
+        answer: boxes * perBox + leftOver,
+        hint: 'Multiply first, then add the leftovers.',
+        visual: barModelSvg(
+          [
+            {
+              label: `${boxes} boxes of ${perBox}`,
+              segments: [
+                { span: boxes * perBox, text: `${boxes} × ${perBox}`, colour: BRAND },
+                { span: Math.max(leftOver, 1), text: `+${leftOver}`, colour: MINT },
+              ],
+            },
+          ],
+          'how many at the start?',
+        ),
+        explain: `${boxes} × ${perBox} = ${boxes * perBox}, + ${leftOver} = ${boxes * perBox + leftOver}.`,
+      };
+    },
+  },
+
+  // Three-factor product: rate × time × people.
+  {
+    id: 'rate-scenario',
+    build(rng, tier = TIER.STANDARD) {
+      const [minRate, maxRate] = byTier(tier, [6, 24], [12, 40], [30, 60]);
+      const [minHours, maxHours] = byTier(tier, [2, 5], [3, 7], [6, 10]);
+      const [minVolunteers, maxVolunteers] = byTier(tier, [2, 3], [2, 4], [3, 6]);
+      const perHour = rng.int(minRate, maxRate);
+      const hours = rng.int(minHours, maxHours);
+      const volunteers = rng.int(minVolunteers, maxVolunteers);
+      const total = perHour * hours * volunteers;
+      return {
+        prompt: `${volunteers} volunteers each plant ${perHour} bulbs an hour.\nThey work for ${hours} hours.\n\nHow many bulbs do they plant altogether?`,
+        answer: total,
+        options: numericOptions(rng, total),
+        hint: `One volunteer plants ${perHour} × ${hours} bulbs. Then account for all ${volunteers}.`,
+        explain: `${perHour} × ${hours} = ${perHour * hours} each. × ${volunteers} = ${total}.`,
+      };
+    },
+  },
+]);

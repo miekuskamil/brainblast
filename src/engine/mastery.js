@@ -1,87 +1,102 @@
+/**
+ * Topic mastery tracking.
+ *
+ * Where the review engine tracks individual items, mastery tracks whole topics
+ * ("maths:fractions"). Status is judged on a rolling window of recent answers
+ * rather than lifetime accuracy, so a learner who struggled at first and has
+ * since got the hang of a topic is recognised for where they are now.
+ */
 
+/** How many recent answers count towards a topic's accuracy. */
+const RECENT_WINDOW = 10;
 
 export const STATUS = {
-    UNSEEN: `unseen`,
-    LEARNING: `learning`,
-    PRACTISING: `practising`,
-    SECURE: `secure`,
-  };
+  UNSEEN: 'unseen',
+  LEARNING: 'learning',
+  PRACTISING: 'practising',
+  SECURE: 'secure',
+};
 
-export function emptyMastery(e) {
-  return { key: e, attempts: 0, correct: 0, recent: [], streak: 0, best: 0 };
+export function emptyMastery(key) {
+  return { key, attempts: 0, correct: 0, recent: [], streak: 0, best: 0 };
 }
 
-export function updateMastery(e, t) {
-  let n = { ...e, recent: [...e.recent] };
-  return (
-    (n.attempts += 1),
-    t
-      ? ((n.correct += 1),
-        (n.streak += 1),
-        (n.best = Math.max(n.best, n.streak)))
-      : (n.streak = 0),
-    n.recent.push(+!!t),
-    n.recent.length > 10 && n.recent.shift(),
-    n
-  );
+/** Return a copy of `record` updated for one answer. */
+export function updateMastery(record, wasCorrect) {
+  const next = { ...record, recent: [...record.recent] };
+  next.attempts += 1;
+  if (wasCorrect) {
+    next.correct += 1;
+    next.streak += 1;
+    next.best = Math.max(next.best, next.streak);
+  } else {
+    next.streak = 0;
+  }
+  next.recent.push(wasCorrect ? 1 : 0);
+  if (next.recent.length > RECENT_WINDOW) next.recent.shift();
+  return next;
 }
 
-export function accuracy(e) {
-  return !e || e.recent.length === 0
-    ? 0
-    : e.recent.reduce((e, t) => e + t, 0) / e.recent.length;
+/** Accuracy over the recent window, 0–1. Missing or untouched records count as 0. */
+export function accuracy(record) {
+  if (!record || record.recent.length === 0) return 0;
+  return record.recent.reduce((sum, hit) => sum + hit, 0) / record.recent.length;
 }
 
-export function statusOf(e) {
-  if (!e || e.attempts === 0) return STATUS.UNSEEN;
-  let t = accuracy(e);
-  return e.attempts < 4
-    ? STATUS.LEARNING
-    : t >= 0.85 && e.recent.length >= 5
-      ? STATUS.SECURE
-      : t >= 0.6
-        ? STATUS.PRACTISING
-        : STATUS.LEARNING;
+export function statusOf(record) {
+  if (!record || record.attempts === 0) return STATUS.UNSEEN;
+  const recentAccuracy = accuracy(record);
+  // A handful of answers is too little evidence to call anything more than "learning".
+  if (record.attempts < 4) return STATUS.LEARNING;
+  if (recentAccuracy >= 0.85 && record.recent.length >= 5) return STATUS.SECURE;
+  if (recentAccuracy >= 0.6) return STATUS.PRACTISING;
+  return STATUS.LEARNING;
 }
 
 export const STATUS_META = {
-  [STATUS.UNSEEN]: { label: `Not started`, icon: `○`, tone: `muted` },
-  [STATUS.LEARNING]: { label: `Learning`, icon: `◔`, tone: `warn` },
-  [STATUS.PRACTISING]: { label: `Getting there`, icon: `◑`, tone: `mid` },
-  [STATUS.SECURE]: { label: `Secure`, icon: `●`, tone: `good` },
+  [STATUS.UNSEEN]: { label: 'Not started', icon: '○', tone: 'muted' },
+  [STATUS.LEARNING]: { label: 'Learning', icon: '◔', tone: 'warn' },
+  [STATUS.PRACTISING]: { label: 'Getting there', icon: '◑', tone: 'mid' },
+  [STATUS.SECURE]: { label: 'Secure', icon: '●', tone: 'good' },
 };
 
-export function recordAnswer(e, t, n) {
-  let r = e[t] ?? emptyMastery(t);
-  return { ...e, [t]: updateMastery(r, n) };
+/** Record one answer inside the whole mastery map, creating the record on first sight. */
+export function recordAnswer(masteryState, key, wasCorrect) {
+  const record = masteryState[key] ?? emptyMastery(key);
+  return { ...masteryState, [key]: updateMastery(record, wasCorrect) };
 }
 
-export function weakestTopics(e, t, n = 5) {
-  return [...t]
-    .map((t) => ({ key: t, state: e[t], acc: accuracy(e[t]) }))
-    .filter((e) => e.state && e.state.attempts > 0)
-    .sort((e, t) => e.acc - t.acc)
-    .slice(0, n)
-    .map((e) => e.key);
+/**
+ * The `limit` attempted topics with the lowest recent accuracy, weakest first.
+ * Unattempted topics are left out: "weak" needs evidence.
+ */
+export function weakestTopics(masteryState, keys, limit = 5) {
+  return [...keys]
+    .map((key) => ({ key, state: masteryState[key], acc: accuracy(masteryState[key]) }))
+    .filter((entry) => entry.state && entry.state.attempts > 0)
+    .sort((a, b) => a.acc - b.acc)
+    .slice(0, limit)
+    .map((entry) => entry.key);
 }
 
-export function masteryOverview(e, t) {
-  let n = t.map((t) => {
-    let n = `${t.subject}:${t.id}`,
-      r = e[n];
+/** One row per topic for the progress screen, plus a count of secure topics. */
+export function masteryOverview(masteryState, topics) {
+  const rows = topics.map((topic) => {
+    const key = `${topic.subject}:${topic.id}`;
+    const record = masteryState[key];
     return {
-      key: n,
-      label: t.label,
-      subject: t.subject,
-      icon: t.icon,
-      status: statusOf(r),
-      accuracy: accuracy(r),
-      attempts: r?.attempts ?? 0,
+      key,
+      label: topic.label,
+      subject: topic.subject,
+      icon: topic.icon,
+      status: statusOf(record),
+      accuracy: accuracy(record),
+      attempts: record?.attempts ?? 0,
     };
   });
   return {
-    rows: n,
-    secure: n.filter((e) => e.status === STATUS.SECURE).length,
-    total: n.length,
+    rows,
+    secure: rows.filter((row) => row.status === STATUS.SECURE).length,
+    total: rows.length,
   };
 }

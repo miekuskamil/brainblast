@@ -1,34 +1,59 @@
+/**
+ * Seedable pseudo-random number generator (mulberry32).
+ *
+ * Question generation takes an rng rather than calling Math.random directly
+ * so tests can replay exactly the same questions from a seed. The app itself
+ * just uses `defaultRng`, seeded from the clock.
+ */
 
+/**
+ * @param {number} [seed]
+ * @returns {{
+ *   next: () => number,
+ *   int: (min: number, max: number) => number,
+ *   pick: <T>(items: T[]) => T,
+ *   sample: <T>(items: T[], count: number) => T[],
+ *   shuffle: <T>(items: T[]) => T[],
+ * }}
+ */
+export function makeRng(seed = Date.now()) {
+  let state = seed >>> 0;
 
-export function makeRng(e = Date.now()) {
-  let t = e >>> 0,
-    n = () => {
-      t = (t + 1831565813) >>> 0;
-      let e = t;
-      return (
-        (e = Math.imul(e ^ (e >>> 15), e | 1)),
-        (e ^= e + Math.imul(e ^ (e >>> 7), e | 61)),
-        ((e ^ (e >>> 14)) >>> 0) / 4294967296
-      );
-    };
+  /** A float in [0, 1). */
+  const next = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let z = state;
+    z = Math.imul(z ^ (z >>> 15), z | 1);
+    z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+  };
+
   return {
-    next: n,
-    int: (e, t) => e + Math.floor(n() * (t - e + 1)),
-    pick: (e) => e[Math.floor(n() * e.length)],
-    sample: (e, t) => {
-      let r = [...e],
-        i = [];
-      for (; i.length < t && r.length;)
-        i.push(r.splice(Math.floor(n() * r.length), 1)[0]);
-      return i;
-    },
-    shuffle: (e) => {
-      let t = [...e];
-      for (let e = t.length - 1; e > 0; e--) {
-        let r = Math.floor(n() * (e + 1));
-        [t[e], t[r]] = [t[r], t[e]];
+    next,
+
+    /** An integer in [min, max], both inclusive. */
+    int: (min, max) => min + Math.floor(next() * (max - min + 1)),
+
+    pick: (items) => items[Math.floor(next() * items.length)],
+
+    /** Up to `count` distinct items, in random order. Does not mutate `items`. */
+    sample: (items, count) => {
+      const pool = [...items];
+      const picked = [];
+      while (picked.length < count && pool.length) {
+        picked.push(pool.splice(Math.floor(next() * pool.length), 1)[0]);
       }
-      return t;
+      return picked;
+    },
+
+    /** Fisher–Yates shuffle into a new array. */
+    shuffle: (items) => {
+      const result = [...items];
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(next() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
     },
   };
 }

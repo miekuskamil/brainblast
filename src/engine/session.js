@@ -1,187 +1,323 @@
+/**
+ * Session builder — decides what a round actually contains.
+ *
+ * A round is a *mix*: due review items first (they are the whole point of the
+ * review engine), then fresh questions weighted towards weak topics. This is
+ * the one place that policy lives, so tuning how much review a round carries
+ * is a one-line change rather than a hunt through the UI.
+ */
 import { dueItems } from './review.js';
 import { weakestTopics } from './mastery.js';
 import { resolveTier } from './difficulty.js';
-import { customSpellingQuestion } from '../curriculum/spelling.js';
 import { defaultRng } from './rng.js';
-import { generate, pickPassageCluster, regenerateByKey, topicsFor } from '../curriculum/index.js';
+import {
+  customSpellingQuestion,
+  generate,
+  pickPassageCluster,
+  regenerateByKey,
+  topicsFor,
+} from '../curriculum/index.js';
 
+export const ROUND_SIZE = 10;
+export const MAX_REVIEW_PER_ROUND = 4;
+
+// How often a round that allows passage clusters (see `includePassages`)
+// actually opens with one. Not every round — a reading passage is a bigger,
+// slower moment than an ordinary question, and always leading with one would
+// crowd out the variety a round is supposed to have.
 const PASSAGE_CLUSTER_CHANCE = 0.35;
 
+// How many weak topics bias the fill, and how often a mixed round draws from them.
+const WEAK_TOPIC_COUNT = 4;
+const WEAK_TOPIC_CHANCE = 0.45;
+// A weak topic may take at least this many slots even when the even spread is lower.
+const WEAK_TOPIC_MIN_CAP = 3;
+// Chance per pick of drawing from the learner's own word list, when they have one.
+const CUSTOM_WORD_CHANCE = 0.5;
+
+const ALL_SUBJECT_IDS = ['maths', 'spelling', 'grammar', 'vocab'];
+
+const DAILY_CHALLENGE_SIZE = 5;
+const DAILY_CHALLENGE_MAX_REVIEW = 2;
+
+/**
+ * @returns {{questions: Question[], reviewCount: number}}
+ */
 export function buildRound({
-  subject: e,
-  topic: t = null,
-  reviewState: n = {},
-  masteryState: r = {},
-  size: i = 10,
-  rng: a = defaultRng,
-  now: o = Date.now(),
-  customWords: s = null,
-  tierOverride: c = null,
-  includeReview: l = !0,
-  includePassages: u = !1,
+  subject,
+  topic = null,
+  reviewState = {},
+  masteryState = {},
+  size = ROUND_SIZE,
+  rng = defaultRng,
+  now = Date.now(),
+  customWords = null,
+  // TIER.EASY/STANDARD/HARD to force every question to that tier (a parent's
+  // Settings pin), or null for the normal mastery-driven pick per topic.
+  tierOverride = null,
+  // false for Exam mode: an exam is meant to measure fresh, unaided recall, so
+  // it must never regenerate a question the spaced-repetition engine already
+  // scheduled from Practice/Daily challenge/Run & Learn — that would be the
+  // same item carried straight over, not a new test of it. See buildExam.
+  includeReview = true,
+  // Opt in per call site: when true, this round may open with one whole
+  // reading-passage cluster (a passage plus every one of its linked questions,
+  // served together) instead of ordinary items — see pickPassageCluster in
+  // curriculum/index.js.
+  includePassages = false,
 }) {
-  let d = [],
-    f = new Set(),
-    p = (e) => (e.subject === `maths` ? e.prompt : e.reviewKey),
-    m = l ? dueItems(n, o).filter((t) => t.key.startsWith(`${e}:`)) : [];
-  for (let e of m.slice(0, 4)) {
-    let t = regenerateByKey(e.key, a);
-    t && (d.push({ ...t, isReview: !0, box: e.box }), f.add(p(t)));
-  }
-  let h = d.length;
-  if (u && !t) {
-    let t = a.next() < PASSAGE_CLUSTER_CHANCE ? pickPassageCluster(e, a) : null;
-    t &&
-      t.questions.length &&
-      t.questions.length <= i - d.length &&
-      t.questions.forEach((e, n) => {
-        (d.push({
-          ...e,
-          isReview: !1,
-          clusterId: t.passageId,
-          clusterIndex: n,
-          clusterTotal: t.questions.length,
-        }),
-          f.add(p(e)));
-      });
-  }
-  let g = topicsFor(e).map((e) => e.id),
-    _ = weakestTopics(
-      r,
-      g.map((t) => `${e}:${t}`),
-      4,
-    ).map((e) => e.split(`:`)[1]),
-    v = new Map(),
-    y = new Map();
-  d.forEach((e) => {
-    (v.set(e.topic, (v.get(e.topic) ?? 0) + 1),
-      e.styleId && y.set(`${e.topic}:${e.styleId}`, 1));
-  });
-  let b = (e) => v.get(e) ?? 0,
-    x = (e) => v.set(e, b(e) + 1),
-    S = (e) => (e.styleId ? `${e.topic}:${e.styleId}` : null),
-    C = (e) => {
-      let t = S(e);
-      return t ? (y.get(t) ?? 0) : 0;
-    },
-    w = (e) => {
-      let t = S(e);
-      t && y.set(t, C(e) + 1);
-    },
-    te = t ? topicsFor(e).find((e) => e.id === t) : null,
-    ne = te?.styleIds?.length ? a.shuffle([...te.styleIds]) : null,
-    T = 0,
-    E = g.length,
-    re = t ? i : Math.max(1, Math.ceil(i / Math.max(E, 1))),
-    ie = (e) => (_.includes(e) ? Math.max(re, 3) : re),
-    ae = 0,
-    oe = re,
-    se = 1;
-  for (; d.length < i && ae < i * 12;) {
-    ((ae += 1),
-      ae === i * 4 && (se = 2),
-      ae === i * 5 && (oe = re + 1),
-      ae === i * 8 && (se = i),
-      ae === i * 9 && (oe = i));
-    let n;
-    if (s && s.length && a.next() < 0.5) n = customSpellingQuestion(a, s);
-    else if (ne) {
-      let t = ne[T % ne.length];
-      T += 1;
-      let i = resolveTier(r[`${e}:${te.id}`], c);
-      n = te.generate(a, t, i);
-    } else {
-      let i = t ?? (_.length && a.next() < 0.45 ? a.pick(_) : null),
-        o = i ? resolveTier(r[`${e}:${i}`], c) : (c ?? void 0);
-      n = generate({ subject: e, topic: i, rng: a, ...(o ? { tier: o } : {}) });
+  const questions = [];
+  const usedKeys = new Set();
+
+  /**
+   * What counts as "already in this round".
+   * Spelling and grammar are keyed by item — the same word twice in one round
+   * is just repetition. Maths shares one review key per *topic*, so keying on
+   * it there would allow only a single question per topic; the prompt is the
+   * right identity because the numbers differ every time.
+   */
+  const identity = (question) =>
+    question.subject === 'maths' ? question.prompt : question.reviewKey;
+
+  // 1. Due reviews for this subject, weakest box first. Skipped entirely for
+  // an exam (includeReview: false) — see the parameter note above.
+  const due = includeReview
+    ? dueItems(reviewState, now).filter((record) => record.key.startsWith(`${subject}:`))
+    : [];
+  for (const record of due.slice(0, MAX_REVIEW_PER_ROUND)) {
+    const question = regenerateByKey(record.key, rng);
+    // A null question means the key is an orphan (an item no longer in the
+    // bank); skip it silently.
+    if (question) {
+      questions.push({ ...question, isReview: true, box: record.box });
+      usedKeys.add(identity(question));
     }
-    n &&
-      (f.has(p(n)) ||
-        b(n.topic) >= Math.max(oe, ie(n.topic)) ||
-        (!ne && C(n) >= se) ||
-        (f.add(p(n)), x(n.topic), w(n), d.push({ ...n, isReview: !1 })));
   }
-  for (; d.length < i;) {
-    let n = generate({ subject: e, topic: t, rng: a, ...(c ? { tier: c } : {}) });
-    d.push({ ...n, isReview: !1 });
-  }
-  return { questions: d.slice(0, i), reviewCount: h };
-}
+  const reviewCount = questions.length;
 
-export function shuffleKeepingClustersTogether(e, t) {
-  let n = [],
-    r = new Map();
-  for (let e of t)
-    if (e.clusterId) {
-      let t = r.get(e.clusterId);
-      (t || ((t = []), r.set(e.clusterId, t), n.push(t)), t.push(e));
-    } else n.push([e]);
-  return e.shuffle(n).flat();
-}
-
-const ALL_SUBJECT_IDS = [`maths`, `spelling`, `grammar`, `vocab`];
-
-export function buildExam({
-  size: e = 25,
-  subjects: t = ALL_SUBJECT_IDS,
-  reviewState: n = {},
-  masteryState: r = {},
-  rng: i = defaultRng,
-  now: a = Date.now(),
-  customWords: o = null,
-  tierOverride: s = null,
-}) {
-  let c = t?.length ? t : ALL_SUBJECT_IDS,
-    l = Math.floor(e / c.length),
-    u = e - l * c.length,
-    d = c.map(() => l),
-    f = i.shuffle(c.map((e, t) => t));
-  for (let e = 0; e < u; e++) d[f[e]] += 1;
-  let p = [],
-    m = 0;
-  return (
-    c.forEach((e, t) => {
-      if (d[t] <= 0) return;
-      let c = buildRound({
-        subject: e,
-        reviewState: n,
-        masteryState: r,
-        size: d[t],
-        rng: i,
-        now: a,
-        customWords: e === `spelling` ? o : null,
-        tierOverride: s,
-        includeReview: !1,
-        includePassages: !0,
+  // 1b. Maybe open with one whole reading-passage cluster — every linked
+  // question for one passage, served together rather than scattered across
+  // the round. Opt-in (includePassages), mixed-rounds-only (a topic the
+  // learner specifically pinned, e.g. "Clauses", should stay that topic —
+  // not gain a passage from a different topic mixed in unasked), subject-
+  // gated (only grammar/vocab have a passage library today), chance-gated
+  // (see PASSAGE_CLUSTER_CHANCE) and only when the cluster fits the budget.
+  if (includePassages && !topic) {
+    const cluster = rng.next() < PASSAGE_CLUSTER_CHANCE ? pickPassageCluster(subject, rng) : null;
+    const clusterSize = cluster?.questions.length ?? 0;
+    if (clusterSize && clusterSize <= size - questions.length) {
+      cluster.questions.forEach((question, index) => {
+        questions.push({
+          ...question,
+          isReview: false,
+          clusterId: cluster.passageId,
+          clusterIndex: index,
+          clusterTotal: clusterSize,
+        });
+        usedKeys.add(identity(question));
       });
-      (p.push(...c.questions), (m += c.reviewCount));
-    }),
-    { questions: shuffleKeepingClustersTogether(i, p), reviewCount: m }
-  );
+    }
+  }
+
+  // 2. Fill the rest with new questions, biased towards weak topics.
+  const topicIds = topicsFor(subject).map((t) => t.id);
+  const weakTopicIds = weakestTopics(
+    masteryState,
+    topicIds.map((id) => `${subject}:${id}`),
+    WEAK_TOPIC_COUNT,
+  ).map((key) => key.split(':')[1]);
+
+  /**
+   * Topic spread. De-duplicating on the prompt alone is not enough: the
+   * procedural topics mint a different prompt every call, so a round could
+   * legitimately contain four percentage questions and nothing else. A round
+   * that hammers one topic reads as broken to the learner even when it is
+   * random, so a topic may appear at most `cap` times. The cap only rises if
+   * the pool genuinely cannot fill the round (a pinned topic, or few topics).
+   * The same applies one level down to question styles within a topic.
+   */
+  const topicCounts = new Map();
+  const styleCounts = new Map();
+  questions.forEach((question) => {
+    topicCounts.set(question.topic, (topicCounts.get(question.topic) ?? 0) + 1);
+    if (question.styleId) styleCounts.set(`${question.topic}:${question.styleId}`, 1);
+  });
+
+  const topicCount = (topicId) => topicCounts.get(topicId) ?? 0;
+  const countTopic = (topicId) => topicCounts.set(topicId, topicCount(topicId) + 1);
+  const styleKey = (question) =>
+    question.styleId ? `${question.topic}:${question.styleId}` : null;
+  const styleCount = (question) => {
+    const key = styleKey(question);
+    return key ? (styleCounts.get(key) ?? 0) : 0;
+  };
+  const countStyle = (question) => {
+    const key = styleKey(question);
+    if (key) styleCounts.set(key, styleCount(question) + 1);
+  };
+
+  // A pinned topic cycles through its styles in a shuffled order, so a short
+  // round still shows as many different kinds of question as possible.
+  const pinnedTopic = topic ? topicsFor(subject).find((t) => t.id === topic) : null;
+  const styleRotation = pinnedTopic?.styleIds?.length
+    ? rng.shuffle([...pinnedTopic.styleIds])
+    : null;
+  let styleCursor = 0;
+
+  const evenShare = topic ? size : Math.max(1, Math.ceil(size / Math.max(topicIds.length, 1)));
+  const capFor = (topicId) =>
+    weakTopicIds.includes(topicId) ? Math.max(evenShare, WEAK_TOPIC_MIN_CAP) : evenShare;
+  // Only consumes randomness when there are weak topics to choose from.
+  const pickWeakTopicOrNone = () =>
+    weakTopicIds.length && rng.next() < WEAK_TOPIC_CHANCE ? rng.pick(weakTopicIds) : null;
+
+  // Caps start strict and relax in stages as attempts run up, so a small pool
+  // still fills the round rather than looping forever.
+  let attempts = 0;
+  let topicCap = evenShare;
+  let styleCap = 1;
+  while (questions.length < size && attempts < size * 12) {
+    attempts += 1;
+    if (attempts === size * 4) styleCap = 2;
+    if (attempts === size * 5) topicCap = evenShare + 1;
+    if (attempts === size * 8) styleCap = size;
+    if (attempts === size * 9) topicCap = size;
+
+    let candidate;
+    if (customWords && customWords.length && rng.next() < CUSTOM_WORD_CHANCE) {
+      candidate = customSpellingQuestion(rng, customWords);
+    } else if (styleRotation) {
+      const styleId = styleRotation[styleCursor % styleRotation.length];
+      styleCursor += 1;
+      const tier = resolveTier(masteryState[`${subject}:${pinnedTopic.id}`], tierOverride);
+      candidate = pinnedTopic.generate(rng, styleId, tier);
+    } else {
+      const topicId = topic ?? pickWeakTopicOrNone();
+      // With no topic chosen there is no mastery record to go on, so only an
+      // override applies; otherwise generate() uses its STANDARD default.
+      const tier = topicId
+        ? resolveTier(masteryState[`${subject}:${topicId}`], tierOverride)
+        : (tierOverride ?? undefined);
+      candidate = generate({ subject, topic: topicId, rng, ...(tier ? { tier } : {}) });
+    }
+    if (!candidate) continue;
+
+    const isDuplicate = usedKeys.has(identity(candidate));
+    const topicFull = topicCount(candidate.topic) >= Math.max(topicCap, capFor(candidate.topic));
+    const styleFull = !styleRotation && styleCount(candidate) >= styleCap;
+    if (isDuplicate || topicFull || styleFull) continue;
+
+    usedKeys.add(identity(candidate));
+    countTopic(candidate.topic);
+    countStyle(candidate);
+    questions.push({ ...candidate, isReview: false });
+  }
+
+  // Last resort: top up without any spread or duplicate rules.
+  while (questions.length < size) {
+    const tierOption = tierOverride ? { tier: tierOverride } : {};
+    const question = generate({ subject, topic, rng, ...tierOption });
+    questions.push({ ...question, isReview: false });
+  }
+
+  return { questions: questions.slice(0, size), reviewCount };
 }
 
-export function buildDailyChallenge({
-  reviewState: e = {},
-  masteryState: t = {},
-  rng: n = defaultRng,
-  now: r = Date.now(),
-  tierOverride: i = null,
+/**
+ * Shuffle a question list while keeping every passage cluster together and
+ * in its original order, so a passage's questions still read in sequence.
+ */
+export function shuffleKeepingClustersTogether(rng, questions) {
+  const groups = [];
+  const clustersById = new Map();
+  for (const question of questions) {
+    if (question.clusterId) {
+      let cluster = clustersById.get(question.clusterId);
+      if (!cluster) {
+        cluster = [];
+        clustersById.set(question.clusterId, cluster);
+        groups.push(cluster);
+      }
+      cluster.push(question);
+    } else {
+      groups.push([question]);
+    }
+  }
+  return rng.shuffle(groups).flat();
+}
+
+/**
+ * A mixed-subject exam paper. Questions are split evenly across the chosen
+ * subjects (any remainder goes to randomly chosen subjects), built without
+ * review items, then shuffled together.
+ */
+export function buildExam({
+  size = 25,
+  subjects = ALL_SUBJECT_IDS,
+  reviewState = {},
+  masteryState = {},
+  rng = defaultRng,
+  now = Date.now(),
+  customWords = null,
+  tierOverride = null,
 }) {
-  let a = n.shuffle([`maths`, `spelling`, `grammar`, `vocab`]),
-    o = [],
-    s = dueItems(e, r).slice(0, 2);
-  for (let e of s) {
-    let t = regenerateByKey(e.key, n);
-    t && o.push({ ...t, isReview: !0, box: e.box });
+  const subjectIds = subjects?.length ? subjects : ALL_SUBJECT_IDS;
+  const perSubject = Math.floor(size / subjectIds.length);
+  const remainder = size - perSubject * subjectIds.length;
+  const counts = subjectIds.map(() => perSubject);
+  const extraOrder = rng.shuffle(subjectIds.map((_, index) => index));
+  for (let i = 0; i < remainder; i++) counts[extraOrder[i]] += 1;
+
+  const questions = [];
+  let reviewCount = 0;
+  subjectIds.forEach((subject, index) => {
+    if (counts[index] <= 0) return;
+    const round = buildRound({
+      subject,
+      reviewState,
+      masteryState,
+      size: counts[index],
+      rng,
+      now,
+      customWords: subject === 'spelling' ? customWords : null,
+      tierOverride,
+      includeReview: false,
+      includePassages: true,
+    });
+    questions.push(...round.questions);
+    reviewCount += round.reviewCount;
+  });
+  return { questions: shuffleKeepingClustersTogether(rng, questions), reviewCount };
+}
+
+/**
+ * Five quick questions across all subjects: up to two due reviews (any
+ * subject), topped up by cycling through the subjects in a random order.
+ */
+export function buildDailyChallenge({
+  reviewState = {},
+  masteryState = {},
+  rng = defaultRng,
+  now = Date.now(),
+  tierOverride = null,
+}) {
+  const subjectOrder = rng.shuffle(ALL_SUBJECT_IDS);
+  const questions = [];
+
+  for (const record of dueItems(reviewState, now).slice(0, DAILY_CHALLENGE_MAX_REVIEW)) {
+    const question = regenerateByKey(record.key, rng);
+    if (question) questions.push({ ...question, isReview: true, box: record.box });
   }
-  let c = 0;
-  for (; o.length < 5;) {
-    let e = a[c % a.length];
-    ((c += 1),
-      o.push({
-        ...generate({ subject: e, rng: n, ...(i ? { tier: i } : {}) }),
-        isReview: !1,
-      }));
+
+  let subjectCursor = 0;
+  while (questions.length < DAILY_CHALLENGE_SIZE) {
+    const subject = subjectOrder[subjectCursor % subjectOrder.length];
+    subjectCursor += 1;
+    questions.push({
+      ...generate({ subject, rng, ...(tierOverride ? { tier: tierOverride } : {}) }),
+      isReview: false,
+    });
   }
-  return n.shuffle(o).slice(0, 5);
+
+  return rng.shuffle(questions).slice(0, DAILY_CHALLENGE_SIZE);
 }

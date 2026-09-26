@@ -1,147 +1,141 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { jsx, jsxs } from 'react/jsx-runtime';
 
-const PAD_PREFIX = `bb:pad:`;
+// Per-round notes are stored under PAD_PREFIX + round key; an empty pad
+// removes its key rather than storing ''.
+const PAD_PREFIX = 'bb:pad:';
 
-function loadPad(e) {
+function loadPad(key) {
   try {
-    return localStorage.getItem(PAD_PREFIX + e) ?? ``;
+    return localStorage.getItem(PAD_PREFIX + key) ?? '';
   } catch {
-    return ``;
+    return '';
   }
 }
 
-function savePad(e, t) {
+function savePad(key, text) {
   try {
-    t ? localStorage.setItem(PAD_PREFIX + e, t) : localStorage.removeItem(PAD_PREFIX + e);
+    if (text) {
+      localStorage.setItem(PAD_PREFIX + key, text);
+    } else {
+      localStorage.removeItem(PAD_PREFIX + key);
+    }
   } catch {}
 }
 
-const PAD_OPEN_KEY = `bb:pad-open`;
+// Remembered open/closed state of the pad (defaults to open).
+const PAD_OPEN_KEY = 'bb:pad-open';
 
 function loadPadOpen() {
   try {
-    let e = localStorage.getItem(PAD_OPEN_KEY);
-    return e === null || e === `1`;
+    const stored = localStorage.getItem(PAD_OPEN_KEY);
+    return stored === null || stored === '1';
   } catch {
-    return !0;
+    return true;
   }
 }
 
-function savePadOpen(e) {
+function savePadOpen(open) {
   try {
-    localStorage.setItem(PAD_OPEN_KEY, e ? `1` : `0`);
+    localStorage.setItem(PAD_OPEN_KEY, open ? '1' : '0');
   } catch {}
 }
 
-export function clearOtherPads(e) {
+// Drops notes left over from earlier rounds so localStorage does not fill up.
+export function clearOtherPads(keepKey) {
   try {
-    let t = [];
-    for (let n = 0; n < localStorage.length; n++) {
-      let r = localStorage.key(n);
-      r?.startsWith(PAD_PREFIX) && r !== PAD_PREFIX + e && t.push(r);
+    const stale = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(PAD_PREFIX) && key !== PAD_PREFIX + keepKey) {
+        stale.push(key);
+      }
     }
-    t.forEach((e) => localStorage.removeItem(e));
+    stale.forEach((key) => localStorage.removeItem(key));
   } catch {}
 }
 
-export function ScratchPad({ storageKey: e, defaultOpen: t = !1 }) {
-  let [n, r] = (0, useState)(() => t || loadPadOpen()),
-    [i, a] = (0, useState)(() => loadPad(e)),
-    o = (0, useRef)(null),
-    s = (0, useRef)(!0);
-  ((0, useEffect)(() => {
-    a(loadPad(e));
-  }, [e]),
-    (0, useEffect)(() => {
-      t && r(!0);
-    }, [t]));
-  function c() {
-    r((e) => {
-      let n = !e;
-      return (t || savePadOpen(n), n);
+// "Working out" notepad shown under maths questions. Notes persist per
+// `storageKey` (one round) so they survive a reload mid-round. The open/closed
+// preference is remembered, except when `defaultOpen` forces it open (long-form
+// questions) — that forced state is not saved as the learner's preference.
+// Focus moves to the textarea when the pad is opened, but not on first mount.
+export function ScratchPad({ storageKey, defaultOpen = false }) {
+  const [open, setOpen] = useState(() => defaultOpen || loadPadOpen());
+  const [text, setText] = useState(() => loadPad(storageKey));
+  const textareaRef = useRef(null);
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    setText(loadPad(storageKey));
+  }, [storageKey]);
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
+  function handleToggle() {
+    setOpen((wasOpen) => {
+      const next = !wasOpen;
+      if (!defaultOpen) {
+        savePadOpen(next);
+      }
+      return next;
     });
   }
-  ((0, useEffect)(() => {
-    savePad(e, i);
-  }, [e, i]),
-    (0, useEffect)(() => {
-      (n && !s.current && o.current?.focus(), (s.current = !1));
-    }, [n]));
-  let l = (0, useCallback)(() => {
-      (a(``), o.current?.focus());
-    }, []),
-    u = i
-      ? i
-          .split(
-            `
-`,
-          )
-          .filter((e) => e.trim()).length
-      : 0;
-  return (0, jsxs)(`div`, {
-    className: `pad`,
-    children: [
-      (0, jsxs)(`button`, {
-        className: `pad-toggle`,
-        onClick: c,
-        "aria-expanded": n,
-        "aria-controls": `scratchpad-area`,
-        children: [
-          (0, jsx)(`span`, { children: `📝 Working out` }),
-          (0, jsxs)(`span`, {
-            className: `pad-meta`,
-            children: [
-              !n &&
-                u > 0 &&
-                (0, jsxs)(`span`, {
-                  className: `pad-count`,
-                  children: [u, ` `, u === 1 ? `line` : `lines`],
-                }),
-              (0, jsx)(`span`, {
-                className: `pad-caret`,
-                "aria-hidden": `true`,
-                children: n ? `▾` : `▸`,
-              }),
-            ],
-          }),
-        ],
-      }),
-      n &&
-        (0, jsxs)(`div`, {
-          className: `pad-body`,
-          children: [
-            (0, jsx)(`textarea`, {
-              id: `scratchpad-area`,
-              ref: o,
-              className: `pad-area`,
-              value: i,
-              onChange: (e) => a(e.target.value),
-              placeholder: `Jot your working here…
-
-27 × 14 = 378
-378 + 76 = 454`,
-              rows: 7,
-              spellCheck: !1,
-              "aria-label": `Working out notepad`,
-            }),
-            (0, jsxs)(`div`, {
-              className: `pad-foot`,
-              children: [
-                (0, jsx)(`span`, {
-                  className: `tiny muted`,
-                  children: `Your notes stay while you finish this round.`,
-                }),
-                (0, jsx)(`button`, {
-                  className: `pad-clear`,
-                  onClick: l,
-                  disabled: !i,
-                  children: `Clear`,
-                }),
-              ],
-            }),
-          ],
-        }),
-    ],
-  });
+  useEffect(() => {
+    savePad(storageKey, text);
+  }, [storageKey, text]);
+  useEffect(() => {
+    if (open && !isFirstRender.current) {
+      textareaRef.current?.focus();
+    }
+    isFirstRender.current = false;
+  }, [open]);
+  const handleClear = useCallback(() => {
+    setText('');
+    textareaRef.current?.focus();
+  }, []);
+  const lineCount = text ? text.split('\n').filter((line) => line.trim()).length : 0;
+  return (
+    <div className="pad">
+      <button
+        className="pad-toggle"
+        onClick={handleToggle}
+        aria-expanded={open}
+        aria-controls="scratchpad-area"
+      >
+        <span>📝 Working out</span>
+        <span className="pad-meta">
+          {!open && lineCount > 0 && (
+            <span className="pad-count">
+              {lineCount} {lineCount === 1 ? 'line' : 'lines'}
+            </span>
+          )}
+          <span className="pad-caret" aria-hidden="true">
+            {open ? '▾' : '▸'}
+          </span>
+        </span>
+      </button>
+      {open && (
+        <div className="pad-body">
+          <textarea
+            id="scratchpad-area"
+            ref={textareaRef}
+            className="pad-area"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={'Jot your working here…\n\n27 × 14 = 378\n378 + 76 = 454'}
+            rows={7}
+            spellCheck={false}
+            aria-label="Working out notepad"
+          />
+          <div className="pad-foot">
+            <span className="tiny muted">Your notes stay while you finish this round.</span>
+            <button className="pad-clear" onClick={handleClear} disabled={!text}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

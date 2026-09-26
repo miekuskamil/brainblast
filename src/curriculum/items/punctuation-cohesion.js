@@ -1,1688 +1,1674 @@
-
-
+/**
+ * Grammar item bank: punctuation and cohesion (connectives, sentence types).
+ */
 export const PUNCTUATION_COHESION = [
-    {
-      id: `pu101`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go?
+  {
+    id: 'pu101',
+    topic: 'punctuation',
+    q: `Where does the apostrophe go?
 
 "The dogs lead was hanging by the door." (there is only one dog)`,
-      opts: [`dog's`, `dogs'`, `dogs`, `dogs's`],
-      a: `dog's`,
-      hint: `Find the owner first, then add the apostrophe straight after it.`,
-      ex: `The owner is one dog, so the apostrophe goes after "dog" and before the possessive s.`,
-    },
-    {
-      id: `pu102`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go?
+    opts: ["dog's", "dogs'", 'dogs', "dogs's"],
+    a: "dog's",
+    hint: 'Find the owner first, then add the apostrophe straight after it.',
+    ex: 'The owner is one dog, so the apostrophe goes after "dog" and before the possessive s.',
+  },
+  {
+    id: 'pu102',
+    topic: 'punctuation',
+    q: `Where does the apostrophe go?
 
 "The girls changing room is at the end of the corridor." (there is more than one girl)`,
-      opts: [`girls'`, `girl's`, `girls`, `girls's`],
-      a: `girls'`,
-      hint: `Write the owner out in full first — is it one or more than one?`,
-      ex: `The owners are the girls, a plural already ending in s, so the apostrophe goes after that s.`,
-    },
-    {
-      id: `pu103`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ["girls'", "girl's", 'girls', "girls's"],
+    a: "girls'",
+    hint: 'Write the owner out in full first — is it one or more than one?',
+    ex: 'The owners are the girls, a plural already ending in s, so the apostrophe goes after that s.',
+  },
+  {
+    id: 'pu103',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The ___ playground was repainted over the summer." (a playground for all the children)`,
-      opts: [`children's`, `childrens'`, `childrens`, `children'`],
-      a: `children's`,
-      hint: `Ask yourself whether the plural word already ends in s.`,
-      ex: `"Children" is an irregular plural that does not end in s, so it takes an apostrophe plus s.`,
-    },
-    {
-      id: `pu104`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ["children's", "childrens'", 'childrens', "children'"],
+    a: "children's",
+    hint: 'Ask yourself whether the plural word already ends in s.',
+    ex: '"Children" is an irregular plural that does not end in s, so it takes an apostrophe plus s.',
+  },
+  {
+    id: 'pu104',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The ___ opinions were divided after the meeting."
 (the opinions belonged to the people there)`,
-      opts: [`people's`, `peoples'`, `peoples`, `people'`],
-      a: `people's`,
-      hint: `Irregular plurals behave like singular words when you add the apostrophe.`,
-      ex: `"People" is already plural without an s, so possession is shown with apostrophe s.`,
-    },
-    {
-      id: `pu105`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ["people's", "peoples'", 'peoples', "people'"],
+    a: "people's",
+    hint: 'Irregular plurals behave like singular words when you add the apostrophe.',
+    ex: '"People" is already plural without an s, so possession is shown with apostrophe s.',
+  },
+  {
+    id: 'pu105',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "Aisha joined the ___ football team at her new school."`,
-      opts: [`women's`, `womens'`, `womens`, `women'`],
-      a: `women's`,
-      hint: `Does the plural form end in s before you add anything?`,
-      ex: `"Women" is an irregular plural with no final s, so it takes an apostrophe and then s.`,
-    },
-    {
-      id: `pu106`,
-      topic: `punctuation`,
-      q: `Which sentence is punctuated correctly?
+    opts: ["women's", "womens'", 'womens', "women'"],
+    a: "women's",
+    hint: 'Does the plural form end in s before you add anything?',
+    ex: '"Women" is an irregular plural with no final s, so it takes an apostrophe and then s.',
+  },
+  {
+    id: 'pu106',
+    topic: 'punctuation',
+    q: `Which sentence is punctuated correctly?
 
 (the coats belonged to several teachers)`,
-      opts: [
-        `The teachers' coats were left in the staffroom.`,
-        `The teacher's coats were left in the staffroom.`,
-        `The teachers coats were left in the staffroom.`,
-        `The teachers's coats were left in the staffroom.`,
-      ],
-      a: `The teachers' coats were left in the staffroom.`,
-      hint: `A plural that already ends in s does not need a second s.`,
-      ex: `Several teachers own the coats, so the apostrophe follows the plural s of "teachers".`,
-    },
-    {
-      id: `pu107`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: [
+      "The teachers' coats were left in the staffroom.",
+      "The teacher's coats were left in the staffroom.",
+      'The teachers coats were left in the staffroom.',
+      "The teachers's coats were left in the staffroom.",
+    ],
+    a: "The teachers' coats were left in the staffroom.",
+    hint: 'A plural that already ends in s does not need a second s.',
+    ex: 'Several teachers own the coats, so the apostrophe follows the plural s of "teachers".',
+  },
+  {
+    id: 'pu107',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The ___ changing rooms were locked at half past four." (rooms for the men)`,
-      opts: [`men's`, `mens'`, `mens`, `men'`],
-      a: `men's`,
-      hint: `Think about how the plural is spelled before you add anything.`,
-      ex: `"Men" is an irregular plural, so possession is shown by adding apostrophe s.`,
-    },
-    {
-      id: `pu108`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: ["men's", "mens'", 'mens', "men'"],
+    a: "men's",
+    hint: 'Think about how the plural is spelled before you add anything.',
+    ex: '"Men" is an irregular plural, so possession is shown by adding apostrophe s.',
+  },
+  {
+    id: 'pu108',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "My sisters phone battery died on the bus to Dundee." (Rory has one sister)`,
-      opts: [
-        `an apostrophe before the s in "sisters"`,
-        `an apostrophe after the s in "sisters"`,
-        `an apostrophe in "phone"`,
-        `nothing — the sentence is already correct`,
-      ],
-      a: `an apostrophe before the s in "sisters"`,
-      hint: `Decide how many sisters there are, then place the mark after the owner.`,
-      ex: `There is one sister, so the apostrophe belongs between "sister" and the possessive s.`,
-    },
-    {
-      id: `pu109`,
-      topic: `punctuation`,
-      q: `Which is the correct short form of "it is"?`,
-      opts: [`it's`, `its`, `its'`, `'its`],
-      a: `it's`,
-      hint: `The apostrophe stands in for the letter that has been dropped.`,
-      ex: `The i of "is" is missing, so an apostrophe takes its place: it's.`,
-    },
-    {
-      id: `pu110`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: [
+      'an apostrophe before the s in "sisters"',
+      'an apostrophe after the s in "sisters"',
+      'an apostrophe in "phone"',
+      'nothing — the sentence is already correct',
+    ],
+    a: 'an apostrophe before the s in "sisters"',
+    hint: 'Decide how many sisters there are, then place the mark after the owner.',
+    ex: 'There is one sister, so the apostrophe belongs between "sister" and the possessive s.',
+  },
+  {
+    id: 'pu109',
+    topic: 'punctuation',
+    q: 'Which is the correct short form of "it is"?',
+    opts: ["it's", 'its', "its'", "'its"],
+    a: "it's",
+    hint: 'The apostrophe stands in for the letter that has been dropped.',
+    ex: 'The i of "is" is missing, so an apostrophe takes its place: it\'s.',
+  },
+  {
+    id: 'pu110',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The kitten chased ___ tail around the kitchen."`,
-      opts: [`its`, `it's`, `its'`, `it is`],
-      a: `its`,
-      hint: `Try reading the sentence with "it is" in the gap and see whether it works.`,
-      ex: `This shows possession, not a missing letter, so it takes "its" with no apostrophe.`,
-    },
-    {
-      id: `pu111`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ['its', "it's", "its'", 'it is'],
+    a: 'its',
+    hint: 'Try reading the sentence with "it is" in the gap and see whether it works.',
+    ex: 'This shows possession, not a missing letter, so it takes "its" with no apostrophe.',
+  },
+  {
+    id: 'pu111',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "___ freezing on the platform at Glasgow Queen Street this morning."`,
-      opts: [`It's`, `Its`, `Its'`, `'Its`],
-      a: `It's`,
-      hint: `Which version could you swap for "it is" without changing the meaning?`,
-      ex: `The sentence means "It is freezing", so the dropped i is replaced by an apostrophe.`,
-    },
-    {
-      id: `pu112`,
-      topic: `punctuation`,
-      q: `Which is the correct short form of "they have"?`,
-      opts: [`they've`, `theyve`, `they'ave`, `the've`],
-      a: `they've`,
-      hint: `Put the apostrophe exactly where the missing letters used to be.`,
-      ex: `The letters h and a are dropped from "have", so the apostrophe sits in their place.`,
-    },
-    {
-      id: `pu113`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go in the short form of "could not"?`,
-      opts: [`couldn't`, `could'nt`, `couldnt'`, `could'not`],
-      a: `couldn't`,
-      hint: `Only one letter disappears — find it.`,
-      ex: `The o of "not" is dropped, so the apostrophe goes between the n and the t.`,
-    },
-    {
-      id: `pu114`,
-      topic: `punctuation`,
-      q: `Which sentence uses commas correctly in a list?`,
-      opts: [
-        `Rory packed a towel, sun cream, goggles and a snack.`,
-        `Rory packed a towel sun cream, goggles and a snack.`,
-        `Rory packed, a towel, sun cream, goggles and a snack.`,
-        `Rory packed a towel, sun cream, goggles, and, a snack.`,
-      ],
-      a: `Rory packed a towel, sun cream, goggles and a snack.`,
-      hint: `Commas separate the items themselves, and "and" usually replaces the last one.`,
-      ex: `Each item is separated by a comma, with "and" joining the final item instead of another comma.`,
-    },
-    {
-      id: `pu115`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: ["It's", 'Its', "Its'", "'Its"],
+    a: "It's",
+    hint: 'Which version could you swap for "it is" without changing the meaning?',
+    ex: 'The sentence means "It is freezing", so the dropped i is replaced by an apostrophe.',
+  },
+  {
+    id: 'pu112',
+    topic: 'punctuation',
+    q: 'Which is the correct short form of "they have"?',
+    opts: ["they've", 'theyve', "they'ave", "the've"],
+    a: "they've",
+    hint: 'Put the apostrophe exactly where the missing letters used to be.',
+    ex: 'The letters h and a are dropped from "have", so the apostrophe sits in their place.',
+  },
+  {
+    id: 'pu113',
+    topic: 'punctuation',
+    q: 'Where does the apostrophe go in the short form of "could not"?',
+    opts: ["couldn't", "could'nt", "couldnt'", "could'not"],
+    a: "couldn't",
+    hint: 'Only one letter disappears — find it.',
+    ex: 'The o of "not" is dropped, so the apostrophe goes between the n and the t.',
+  },
+  {
+    id: 'pu114',
+    topic: 'punctuation',
+    q: 'Which sentence uses commas correctly in a list?',
+    opts: [
+      'Rory packed a towel, sun cream, goggles and a snack.',
+      'Rory packed a towel sun cream, goggles and a snack.',
+      'Rory packed, a towel, sun cream, goggles and a snack.',
+      'Rory packed a towel, sun cream, goggles, and, a snack.',
+    ],
+    a: 'Rory packed a towel, sun cream, goggles and a snack.',
+    hint: 'Commas separate the items themselves, and "and" usually replaces the last one.',
+    ex: 'Each item is separated by a comma, with "and" joining the final item instead of another comma.',
+  },
+  {
+    id: 'pu115',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "We visited Skye Mull and Islay last summer."`,
-      opts: [
-        `commas between the items in the list`,
-        `a full stop at the end`,
-        `an apostrophe in "Islay"`,
-        `a colon after "visited"`,
-      ],
-      a: `commas between the items in the list`,
-      hint: `Read it aloud — where do you naturally pause?`,
-      ex: `Three places are listed, so a comma is needed to separate them before the final "and".`,
-    },
-    {
-      id: `pu116`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `After the long walk, Freya sat down on a rock.`,
-        `After the long walk Freya, sat down on a rock.`,
-        `After, the long walk Freya sat down on a rock.`,
-        `After the long walk Freya sat down, on a rock.`,
-      ],
-      a: `After the long walk, Freya sat down on a rock.`,
-      hint: `A phrase placed before the main clause is closed off with one comma.`,
-      ex: `"After the long walk" is a fronted adverbial, so a comma separates it from the main clause.`,
-    },
-    {
-      id: `pu117`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'commas between the items in the list',
+      'a full stop at the end',
+      'an apostrophe in "Islay"',
+      'a colon after "visited"',
+    ],
+    a: 'commas between the items in the list',
+    hint: 'Read it aloud — where do you naturally pause?',
+    ex: 'Three places are listed, so a comma is needed to separate them before the final "and".',
+  },
+  {
+    id: 'pu116',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'After the long walk, Freya sat down on a rock.',
+      'After the long walk Freya, sat down on a rock.',
+      'After, the long walk Freya sat down on a rock.',
+      'After the long walk Freya sat down, on a rock.',
+    ],
+    a: 'After the long walk, Freya sat down on a rock.',
+    hint: 'A phrase placed before the main clause is closed off with one comma.',
+    ex: '"After the long walk" is a fronted adverbial, so a comma separates it from the main clause.',
+  },
+  {
+    id: 'pu117',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Later that afternoon the rain finally stopped."`,
-      opts: [
-        `a comma after "afternoon"`,
-        `a comma after "rain"`,
-        `a comma after "Later"`,
-        `a semicolon after "afternoon"`,
-      ],
-      a: `a comma after "afternoon"`,
-      hint: `Find where the opening time phrase ends and the main clause begins.`,
-      ex: `The fronted adverbial "Later that afternoon" needs a comma before the main clause starts.`,
-    },
-    {
-      id: `pu118`,
-      topic: `punctuation`,
-      q: `Where should the comma go?
+    opts: [
+      'a comma after "afternoon"',
+      'a comma after "rain"',
+      'a comma after "Later"',
+      'a semicolon after "afternoon"',
+    ],
+    a: 'a comma after "afternoon"',
+    hint: 'Find where the opening time phrase ends and the main clause begins.',
+    ex: 'The fronted adverbial "Later that afternoon" needs a comma before the main clause starts.',
+  },
+  {
+    id: 'pu118',
+    topic: 'punctuation',
+    q: `Where should the comma go?
 
 "Without warning the lights went out."`,
-      opts: [
-        `Without warning, the lights went out.`,
-        `Without, warning the lights went out.`,
-        `Without warning the lights, went out.`,
-        `Without warning the lights went, out.`,
-      ],
-      a: `Without warning, the lights went out.`,
-      hint: `The comma marks the end of the introductory phrase.`,
-      ex: `"Without warning" introduces the sentence, so the comma follows it before the main clause.`,
-    },
-    {
-      id: `pu119`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `Euan, who had never skied before, stayed on the nursery slope.`,
-        `Euan who had never skied before, stayed on the nursery slope.`,
-        `Euan, who had never skied before stayed on the nursery slope.`,
-        `Euan who had never skied before stayed on the nursery slope.`,
-      ],
-      a: `Euan, who had never skied before, stayed on the nursery slope.`,
-      hint: `Extra information needs fencing off on both sides.`,
-      ex: `The clause is extra information about Euan, so a pair of commas holds it like brackets.`,
-    },
-    {
-      id: `pu120`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'Without warning, the lights went out.',
+      'Without, warning the lights went out.',
+      'Without warning the lights, went out.',
+      'Without warning the lights went, out.',
+    ],
+    a: 'Without warning, the lights went out.',
+    hint: 'The comma marks the end of the introductory phrase.',
+    ex: '"Without warning" introduces the sentence, so the comma follows it before the main clause.',
+  },
+  {
+    id: 'pu119',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'Euan, who had never skied before, stayed on the nursery slope.',
+      'Euan who had never skied before, stayed on the nursery slope.',
+      'Euan, who had never skied before stayed on the nursery slope.',
+      'Euan who had never skied before stayed on the nursery slope.',
+    ],
+    a: 'Euan, who had never skied before, stayed on the nursery slope.',
+    hint: 'Extra information needs fencing off on both sides.',
+    ex: 'The clause is extra information about Euan, so a pair of commas holds it like brackets.',
+  },
+  {
+    id: 'pu120',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Aviemore which sits beside the Cairngorms is busy in winter."`,
-      opts: [
-        `a pair of commas around "which sits beside the Cairngorms"`,
-        `one comma after "Aviemore" only`,
-        `one comma after "Cairngorms" only`,
-        `brackets around "is busy in winter"`,
-      ],
-      a: `a pair of commas around "which sits beside the Cairngorms"`,
-      hint: `Could you lift the middle part out and still have a sentence?`,
-      ex: `The clause could be removed without breaking the sentence, so it needs a comma at each end.`,
-    },
-    {
-      id: `pu121`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"I've forgotten my homework," said Callum.`,
-        `"I've forgotten my homework", said Callum.`,
-        `"I've forgotten my homework." said Callum.`,
-        `"I've forgotten my homework" said Callum.`,
-      ],
-      a: `"I've forgotten my homework," said Callum.`,
-      hint: `The mark that ends the speech belongs inside the inverted commas.`,
-      ex: `A comma closes the speech and sits inside the inverted commas before the reporting clause.`,
-    },
-    {
-      id: `pu122`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `Freya shouted, "Watch out for the ice!"`,
-        `Freya shouted "Watch out for the ice!"`,
-        `Freya shouted, "watch out for the ice!"`,
-        `Freya shouted, "Watch out for the ice"!`,
-      ],
-      a: `Freya shouted, "Watch out for the ice!"`,
-      hint: `When the reporting clause comes first, something separates it from the speech.`,
-      ex: `A comma follows the reporting clause, the speech opens with a capital, and the exclamation mark stays inside.`,
-    },
-    {
-      id: `pu123`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"Are we nearly there?" asked Rory.`,
-        `"Are we nearly there"? asked Rory.`,
-        `"Are we nearly there?", asked Rory.`,
-        `"Are we nearly there," asked Rory?`,
-      ],
-      a: `"Are we nearly there?" asked Rory.`,
-      hint: `The question belongs to the speaker, not to the whole sentence.`,
-      ex: `The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.`,
-    },
-    {
-      id: `pu124`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"Look at the size of that stag!" gasped Euan.`,
-        `"Look at the size of that stag"! gasped Euan.`,
-        `"Look at the size of that stag!", gasped Euan.`,
-        `"Look at the size of that stag," gasped Euan!`,
-      ],
-      a: `"Look at the size of that stag!" gasped Euan.`,
-      hint: `Who is doing the exclaiming — the speaker or the narrator?`,
-      ex: `The exclamation is part of the speech, so it goes inside the inverted commas with no extra comma after them.`,
-    },
-    {
-      id: `pu125`,
-      topic: `punctuation`,
-      q: `Two characters are having a conversation. What should the writer do?`,
-      opts: [
-        `Start a new line each time the speaker changes.`,
-        `Keep all the speech in one paragraph to save space.`,
-        `Use a semicolon between the two speakers.`,
-        `Put both speakers inside one set of inverted commas.`,
-      ],
-      a: `Start a new line each time the speaker changes.`,
-      hint: `Think about how the reader keeps track of who is talking.`,
-      ex: `A new line for each new speaker makes it clear to the reader when the speaker has changed.`,
-    },
-    {
-      id: `pu126`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'a pair of commas around "which sits beside the Cairngorms"',
+      'one comma after "Aviemore" only',
+      'one comma after "Cairngorms" only',
+      'brackets around "is busy in winter"',
+    ],
+    a: 'a pair of commas around "which sits beside the Cairngorms"',
+    hint: 'Could you lift the middle part out and still have a sentence?',
+    ex: 'The clause could be removed without breaking the sentence, so it needs a comma at each end.',
+  },
+  {
+    id: 'pu121',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"I\'ve forgotten my homework," said Callum.',
+      '"I\'ve forgotten my homework", said Callum.',
+      '"I\'ve forgotten my homework." said Callum.',
+      '"I\'ve forgotten my homework" said Callum.',
+    ],
+    a: '"I\'ve forgotten my homework," said Callum.',
+    hint: 'The mark that ends the speech belongs inside the inverted commas.',
+    ex: 'A comma closes the speech and sits inside the inverted commas before the reporting clause.',
+  },
+  {
+    id: 'pu122',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'Freya shouted, "Watch out for the ice!"',
+      'Freya shouted "Watch out for the ice!"',
+      'Freya shouted, "watch out for the ice!"',
+      'Freya shouted, "Watch out for the ice"!',
+    ],
+    a: 'Freya shouted, "Watch out for the ice!"',
+    hint: 'When the reporting clause comes first, something separates it from the speech.',
+    ex: 'A comma follows the reporting clause, the speech opens with a capital, and the exclamation mark stays inside.',
+  },
+  {
+    id: 'pu123',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"Are we nearly there?" asked Rory.',
+      '"Are we nearly there"? asked Rory.',
+      '"Are we nearly there?", asked Rory.',
+      '"Are we nearly there," asked Rory?',
+    ],
+    a: '"Are we nearly there?" asked Rory.',
+    hint: 'The question belongs to the speaker, not to the whole sentence.',
+    ex: 'The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.',
+  },
+  {
+    id: 'pu124',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"Look at the size of that stag!" gasped Euan.',
+      '"Look at the size of that stag"! gasped Euan.',
+      '"Look at the size of that stag!", gasped Euan.',
+      '"Look at the size of that stag," gasped Euan!',
+    ],
+    a: '"Look at the size of that stag!" gasped Euan.',
+    hint: 'Who is doing the exclaiming — the speaker or the narrator?',
+    ex: 'The exclamation is part of the speech, so it goes inside the inverted commas with no extra comma after them.',
+  },
+  {
+    id: 'pu125',
+    topic: 'punctuation',
+    q: 'Two characters are having a conversation. What should the writer do?',
+    opts: [
+      'Start a new line each time the speaker changes.',
+      'Keep all the speech in one paragraph to save space.',
+      'Use a semicolon between the two speakers.',
+      'Put both speakers inside one set of inverted commas.',
+    ],
+    a: 'Start a new line each time the speaker changes.',
+    hint: 'Think about how the reader keeps track of who is talking.',
+    ex: 'A new line for each new speaker makes it clear to the reader when the speaker has changed.',
+  },
+  {
+    id: 'pu126',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Aisha whispered I think the bus has already gone."`,
-      opts: [
-        `inverted commas around the spoken words, and a comma after "whispered"`,
-        `a question mark at the end`,
-        `an apostrophe in "has"`,
-        `a capital letter for "bus"`,
-      ],
-      a: `inverted commas around the spoken words, and a comma after "whispered"`,
-      hint: `The reader cannot tell where the speech starts.`,
-      ex: `Spoken words must be enclosed in inverted commas, with a comma after the reporting clause that introduces them.`,
-    },
-    {
-      id: `pu127`,
-      topic: `punctuation`,
-      q: `Which sentence uses the colon correctly?`,
-      opts: [
-        `You will need three things: a pencil, a ruler and a rubber.`,
-        `You will need: a pencil, a ruler and a rubber three things.`,
-        `You will need three things a pencil, a ruler and a rubber:`,
-        `You: will need three things, a pencil, a ruler and a rubber.`,
-      ],
-      a: `You will need three things: a pencil, a ruler and a rubber.`,
-      hint: `A colon comes after a complete statement and points forward to what follows.`,
-      ex: `The words before the colon form a complete clause, and the colon introduces the list that explains it.`,
-    },
-    {
-      id: `pu128`,
-      topic: `punctuation`,
-      q: `Which punctuation mark best fits the gap?
+    opts: [
+      'inverted commas around the spoken words, and a comma after "whispered"',
+      'a question mark at the end',
+      'an apostrophe in "has"',
+      'a capital letter for "bus"',
+    ],
+    a: 'inverted commas around the spoken words, and a comma after "whispered"',
+    hint: 'The reader cannot tell where the speech starts.',
+    ex: 'Spoken words must be enclosed in inverted commas, with a comma after the reporting clause that introduces them.',
+  },
+  {
+    id: 'pu127',
+    topic: 'punctuation',
+    q: 'Which sentence uses the colon correctly?',
+    opts: [
+      'You will need three things: a pencil, a ruler and a rubber.',
+      'You will need: a pencil, a ruler and a rubber three things.',
+      'You will need three things a pencil, a ruler and a rubber:',
+      'You: will need three things, a pencil, a ruler and a rubber.',
+    ],
+    a: 'You will need three things: a pencil, a ruler and a rubber.',
+    hint: 'A colon comes after a complete statement and points forward to what follows.',
+    ex: 'The words before the colon form a complete clause, and the colon introduces the list that explains it.',
+  },
+  {
+    id: 'pu128',
+    topic: 'punctuation',
+    q: `Which punctuation mark best fits the gap?
 
 "Callum knew exactly why the team had lost ___ they had barely trained all month."`,
-      opts: [`a colon`, `a comma`, `a question mark`, `an apostrophe`],
-      a: `a colon`,
-      hint: `The second part explains the first part.`,
-      ex: `A colon can introduce an explanation of the statement that comes before it.`,
-    },
-    {
-      id: `pu129`,
-      topic: `punctuation`,
-      q: `What is wrong with this sentence?
+    opts: ['a colon', 'a comma', 'a question mark', 'an apostrophe'],
+    a: 'a colon',
+    hint: 'The second part explains the first part.',
+    ex: 'A colon can introduce an explanation of the statement that comes before it.',
+  },
+  {
+    id: 'pu129',
+    topic: 'punctuation',
+    q: `What is wrong with this sentence?
 
 "My favourite subjects are: maths, art and PE."`,
-      opts: [
-        `The colon should be removed, because the list completes the verb "are".`,
-        `The commas should all be replaced with semicolons.`,
-        `There should be a second colon after "maths".`,
-        `Nothing is wrong with the sentence.`,
-      ],
-      a: `The colon should be removed, because the list completes the verb "are".`,
-      hint: `Check whether the words before the colon make a complete statement on their own.`,
-      ex: `"My favourite subjects are" is not a complete statement, so no colon should interrupt the verb and its list.`,
-    },
-    {
-      id: `pu130`,
-      topic: `punctuation`,
-      q: `Which sentence uses brackets correctly?`,
-      opts: [
-        `Freya (who had trained all summer) won the 800 metres.`,
-        `Freya who had trained all summer (won the 800 metres).`,
-        `Freya (who had trained all summer won the 800 metres).`,
-        `(Freya who had trained all summer) won the 800 metres.`,
-      ],
-      a: `Freya (who had trained all summer) won the 800 metres.`,
-      hint: `Remove the bracketed words — the sentence must still make sense.`,
-      ex: `The brackets enclose only the extra information, leaving "Freya won the 800 metres" complete.`,
-    },
-    {
-      id: `pu131`,
-      topic: `punctuation`,
-      q: `What job are the brackets doing?
+    opts: [
+      'The colon should be removed, because the list completes the verb "are".',
+      'The commas should all be replaced with semicolons.',
+      'There should be a second colon after "maths".',
+      'Nothing is wrong with the sentence.',
+    ],
+    a: 'The colon should be removed, because the list completes the verb "are".',
+    hint: 'Check whether the words before the colon make a complete statement on their own.',
+    ex: '"My favourite subjects are" is not a complete statement, so no colon should interrupt the verb and its list.',
+  },
+  {
+    id: 'pu130',
+    topic: 'punctuation',
+    q: 'Which sentence uses brackets correctly?',
+    opts: [
+      'Freya (who had trained all summer) won the 800 metres.',
+      'Freya who had trained all summer (won the 800 metres).',
+      'Freya (who had trained all summer won the 800 metres).',
+      '(Freya who had trained all summer) won the 800 metres.',
+    ],
+    a: 'Freya (who had trained all summer) won the 800 metres.',
+    hint: 'Remove the bracketed words — the sentence must still make sense.',
+    ex: 'The brackets enclose only the extra information, leaving "Freya won the 800 metres" complete.',
+  },
+  {
+    id: 'pu131',
+    topic: 'punctuation',
+    q: `What job are the brackets doing?
 
 "The museum (which opened in 1901) is free to enter."`,
-      opts: [
-        `They add extra information that could be removed.`,
-        `They show that someone is speaking.`,
-        `They show that words have been left out.`,
-        `They join two main clauses together.`,
-      ],
-      a: `They add extra information that could be removed.`,
-      hint: `Try reading the sentence without the bracketed words.`,
-      ex: `Brackets hold a parenthesis — extra detail the sentence does not need in order to make sense.`,
-    },
-    {
-      id: `pu132`,
-      topic: `punctuation`,
-      q: `What is the ellipsis doing in this sentence?
+    opts: [
+      'They add extra information that could be removed.',
+      'They show that someone is speaking.',
+      'They show that words have been left out.',
+      'They join two main clauses together.',
+    ],
+    a: 'They add extra information that could be removed.',
+    hint: 'Try reading the sentence without the bracketed words.',
+    ex: 'Brackets hold a parenthesis — extra detail the sentence does not need in order to make sense.',
+  },
+  {
+    id: 'pu132',
+    topic: 'punctuation',
+    q: `What is the ellipsis doing in this sentence?
 
 "She reached slowly for the handle... and stopped."`,
-      opts: [
-        `It creates a pause that builds suspense.`,
-        `It shows that a question is being asked.`,
-        `It marks the end of a list.`,
-        `It shows that something belongs to someone.`,
-      ],
-      a: `It creates a pause that builds suspense.`,
-      hint: `Read it aloud and listen to what happens to the pace.`,
-      ex: `Three dots hold the reader in a pause, which is often used to build tension in narrative writing.`,
-    },
-    {
-      id: `pu133`,
-      topic: `punctuation`,
-      q: `Which punctuation mark should end this sentence?
+    opts: [
+      'It creates a pause that builds suspense.',
+      'It shows that a question is being asked.',
+      'It marks the end of a list.',
+      'It shows that something belongs to someone.',
+    ],
+    a: 'It creates a pause that builds suspense.',
+    hint: 'Read it aloud and listen to what happens to the pace.',
+    ex: 'Three dots hold the reader in a pause, which is often used to build tension in narrative writing.',
+  },
+  {
+    id: 'pu133',
+    topic: 'punctuation',
+    q: `Which punctuation mark should end this sentence?
 
 "How far is it to Aviemore from here"`,
-      opts: [
-        `a question mark`,
-        `a full stop`,
-        `an exclamation mark`,
-        `a comma`,
-      ],
-      a: `a question mark`,
-      hint: `Decide what the sentence is actually doing — telling or asking.`,
-      ex: `The sentence asks something and expects an answer, so it ends with a question mark.`,
-    },
-    {
-      id: `pu134`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `What a brilliant goal that was!`,
-        `What a brilliant goal that was?`,
-        `What a brilliant goal that was!?`,
-        `What, a brilliant goal that was`,
-      ],
-      a: `What a brilliant goal that was!`,
-      hint: `The sentence is not asking anything, even though it starts with "What".`,
-      ex: `This is an exclamation expressing strong feeling, so it takes a single exclamation mark.`,
-    },
-    {
-      id: `pu135`,
-      topic: `punctuation`,
-      q: `What is wrong with this sentence?
+    opts: ['a question mark', 'a full stop', 'an exclamation mark', 'a comma'],
+    a: 'a question mark',
+    hint: 'Decide what the sentence is actually doing — telling or asking.',
+    ex: 'The sentence asks something and expects an answer, so it ends with a question mark.',
+  },
+  {
+    id: 'pu134',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'What a brilliant goal that was!',
+      'What a brilliant goal that was?',
+      'What a brilliant goal that was!?',
+      'What, a brilliant goal that was',
+    ],
+    a: 'What a brilliant goal that was!',
+    hint: 'The sentence is not asking anything, even though it starts with "What".',
+    ex: 'This is an exclamation expressing strong feeling, so it takes a single exclamation mark.',
+  },
+  {
+    id: 'pu135',
+    topic: 'punctuation',
+    q: `What is wrong with this sentence?
 
 "last july we drove to dundee to see my gran."`,
-      opts: [
-        `"last", "july" and "dundee" all need capital letters.`,
-        `Only "dundee" needs a capital letter.`,
-        `Only "july" needs a capital letter.`,
-        `Nothing is wrong with the sentence.`,
-      ],
-      a: `"last", "july" and "dundee" all need capital letters.`,
-      hint: `Look for the first word as well as for names of months and places.`,
-      ex: `Sentences begin with a capital, and months and place names are proper nouns that always take one.`,
-    },
-    {
-      id: `pu136`,
-      topic: `punctuation`,
-      q: `Which sentence uses a semicolon correctly?`,
-      opts: [
-        `The bus was late; we missed the start of the film.`,
-        `The bus was late; and we missed the start of the film.`,
-        `The bus was late; because we missed the start of the film.`,
-        `The bus; was late we missed the start of the film.`,
-      ],
-      a: `The bus was late; we missed the start of the film.`,
-      hint: `A semicolon needs a complete sentence on each side and no joining word.`,
-      ex: `Both halves are complete main clauses, so a semicolon can link them without a connective.`,
-    },
-    {
-      id: `pu137`,
-      topic: `punctuation`,
-      q: `What job is the semicolon doing?
+    opts: [
+      '"last", "july" and "dundee" all need capital letters.',
+      'Only "dundee" needs a capital letter.',
+      'Only "july" needs a capital letter.',
+      'Nothing is wrong with the sentence.',
+    ],
+    a: '"last", "july" and "dundee" all need capital letters.',
+    hint: 'Look for the first word as well as for names of months and places.',
+    ex: 'Sentences begin with a capital, and months and place names are proper nouns that always take one.',
+  },
+  {
+    id: 'pu136',
+    topic: 'punctuation',
+    q: 'Which sentence uses a semicolon correctly?',
+    opts: [
+      'The bus was late; we missed the start of the film.',
+      'The bus was late; and we missed the start of the film.',
+      'The bus was late; because we missed the start of the film.',
+      'The bus; was late we missed the start of the film.',
+    ],
+    a: 'The bus was late; we missed the start of the film.',
+    hint: 'A semicolon needs a complete sentence on each side and no joining word.',
+    ex: 'Both halves are complete main clauses, so a semicolon can link them without a connective.',
+  },
+  {
+    id: 'pu137',
+    topic: 'punctuation',
+    q: `What job is the semicolon doing?
 
 "Aisha loves hillwalking; her brother prefers cycling."`,
-      opts: [
-        `It joins two closely linked main clauses.`,
-        `It introduces a list of items.`,
-        `It shows that letters have been missed out.`,
-        `It shows that someone is speaking.`,
-      ],
-      a: `It joins two closely linked main clauses.`,
-      hint: `Look at what sits on either side of the mark.`,
-      ex: `Each side could stand alone as a sentence, and the semicolon shows the ideas are closely connected.`,
-    },
-    {
-      id: `pu138`,
-      topic: `punctuation`,
-      q: `Which sentence uses a pair of dashes correctly?`,
-      opts: [
-        `Callum — who had never been abroad — could not stop grinning.`,
-        `Callum — who had never been abroad could not stop grinning.`,
-        `Callum who had never been abroad — could not stop grinning.`,
-        `Callum — who — had never been abroad could not stop grinning.`,
-      ],
-      a: `Callum — who had never been abroad — could not stop grinning.`,
-      hint: `Dashes used for extra information work in pairs, like brackets.`,
-      ex: `A dash at each end fences off the extra detail, leaving "Callum could not stop grinning" intact.`,
-    },
-    {
-      id: `pu139`,
-      topic: `punctuation`,
-      q: `What is the dash doing in this sentence?
+    opts: [
+      'It joins two closely linked main clauses.',
+      'It introduces a list of items.',
+      'It shows that letters have been missed out.',
+      'It shows that someone is speaking.',
+    ],
+    a: 'It joins two closely linked main clauses.',
+    hint: 'Look at what sits on either side of the mark.',
+    ex: 'Each side could stand alone as a sentence, and the semicolon shows the ideas are closely connected.',
+  },
+  {
+    id: 'pu138',
+    topic: 'punctuation',
+    q: 'Which sentence uses a pair of dashes correctly?',
+    opts: [
+      'Callum — who had never been abroad — could not stop grinning.',
+      'Callum — who had never been abroad could not stop grinning.',
+      'Callum who had never been abroad — could not stop grinning.',
+      'Callum — who — had never been abroad could not stop grinning.',
+    ],
+    a: 'Callum — who had never been abroad — could not stop grinning.',
+    hint: 'Dashes used for extra information work in pairs, like brackets.',
+    ex: 'A dash at each end fences off the extra detail, leaving "Callum could not stop grinning" intact.',
+  },
+  {
+    id: 'pu139',
+    topic: 'punctuation',
+    q: `What is the dash doing in this sentence?
 
 "We had everything we needed for the walk — except a map."`,
-      opts: [
-        `It adds a surprising afterthought.`,
-        `It joins two words into one.`,
-        `It shows that letters are missing.`,
-        `It introduces direct speech.`,
-      ],
-      a: `It adds a surprising afterthought.`,
-      hint: `Notice how the ending changes what you expected.`,
-      ex: `A single dash can hold back a final idea for effect, giving the ending a jolt of surprise.`,
-    },
-    {
-      id: `pu140`,
-      topic: `punctuation`,
-      q: `Which sentence uses semicolons correctly in a complicated list?`,
-      opts: [
-        `The squad came from Dundee, in the east; Oban, in the west; and Wick, in the far north.`,
-        `The squad came from Dundee, in the east, Oban; in the west, Wick; in the far north.`,
-        `The squad came from; Dundee, in the east, Oban, in the west, and Wick, in the far north.`,
-        `The squad came from Dundee; in the east Oban; in the west Wick; in the far north.`,
-      ],
-      a: `The squad came from Dundee, in the east; Oban, in the west; and Wick, in the far north.`,
-      hint: `When list items already contain commas, a stronger mark separates the items.`,
-      ex: `Each item already has a comma inside it, so semicolons are used to separate one item from the next.`,
-    },
-    {
-      id: `co101`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: [
+      'It adds a surprising afterthought.',
+      'It joins two words into one.',
+      'It shows that letters are missing.',
+      'It introduces direct speech.',
+    ],
+    a: 'It adds a surprising afterthought.',
+    hint: 'Notice how the ending changes what you expected.',
+    ex: 'A single dash can hold back a final idea for effect, giving the ending a jolt of surprise.',
+  },
+  {
+    id: 'pu140',
+    topic: 'punctuation',
+    q: 'Which sentence uses semicolons correctly in a complicated list?',
+    opts: [
+      'The squad came from Dundee, in the east; Oban, in the west; and Wick, in the far north.',
+      'The squad came from Dundee, in the east, Oban; in the west, Wick; in the far north.',
+      'The squad came from; Dundee, in the east, Oban, in the west, and Wick, in the far north.',
+      'The squad came from Dundee; in the east Oban; in the west Wick; in the far north.',
+    ],
+    a: 'The squad came from Dundee, in the east; Oban, in the west; and Wick, in the far north.',
+    hint: 'When list items already contain commas, a stronger mark separates the items.',
+    ex: 'Each item already has a comma inside it, so semicolons are used to separate one item from the next.',
+  },
+  {
+    id: 'co101',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The forecast promised sunshine. ___, it rained all day."`,
-      opts: [`However`, `Therefore`, `Furthermore`, `Meanwhile`],
-      a: `However`,
-      hint: `The second sentence goes against what the first one led you to expect.`,
-      ex: `"However" signals contrast, which is exactly the relationship between the two sentences.`,
-    },
-    {
-      id: `co102`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['However', 'Therefore', 'Furthermore', 'Meanwhile'],
+    a: 'However',
+    hint: 'The second sentence goes against what the first one led you to expect.',
+    ex: '"However" signals contrast, which is exactly the relationship between the two sentences.',
+  },
+  {
+    id: 'co102',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Rory enjoys team sports, ___ his sister prefers running alone."`,
-      opts: [`whereas`, `because`, `so that`, `therefore`],
-      a: `whereas`,
-      hint: `Two people are being set against each other.`,
-      ex: `"Whereas" is used to compare two things that are different, which fits the two contrasting habits.`,
-    },
-    {
-      id: `co103`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['whereas', 'because', 'so that', 'therefore'],
+    a: 'whereas',
+    hint: 'Two people are being set against each other.',
+    ex: '"Whereas" is used to compare two things that are different, which fits the two contrasting habits.',
+  },
+  {
+    id: 'co103',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "___ she had trained hard all season, Freya finished last."`,
-      opts: [`Although`, `Because`, `Since`, `So`],
-      a: `Although`,
-      hint: `The result is the opposite of what the first idea would lead you to expect.`,
-      ex: `"Although" introduces a concession — hard training would normally lead to a better result.`,
-    },
-    {
-      id: `co104`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['Although', 'Because', 'Since', 'So'],
+    a: 'Although',
+    hint: 'The result is the opposite of what the first idea would lead you to expect.',
+    ex: '"Although" introduces a concession — hard training would normally lead to a better result.',
+  },
+  {
+    id: 'co104',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "___ the heavy rain, the game went ahead as planned."`,
-      opts: [`Despite`, `Although`, `However`, `Nevertheless`],
-      a: `Despite`,
-      hint: `Only one of these can be followed straight away by a noun phrase.`,
-      ex: `"Despite" is followed by a noun phrase such as "the heavy rain", while the others need a clause or a new sentence.`,
-    },
-    {
-      id: `co105`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Despite', 'Although', 'However', 'Nevertheless'],
+    a: 'Despite',
+    hint: 'Only one of these can be followed straight away by a noun phrase.',
+    ex: '"Despite" is followed by a noun phrase such as "the heavy rain", while the others need a clause or a new sentence.',
+  },
+  {
+    id: 'co105',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The path was steep and thick with mud. ___, everyone reached the summit."`,
-      opts: [`Nevertheless`, `Consequently`, `Similarly`, `Meanwhile`],
-      a: `Nevertheless`,
-      hint: `Did the difficulty stop them, or not?`,
-      ex: `"Nevertheless" shows that something happened in spite of the difficulty just described.`,
-    },
-    {
-      id: `co106`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Nevertheless', 'Consequently', 'Similarly', 'Meanwhile'],
+    a: 'Nevertheless',
+    hint: 'Did the difficulty stop them, or not?',
+    ex: '"Nevertheless" shows that something happened in spite of the difficulty just described.',
+  },
+  {
+    id: 'co106',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The ferry was cancelled. ___, we stayed another night on Skye."`,
-      opts: [`Therefore`, `However`, `Meanwhile`, `Nevertheless`],
-      a: `Therefore`,
-      hint: `The second sentence is the result of the first.`,
-      ex: `"Therefore" signals a consequence, and staying the night is the direct result of the cancellation.`,
-    },
-    {
-      id: `co107`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Therefore', 'However', 'Meanwhile', 'Nevertheless'],
+    a: 'Therefore',
+    hint: 'The second sentence is the result of the first.',
+    ex: '"Therefore" signals a consequence, and staying the night is the direct result of the cancellation.',
+  },
+  {
+    id: 'co107',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Euan missed the bus ___ his alarm had not gone off."`,
-      opts: [`because`, `although`, `whereas`, `despite`],
-      a: `because`,
-      hint: `The second part gives the reason for the first.`,
-      ex: `"Because" introduces the cause, and the silent alarm is the reason he missed the bus.`,
-    },
-    {
-      id: `co108`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['because', 'although', 'whereas', 'despite'],
+    a: 'because',
+    hint: 'The second part gives the reason for the first.',
+    ex: '"Because" introduces the cause, and the silent alarm is the reason he missed the bus.',
+  },
+  {
+    id: 'co108',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Snow blocked the road overnight. ___, the school closed for the day."`,
-      opts: [`As a result`, `In addition`, `On the other hand`, `By contrast`],
-      a: `As a result`,
-      hint: `Ask what caused what.`,
-      ex: `"As a result" marks an effect, and the closure was caused by the blocked road.`,
-    },
-    {
-      id: `co109`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['As a result', 'In addition', 'On the other hand', 'By contrast'],
+    a: 'As a result',
+    hint: 'Ask what caused what.',
+    ex: '"As a result" marks an effect, and the closure was caused by the blocked road.',
+  },
+  {
+    id: 'co109',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "___ the library was shut, we worked in the canteen instead."`,
-      opts: [`Since`, `Despite`, `However`, `Whereas`],
-      a: `Since`,
-      hint: `The opening clause explains why they moved.`,
-      ex: `"Since" can mean "because", giving the reason for working in the canteen.`,
-    },
-    {
-      id: `co110`,
-      topic: `cohesion`,
-      q: `Which connective signals a RESULT?`,
-      opts: [`Consequently`, `Furthermore`, `Meanwhile`, `Similarly`],
-      a: `Consequently`,
-      hint: `Three of these add, compare or mark time instead.`,
-      ex: `"Consequently" tells the reader that what follows was caused by what came before.`,
-    },
-    {
-      id: `co111`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Since', 'Despite', 'However', 'Whereas'],
+    a: 'Since',
+    hint: 'The opening clause explains why they moved.',
+    ex: '"Since" can mean "because", giving the reason for working in the canteen.',
+  },
+  {
+    id: 'co110',
+    topic: 'cohesion',
+    q: 'Which connective signals a RESULT?',
+    opts: ['Consequently', 'Furthermore', 'Meanwhile', 'Similarly'],
+    a: 'Consequently',
+    hint: 'Three of these add, compare or mark time instead.',
+    ex: '"Consequently" tells the reader that what follows was caused by what came before.',
+  },
+  {
+    id: 'co111',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The new bikes are cheaper than the old ones. ___, they are lighter to carry."`,
-      opts: [`Furthermore`, `However`, `Therefore`, `Meanwhile`],
-      a: `Furthermore`,
-      hint: `Is the writer adding another point, or turning against the first one?`,
-      ex: `"Furthermore" adds a second point that supports the same argument.`,
-    },
-    {
-      id: `co112`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Furthermore', 'However', 'Therefore', 'Meanwhile'],
+    a: 'Furthermore',
+    hint: 'Is the writer adding another point, or turning against the first one?',
+    ex: '"Furthermore" adds a second point that supports the same argument.',
+  },
+  {
+    id: 'co112',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The club badly needs new nets. ___, the changing rooms need repainting."`,
-      opts: [`Moreover`, `Instead`, `Nevertheless`, `Consequently`],
-      a: `Moreover`,
-      hint: `The second problem is stacked on top of the first.`,
-      ex: `"Moreover" adds a further point of the same kind, building up the case being made.`,
-    },
-    {
-      id: `co113`,
-      topic: `cohesion`,
-      q: `Which phrase tells the reader that the writer is ADDING another point?`,
-      opts: [`In addition`, `On the other hand`, `As a result`, `Even so`],
-      a: `In addition`,
-      hint: `Two of the others signal contrast and one signals a consequence.`,
-      ex: `"In addition" introduces extra supporting information rather than a contrast or a result.`,
-    },
-    {
-      id: `co114`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Moreover', 'Instead', 'Nevertheless', 'Consequently'],
+    a: 'Moreover',
+    hint: 'The second problem is stacked on top of the first.',
+    ex: '"Moreover" adds a further point of the same kind, building up the case being made.',
+  },
+  {
+    id: 'co113',
+    topic: 'cohesion',
+    q: 'Which phrase tells the reader that the writer is ADDING another point?',
+    opts: ['In addition', 'On the other hand', 'As a result', 'Even so'],
+    a: 'In addition',
+    hint: 'Two of the others signal contrast and one signals a consequence.',
+    ex: '"In addition" introduces extra supporting information rather than a contrast or a result.',
+  },
+  {
+    id: 'co114',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Aisha set up the tent. ___, Callum collected firewood."`,
-      opts: [`Meanwhile`, `Therefore`, `However`, `Furthermore`],
-      a: `Meanwhile`,
-      hint: `The two actions are happening at the same time.`,
-      ex: `"Meanwhile" shows that the second action took place during the first.`,
-    },
-    {
-      id: `co115`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['Meanwhile', 'Therefore', 'However', 'Furthermore'],
+    a: 'Meanwhile',
+    hint: 'The two actions are happening at the same time.',
+    ex: '"Meanwhile" shows that the second action took place during the first.',
+  },
+  {
+    id: 'co115',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "The team lost their opening two matches. They ___ won every game that followed."`,
-      opts: [`subsequently`, `previously`, `similarly`, `instead`],
-      a: `subsequently`,
-      hint: `Which word means "after that"?`,
-      ex: `"Subsequently" means afterwards, matching the order in which the events happened.`,
-    },
-    {
-      id: `co116`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['subsequently', 'previously', 'similarly', 'instead'],
+    a: 'subsequently',
+    hint: 'Which word means "after that"?',
+    ex: '"Subsequently" means afterwards, matching the order in which the events happened.',
+  },
+  {
+    id: 'co116',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "After four hours of climbing, they ___ reached the summit."`,
-      opts: [`eventually`, `immediately`, `meanwhile`, `instead`],
-      a: `eventually`,
-      hint: `The climb took a long time — which word matches that?`,
-      ex: `"Eventually" signals that something happened at last, after a long delay.`,
-    },
-    {
-      id: `co117`,
-      topic: `cohesion`,
-      q: `Which connective best opens the LAST paragraph of a set of instructions?`,
-      opts: [`Finally`, `Firstly`, `Meanwhile`, `However`],
-      a: `Finally`,
-      hint: `Think about signposting the reader through the steps.`,
-      ex: `"Finally" tells the reader they have reached the last step in the sequence.`,
-    },
-    {
-      id: `co118`,
-      topic: `cohesion`,
-      q: `Which sentence is the best topic sentence for a paragraph about why cycling to school is a good idea?`,
-      opts: [
-        `Cycling to school brings three clear benefits.`,
-        `My bike is blue and it has a silver bell.`,
-        `I got up really late last Tuesday morning.`,
-        `Then we all cycled home again afterwards.`,
-      ],
-      a: `Cycling to school brings three clear benefits.`,
-      hint: `A topic sentence sets up everything the rest of the paragraph will cover.`,
-      ex: `It announces the paragraph's subject and signals that reasons will follow, which the other options do not.`,
-    },
-    {
-      id: `co119`,
-      topic: `cohesion`,
-      q: `What is a topic sentence?`,
-      opts: [
-        `The sentence that tells the reader what the paragraph is about.`,
-        `The last sentence of a whole essay.`,
-        `Any sentence that contains a connective.`,
-        `A sentence written in direct speech.`,
-      ],
-      a: `The sentence that tells the reader what the paragraph is about.`,
-      hint: `Think about its job rather than its position.`,
-      ex: `A topic sentence states the paragraph's main idea so the reader knows what to expect.`,
-    },
-    {
-      id: `co120`,
-      topic: `cohesion`,
-      q: `Which sentence would work best as the topic sentence of a paragraph arguing AGAINST school uniform?`,
-      opts: [
-        `School uniform has several serious drawbacks.`,
-        `Uniforms are usually navy blue or black.`,
-        `I bought my blazer in a shop in Glasgow.`,
-        `Finally, that is all I wanted to say.`,
-      ],
-      a: `School uniform has several serious drawbacks.`,
-      hint: `The topic sentence should carry the line of argument.`,
-      ex: `It states the paragraph's position and prepares the reader for the drawbacks that follow.`,
-    },
-    {
-      id: `co121`,
-      topic: `cohesion`,
-      q: `A paragraph has explained the benefits of school trips. Which opening best links the NEXT paragraph, which is about their cost?`,
-      opts: [
-        `These benefits, however, come at a price.`,
-        `School trips are usually good fun.`,
-        `In conclusion, school trips are worthwhile.`,
-        `Firstly, school trips are educational.`,
-      ],
-      a: `These benefits, however, come at a price.`,
-      hint: `A good link looks back at the last paragraph and forward to the new one.`,
-      ex: `"These benefits" refers back to the previous paragraph while "however" introduces the new, contrasting idea.`,
-    },
-    {
-      id: `co122`,
-      topic: `cohesion`,
-      q: `Why do writers use linking phrases at the start of paragraphs?`,
-      opts: [
-        `To show how the new paragraph relates to the one before.`,
-        `To make each paragraph longer.`,
-        `To signal that someone is about to speak.`,
-        `To remove the need for punctuation.`,
-      ],
-      a: `To show how the new paragraph relates to the one before.`,
-      hint: `Think about what the reader needs in order to follow the argument.`,
-      ex: `Linking phrases hold a text together by showing the relationship between one paragraph and the next.`,
-    },
-    {
-      id: `co123`,
-      topic: `cohesion`,
-      q: `What is the problem with this sentence?
+    opts: ['eventually', 'immediately', 'meanwhile', 'instead'],
+    a: 'eventually',
+    hint: 'The climb took a long time — which word matches that?',
+    ex: '"Eventually" signals that something happened at last, after a long delay.',
+  },
+  {
+    id: 'co117',
+    topic: 'cohesion',
+    q: 'Which connective best opens the LAST paragraph of a set of instructions?',
+    opts: ['Finally', 'Firstly', 'Meanwhile', 'However'],
+    a: 'Finally',
+    hint: 'Think about signposting the reader through the steps.',
+    ex: '"Finally" tells the reader they have reached the last step in the sequence.',
+  },
+  {
+    id: 'co118',
+    topic: 'cohesion',
+    q: 'Which sentence is the best topic sentence for a paragraph about why cycling to school is a good idea?',
+    opts: [
+      'Cycling to school brings three clear benefits.',
+      'My bike is blue and it has a silver bell.',
+      'I got up really late last Tuesday morning.',
+      'Then we all cycled home again afterwards.',
+    ],
+    a: 'Cycling to school brings three clear benefits.',
+    hint: 'A topic sentence sets up everything the rest of the paragraph will cover.',
+    ex: "It announces the paragraph's subject and signals that reasons will follow, which the other options do not.",
+  },
+  {
+    id: 'co119',
+    topic: 'cohesion',
+    q: 'What is a topic sentence?',
+    opts: [
+      'The sentence that tells the reader what the paragraph is about.',
+      'The last sentence of a whole essay.',
+      'Any sentence that contains a connective.',
+      'A sentence written in direct speech.',
+    ],
+    a: 'The sentence that tells the reader what the paragraph is about.',
+    hint: 'Think about its job rather than its position.',
+    ex: "A topic sentence states the paragraph's main idea so the reader knows what to expect.",
+  },
+  {
+    id: 'co120',
+    topic: 'cohesion',
+    q: 'Which sentence would work best as the topic sentence of a paragraph arguing AGAINST school uniform?',
+    opts: [
+      'School uniform has several serious drawbacks.',
+      'Uniforms are usually navy blue or black.',
+      'I bought my blazer in a shop in Glasgow.',
+      'Finally, that is all I wanted to say.',
+    ],
+    a: 'School uniform has several serious drawbacks.',
+    hint: 'The topic sentence should carry the line of argument.',
+    ex: "It states the paragraph's position and prepares the reader for the drawbacks that follow.",
+  },
+  {
+    id: 'co121',
+    topic: 'cohesion',
+    q: 'A paragraph has explained the benefits of school trips. Which opening best links the NEXT paragraph, which is about their cost?',
+    opts: [
+      'These benefits, however, come at a price.',
+      'School trips are usually good fun.',
+      'In conclusion, school trips are worthwhile.',
+      'Firstly, school trips are educational.',
+    ],
+    a: 'These benefits, however, come at a price.',
+    hint: 'A good link looks back at the last paragraph and forward to the new one.',
+    ex: '"These benefits" refers back to the previous paragraph while "however" introduces the new, contrasting idea.',
+  },
+  {
+    id: 'co122',
+    topic: 'cohesion',
+    q: 'Why do writers use linking phrases at the start of paragraphs?',
+    opts: [
+      'To show how the new paragraph relates to the one before.',
+      'To make each paragraph longer.',
+      'To signal that someone is about to speak.',
+      'To remove the need for punctuation.',
+    ],
+    a: 'To show how the new paragraph relates to the one before.',
+    hint: 'Think about what the reader needs in order to follow the argument.',
+    ex: 'Linking phrases hold a text together by showing the relationship between one paragraph and the next.',
+  },
+  {
+    id: 'co123',
+    topic: 'cohesion',
+    q: `What is the problem with this sentence?
 
 "Freya told Aisha that she had won the prize."`,
-      opts: [
-        `It is not clear who "she" refers to.`,
-        `It should end with a question mark.`,
-        `It is missing an apostrophe.`,
-        `"Told" should be spelled "telled".`,
-      ],
-      a: `It is not clear who "she" refers to.`,
-      hint: `Count how many people the pronoun could point back to.`,
-      ex: `A pronoun must point clearly to one noun, but "she" could mean either Freya or Aisha here.`,
-    },
-    {
-      id: `co124`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: [
+      'It is not clear who "she" refers to.',
+      'It should end with a question mark.',
+      'It is missing an apostrophe.',
+      '"Told" should be spelled "telled".',
+    ],
+    a: 'It is not clear who "she" refers to.',
+    hint: 'Count how many people the pronoun could point back to.',
+    ex: 'A pronoun must point clearly to one noun, but "she" could mean either Freya or Aisha here.',
+  },
+  {
+    id: 'co124',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "Callum picked up his rucksack. ___ was far heavier than he had expected."`,
-      opts: [`It`, `He`, `She`, `They`],
-      a: `It`,
-      hint: `Work out which noun in the first sentence the pronoun must replace.`,
-      ex: `The pronoun stands for the rucksack, a single thing, so "It" is the one that refers back clearly.`,
-    },
-    {
-      id: `co125`,
-      topic: `cohesion`,
-      q: `Which version avoids clumsy repetition best?`,
-      opts: [
-        `Rory loves Skye. He visits the island every summer.`,
-        `Rory loves Skye. Rory visits Skye every summer.`,
-        `Rory loves Skye. Rory visits Skye every summer, Rory says.`,
-        `Rory loves Skye. Skye is loved by Rory every summer.`,
-      ],
-      a: `Rory loves Skye. He visits the island every summer.`,
-      hint: `Pronouns and alternative nouns can stand in for names already used.`,
-      ex: `Using "He" and "the island" refers back clearly without repeating the same two names.`,
-    },
-    {
-      id: `pu141`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go?
+    opts: ['It', 'He', 'She', 'They'],
+    a: 'It',
+    hint: 'Work out which noun in the first sentence the pronoun must replace.',
+    ex: 'The pronoun stands for the rucksack, a single thing, so "It" is the one that refers back clearly.',
+  },
+  {
+    id: 'co125',
+    topic: 'cohesion',
+    q: 'Which version avoids clumsy repetition best?',
+    opts: [
+      'Rory loves Skye. He visits the island every summer.',
+      'Rory loves Skye. Rory visits Skye every summer.',
+      'Rory loves Skye. Rory visits Skye every summer, Rory says.',
+      'Rory loves Skye. Skye is loved by Rory every summer.',
+    ],
+    a: 'Rory loves Skye. He visits the island every summer.',
+    hint: 'Pronouns and alternative nouns can stand in for names already used.',
+    ex: 'Using "He" and "the island" refers back clearly without repeating the same two names.',
+  },
+  {
+    id: 'pu141',
+    topic: 'punctuation',
+    q: `Where does the apostrophe go?
 
 "The cats bowl was empty again." (there is only one cat)`,
-      opts: [`cat's`, `cats'`, `cats`, `cats's`],
-      a: `cat's`,
-      hint: `Find the owner first, then add the apostrophe straight after it.`,
-      ex: `The owner is one cat, so the apostrophe goes after "cat" and before the possessive s.`,
-    },
-    {
-      id: `pu142`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go?
+    opts: ["cat's", "cats'", 'cats', "cats's"],
+    a: "cat's",
+    hint: 'Find the owner first, then add the apostrophe straight after it.',
+    ex: 'The owner is one cat, so the apostrophe goes after "cat" and before the possessive s.',
+  },
+  {
+    id: 'pu142',
+    topic: 'punctuation',
+    q: `Where does the apostrophe go?
 
 "The players tunnel leads onto the pitch." (there is more than one player)`,
-      opts: [`players'`, `player's`, `players`, `players's`],
-      a: `players'`,
-      hint: `Is the owner one or more than one?`,
-      ex: `The owners are the players, a plural ending in s, so the apostrophe goes after that s.`,
-    },
-    {
-      id: `pu143`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ["players'", "player's", 'players', "players's"],
+    a: "players'",
+    hint: 'Is the owner one or more than one?',
+    ex: 'The owners are the players, a plural ending in s, so the apostrophe goes after that s.',
+  },
+  {
+    id: 'pu143',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The ___ staffroom is upstairs." (a room for all the teachers)`,
-      opts: [`teachers'`, `teacher's`, `teachers`, `teachers's`],
-      a: `teachers'`,
-      hint: `Does the plural already end in s?`,
-      ex: `"Teachers" is a plural ending in s, so the apostrophe goes after the final s.`,
-    },
-    {
-      id: `pu144`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ["teachers'", "teacher's", 'teachers', "teachers's"],
+    a: "teachers'",
+    hint: 'Does the plural already end in s?',
+    ex: '"Teachers" is a plural ending in s, so the apostrophe goes after the final s.',
+  },
+  {
+    id: 'pu144',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The ___ nest was high in the oak." (the nest belonged to one bird)`,
-      opts: [`bird's`, `birds'`, `birds`, `bird`],
-      a: `bird's`,
-      hint: `One owner takes an apostrophe and then s.`,
-      ex: `A single bird owns the nest, so possession is shown with apostrophe s: bird's.`,
-    },
-    {
-      id: `pu145`,
-      topic: `punctuation`,
-      q: `Which sentence is punctuated correctly?
+    opts: ["bird's", "birds'", 'birds', 'bird'],
+    a: "bird's",
+    hint: 'One owner takes an apostrophe and then s.',
+    ex: "A single bird owns the nest, so possession is shown with apostrophe s: bird's.",
+  },
+  {
+    id: 'pu145',
+    topic: 'punctuation',
+    q: `Which sentence is punctuated correctly?
 
 (the boots belonged to several children)`,
-      opts: [
-        `The children's boots were caked in mud.`,
-        `The childrens' boots were caked in mud.`,
-        `The childrens boots were caked in mud.`,
-        `The children's' boots were caked in mud.`,
-      ],
-      a: `The children's boots were caked in mud.`,
-      hint: `Does the plural word already end in s?`,
-      ex: `"Children" is an irregular plural with no final s, so it takes an apostrophe plus s.`,
-    },
-    {
-      id: `pu146`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      "The children's boots were caked in mud.",
+      "The childrens' boots were caked in mud.",
+      'The childrens boots were caked in mud.',
+      "The children's' boots were caked in mud.",
+    ],
+    a: "The children's boots were caked in mud.",
+    hint: 'Does the plural word already end in s?',
+    ex: '"Children" is an irregular plural with no final s, so it takes an apostrophe plus s.',
+  },
+  {
+    id: 'pu146',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "My brothers scooter has a flat tyre." (Aisha has one brother)`,
-      opts: [
-        `an apostrophe before the s in "brothers"`,
-        `an apostrophe after the s in "brothers"`,
-        `an apostrophe in "scooter"`,
-        `nothing — the sentence is already correct`,
-      ],
-      a: `an apostrophe before the s in "brothers"`,
-      hint: `Decide how many brothers there are, then place the mark after the owner.`,
-      ex: `There is one brother, so the apostrophe belongs between "brother" and the possessive s.`,
-    },
-    {
-      id: `pu147`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: [
+      'an apostrophe before the s in "brothers"',
+      'an apostrophe after the s in "brothers"',
+      'an apostrophe in "scooter"',
+      'nothing — the sentence is already correct',
+    ],
+    a: 'an apostrophe before the s in "brothers"',
+    hint: 'Decide how many brothers there are, then place the mark after the owner.',
+    ex: 'There is one brother, so the apostrophe belongs between "brother" and the possessive s.',
+  },
+  {
+    id: 'pu147',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "The robin fluffed up ___ feathers in the cold."`,
-      opts: [`its`, `it's`, `its'`, `it is`],
-      a: `its`,
-      hint: `Try reading it with "it is" in the gap and see whether it works.`,
-      ex: `This shows possession, not a missing letter, so it takes "its" with no apostrophe.`,
-    },
-    {
-      id: `pu148`,
-      topic: `punctuation`,
-      q: `Choose the correct word:
+    opts: ['its', "it's", "its'", 'it is'],
+    a: 'its',
+    hint: 'Try reading it with "it is" in the gap and see whether it works.',
+    ex: 'This shows possession, not a missing letter, so it takes "its" with no apostrophe.',
+  },
+  {
+    id: 'pu148',
+    topic: 'punctuation',
+    q: `Choose the correct word:
 
 "___ been raining since breakfast."`,
-      opts: [`It's`, `Its`, `Its'`, `'Its`],
-      a: `It's`,
-      hint: `Which version could you swap for "it has" without changing the meaning?`,
-      ex: `The sentence means "It has been raining", so the dropped letters are replaced by an apostrophe.`,
-    },
-    {
-      id: `pu149`,
-      topic: `punctuation`,
-      q: `Which is the correct short form of "we are"?`,
-      opts: [`we're`, `were`, `we'r`, `wer'e`],
-      a: `we're`,
-      hint: `The apostrophe stands in for the dropped letter of "are".`,
-      ex: `The a of "are" is missing, so an apostrophe takes its place: we're.`,
-    },
-    {
-      id: `pu150`,
-      topic: `punctuation`,
-      q: `Where does the apostrophe go in the short form of "did not"?`,
-      opts: [`didn't`, `did'nt`, `didnt'`, `di'dnt`],
-      a: `didn't`,
-      hint: `Only one letter disappears — find it.`,
-      ex: `The o of "not" is dropped, so the apostrophe goes between the n and the t.`,
-    },
-    {
-      id: `pu151`,
-      topic: `punctuation`,
-      q: `Which sentence uses commas correctly in a list?`,
-      opts: [
-        `We saw seals, puffins, dolphins and a whale.`,
-        `We saw seals puffins, dolphins and a whale.`,
-        `We saw, seals, puffins, dolphins and a whale.`,
-        `We saw seals, puffins, dolphins, and, a whale.`,
-      ],
-      a: `We saw seals, puffins, dolphins and a whale.`,
-      hint: `Commas separate the items, and "and" usually replaces the last comma.`,
-      ex: `Each item is separated by a comma, with "and" joining the final item.`,
-    },
-    {
-      id: `pu152`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: ["It's", 'Its', "Its'", "'Its"],
+    a: "It's",
+    hint: 'Which version could you swap for "it has" without changing the meaning?',
+    ex: 'The sentence means "It has been raining", so the dropped letters are replaced by an apostrophe.',
+  },
+  {
+    id: 'pu149',
+    topic: 'punctuation',
+    q: 'Which is the correct short form of "we are"?',
+    opts: ["we're", 'were', "we'r", "wer'e"],
+    a: "we're",
+    hint: 'The apostrophe stands in for the dropped letter of "are".',
+    ex: 'The a of "are" is missing, so an apostrophe takes its place: we\'re.',
+  },
+  {
+    id: 'pu150',
+    topic: 'punctuation',
+    q: 'Where does the apostrophe go in the short form of "did not"?',
+    opts: ["didn't", "did'nt", "didnt'", "di'dnt"],
+    a: "didn't",
+    hint: 'Only one letter disappears — find it.',
+    ex: 'The o of "not" is dropped, so the apostrophe goes between the n and the t.',
+  },
+  {
+    id: 'pu151',
+    topic: 'punctuation',
+    q: 'Which sentence uses commas correctly in a list?',
+    opts: [
+      'We saw seals, puffins, dolphins and a whale.',
+      'We saw seals puffins, dolphins and a whale.',
+      'We saw, seals, puffins, dolphins and a whale.',
+      'We saw seals, puffins, dolphins, and, a whale.',
+    ],
+    a: 'We saw seals, puffins, dolphins and a whale.',
+    hint: 'Commas separate the items, and "and" usually replaces the last comma.',
+    ex: 'Each item is separated by a comma, with "and" joining the final item.',
+  },
+  {
+    id: 'pu152',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "For the trip we packed maps snacks and waterproofs."`,
-      opts: [
-        `commas between the items in the list`,
-        `a full stop after "trip"`,
-        `an apostrophe in "waterproofs"`,
-        `a colon after "packed"`,
-      ],
-      a: `commas between the items in the list`,
-      hint: `Read it aloud — where do you naturally pause?`,
-      ex: `Three items are listed, so commas are needed to separate them before the final "and".`,
-    },
-    {
-      id: `pu153`,
-      topic: `punctuation`,
-      q: `Which sentence uses commas correctly in a list?`,
-      opts: [
-        `The recipe needs flour, butter, sugar and eggs.`,
-        `The recipe needs flour, butter, sugar and, eggs.`,
-        `The recipe needs, flour butter, sugar and eggs.`,
-        `The recipe needs flour butter sugar and eggs.`,
-      ],
-      a: `The recipe needs flour, butter, sugar and eggs.`,
-      hint: `Separate each item, and let "and" join the last one.`,
-      ex: `Commas divide the first items and "and" links the final item without an extra comma.`,
-    },
-    {
-      id: `pu154`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `At the top of the hill, we stopped for lunch.`,
-        `At the top of the hill we stopped, for lunch.`,
-        `At, the top of the hill we stopped for lunch.`,
-        `At the top of the hill we, stopped for lunch.`,
-      ],
-      a: `At the top of the hill, we stopped for lunch.`,
-      hint: `A phrase placed before the main clause is closed off with one comma.`,
-      ex: `"At the top of the hill" is a fronted adverbial, so a comma separates it from the main clause.`,
-    },
-    {
-      id: `pu155`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'commas between the items in the list',
+      'a full stop after "trip"',
+      'an apostrophe in "waterproofs"',
+      'a colon after "packed"',
+    ],
+    a: 'commas between the items in the list',
+    hint: 'Read it aloud — where do you naturally pause?',
+    ex: 'Three items are listed, so commas are needed to separate them before the final "and".',
+  },
+  {
+    id: 'pu153',
+    topic: 'punctuation',
+    q: 'Which sentence uses commas correctly in a list?',
+    opts: [
+      'The recipe needs flour, butter, sugar and eggs.',
+      'The recipe needs flour, butter, sugar and, eggs.',
+      'The recipe needs, flour butter, sugar and eggs.',
+      'The recipe needs flour butter sugar and eggs.',
+    ],
+    a: 'The recipe needs flour, butter, sugar and eggs.',
+    hint: 'Separate each item, and let "and" join the last one.',
+    ex: 'Commas divide the first items and "and" links the final item without an extra comma.',
+  },
+  {
+    id: 'pu154',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'At the top of the hill, we stopped for lunch.',
+      'At the top of the hill we stopped, for lunch.',
+      'At, the top of the hill we stopped for lunch.',
+      'At the top of the hill we, stopped for lunch.',
+    ],
+    a: 'At the top of the hill, we stopped for lunch.',
+    hint: 'A phrase placed before the main clause is closed off with one comma.',
+    ex: '"At the top of the hill" is a fronted adverbial, so a comma separates it from the main clause.',
+  },
+  {
+    id: 'pu155',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Early the next morning the campers packed up."`,
-      opts: [
-        `a comma after "morning"`,
-        `a comma after "campers"`,
-        `a comma after "Early"`,
-        `a semicolon after "morning"`,
-      ],
-      a: `a comma after "morning"`,
-      hint: `Find where the opening time phrase ends and the main clause begins.`,
-      ex: `The fronted adverbial "Early the next morning" needs a comma before the main clause starts.`,
-    },
-    {
-      id: `pu156`,
-      topic: `punctuation`,
-      q: `Where should the comma go?
+    opts: [
+      'a comma after "morning"',
+      'a comma after "campers"',
+      'a comma after "Early"',
+      'a semicolon after "morning"',
+    ],
+    a: 'a comma after "morning"',
+    hint: 'Find where the opening time phrase ends and the main clause begins.',
+    ex: 'The fronted adverbial "Early the next morning" needs a comma before the main clause starts.',
+  },
+  {
+    id: 'pu156',
+    topic: 'punctuation',
+    q: `Where should the comma go?
 
 "Suddenly a deer leapt across the path."`,
-      opts: [
-        `Suddenly, a deer leapt across the path.`,
-        `Suddenly a deer, leapt across the path.`,
-        `Suddenly a deer leapt, across the path.`,
-        `Suddenly a deer leapt across, the path.`,
-      ],
-      a: `Suddenly, a deer leapt across the path.`,
-      hint: `The comma marks the end of the introductory word.`,
-      ex: `"Suddenly" introduces the sentence, so the comma follows it before the main clause.`,
-    },
-    {
-      id: `pu157`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `Freya, who had never flown before, gripped the armrest.`,
-        `Freya who had never flown before, gripped the armrest.`,
-        `Freya, who had never flown before gripped the armrest.`,
-        `Freya who had never flown before gripped the armrest.`,
-      ],
-      a: `Freya, who had never flown before, gripped the armrest.`,
-      hint: `Extra information needs fencing off on both sides.`,
-      ex: `The clause is extra information about Freya, so a pair of commas holds it like brackets.`,
-    },
-    {
-      id: `pu158`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'Suddenly, a deer leapt across the path.',
+      'Suddenly a deer, leapt across the path.',
+      'Suddenly a deer leapt, across the path.',
+      'Suddenly a deer leapt across, the path.',
+    ],
+    a: 'Suddenly, a deer leapt across the path.',
+    hint: 'The comma marks the end of the introductory word.',
+    ex: '"Suddenly" introduces the sentence, so the comma follows it before the main clause.',
+  },
+  {
+    id: 'pu157',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'Freya, who had never flown before, gripped the armrest.',
+      'Freya who had never flown before, gripped the armrest.',
+      'Freya, who had never flown before gripped the armrest.',
+      'Freya who had never flown before gripped the armrest.',
+    ],
+    a: 'Freya, who had never flown before, gripped the armrest.',
+    hint: 'Extra information needs fencing off on both sides.',
+    ex: 'The clause is extra information about Freya, so a pair of commas holds it like brackets.',
+  },
+  {
+    id: 'pu158',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Oban which has a busy harbour is a ferry port."`,
-      opts: [
-        `a pair of commas around "which has a busy harbour"`,
-        `one comma after "Oban" only`,
-        `one comma after "harbour" only`,
-        `brackets around "is a ferry port"`,
-      ],
-      a: `a pair of commas around "which has a busy harbour"`,
-      hint: `Could you lift the middle part out and still have a sentence?`,
-      ex: `The clause could be removed without breaking the sentence, so it needs a comma at each end.`,
-    },
-    {
-      id: `pu159`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"I can see the summit," said Aisha.`,
-        `"I can see the summit", said Aisha.`,
-        `"I can see the summit." said Aisha.`,
-        `"I can see the summit" said Aisha.`,
-      ],
-      a: `"I can see the summit," said Aisha.`,
-      hint: `The mark that ends the speech belongs inside the inverted commas.`,
-      ex: `A comma closes the speech and sits inside the inverted commas before the reporting clause.`,
-    },
-    {
-      id: `pu160`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `Callum asked, "Which way is the station?"`,
-        `Callum asked "Which way is the station?"`,
-        `Callum asked, "which way is the station?"`,
-        `Callum asked, "Which way is the station"?`,
-      ],
-      a: `Callum asked, "Which way is the station?"`,
-      hint: `When the reporting clause comes first, a comma separates it from the speech.`,
-      ex: `A comma follows "asked", the speech opens with a capital, and the question mark stays inside.`,
-    },
-    {
-      id: `pu161`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"Mind the step!" warned the guide.`,
-        `"Mind the step"! warned the guide.`,
-        `"Mind the step!" Warned the guide.`,
-        `"Mind the step!", warned the guide.`,
-      ],
-      a: `"Mind the step!" warned the guide.`,
-      hint: `Who is doing the warning — the speaker or the narrator?`,
-      ex: `The exclamation is part of the speech, so it goes inside the inverted commas with no extra comma.`,
-    },
-    {
-      id: `pu162`,
-      topic: `punctuation`,
-      q: `What is missing from this sentence?
+    opts: [
+      'a pair of commas around "which has a busy harbour"',
+      'one comma after "Oban" only',
+      'one comma after "harbour" only',
+      'brackets around "is a ferry port"',
+    ],
+    a: 'a pair of commas around "which has a busy harbour"',
+    hint: 'Could you lift the middle part out and still have a sentence?',
+    ex: 'The clause could be removed without breaking the sentence, so it needs a comma at each end.',
+  },
+  {
+    id: 'pu159',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"I can see the summit," said Aisha.',
+      '"I can see the summit", said Aisha.',
+      '"I can see the summit." said Aisha.',
+      '"I can see the summit" said Aisha.',
+    ],
+    a: '"I can see the summit," said Aisha.',
+    hint: 'The mark that ends the speech belongs inside the inverted commas.',
+    ex: 'A comma closes the speech and sits inside the inverted commas before the reporting clause.',
+  },
+  {
+    id: 'pu160',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'Callum asked, "Which way is the station?"',
+      'Callum asked "Which way is the station?"',
+      'Callum asked, "which way is the station?"',
+      'Callum asked, "Which way is the station"?',
+    ],
+    a: 'Callum asked, "Which way is the station?"',
+    hint: 'When the reporting clause comes first, a comma separates it from the speech.',
+    ex: 'A comma follows "asked", the speech opens with a capital, and the question mark stays inside.',
+  },
+  {
+    id: 'pu161',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"Mind the step!" warned the guide.',
+      '"Mind the step"! warned the guide.',
+      '"Mind the step!" Warned the guide.',
+      '"Mind the step!", warned the guide.',
+    ],
+    a: '"Mind the step!" warned the guide.',
+    hint: 'Who is doing the warning — the speaker or the narrator?',
+    ex: 'The exclamation is part of the speech, so it goes inside the inverted commas with no extra comma.',
+  },
+  {
+    id: 'pu162',
+    topic: 'punctuation',
+    q: `What is missing from this sentence?
 
 "Rory muttered I think we are lost."`,
-      opts: [
-        `inverted commas around the spoken words, and a comma after "muttered"`,
-        `a question mark at the end`,
-        `an apostrophe in "are"`,
-        `a capital letter for "lost"`,
-      ],
-      a: `inverted commas around the spoken words, and a comma after "muttered"`,
-      hint: `The reader cannot tell where the speech starts.`,
-      ex: `Spoken words must be enclosed in inverted commas, with a comma after the reporting clause.`,
-    },
-    {
-      id: `pu163`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `"Is the ferry still running?" asked Euan.`,
-        `"Is the ferry still running"? asked Euan.`,
-        `"Is the ferry still running?", asked Euan.`,
-        `"Is the ferry still running," asked Euan?`,
-      ],
-      a: `"Is the ferry still running?" asked Euan.`,
-      hint: `The question belongs to the speaker, not to the whole sentence.`,
-      ex: `The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.`,
-    },
-    {
-      id: `pu164`,
-      topic: `punctuation`,
-      q: `Which sentence uses the colon correctly?`,
-      opts: [
-        `She packed the essentials: a torch, a map and a whistle.`,
-        `She packed: the essentials a torch, a map and a whistle.`,
-        `She packed the essentials a torch, a map and a whistle:`,
-        `She: packed the essentials, a torch, a map and a whistle.`,
-      ],
-      a: `She packed the essentials: a torch, a map and a whistle.`,
-      hint: `A colon comes after a complete statement and points forward to what follows.`,
-      ex: `The words before the colon form a complete clause, and the colon introduces the list that explains it.`,
-    },
-    {
-      id: `pu165`,
-      topic: `punctuation`,
-      q: `Which punctuation mark best fits the gap?
+    opts: [
+      'inverted commas around the spoken words, and a comma after "muttered"',
+      'a question mark at the end',
+      'an apostrophe in "are"',
+      'a capital letter for "lost"',
+    ],
+    a: 'inverted commas around the spoken words, and a comma after "muttered"',
+    hint: 'The reader cannot tell where the speech starts.',
+    ex: 'Spoken words must be enclosed in inverted commas, with a comma after the reporting clause.',
+  },
+  {
+    id: 'pu163',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      '"Is the ferry still running?" asked Euan.',
+      '"Is the ferry still running"? asked Euan.',
+      '"Is the ferry still running?", asked Euan.',
+      '"Is the ferry still running," asked Euan?',
+    ],
+    a: '"Is the ferry still running?" asked Euan.',
+    hint: 'The question belongs to the speaker, not to the whole sentence.',
+    ex: 'The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.',
+  },
+  {
+    id: 'pu164',
+    topic: 'punctuation',
+    q: 'Which sentence uses the colon correctly?',
+    opts: [
+      'She packed the essentials: a torch, a map and a whistle.',
+      'She packed: the essentials a torch, a map and a whistle.',
+      'She packed the essentials a torch, a map and a whistle:',
+      'She: packed the essentials, a torch, a map and a whistle.',
+    ],
+    a: 'She packed the essentials: a torch, a map and a whistle.',
+    hint: 'A colon comes after a complete statement and points forward to what follows.',
+    ex: 'The words before the colon form a complete clause, and the colon introduces the list that explains it.',
+  },
+  {
+    id: 'pu165',
+    topic: 'punctuation',
+    q: `Which punctuation mark best fits the gap?
 
 "There was only one reason the crops failed ___ there had been no rain for weeks."`,
-      opts: [`a colon`, `a comma`, `a question mark`, `an apostrophe`],
-      a: `a colon`,
-      hint: `The second part explains the first part.`,
-      ex: `A colon can introduce an explanation of the statement that comes before it.`,
-    },
-    {
-      id: `pu166`,
-      topic: `punctuation`,
-      q: `What is wrong with this sentence?
+    opts: ['a colon', 'a comma', 'a question mark', 'an apostrophe'],
+    a: 'a colon',
+    hint: 'The second part explains the first part.',
+    ex: 'A colon can introduce an explanation of the statement that comes before it.',
+  },
+  {
+    id: 'pu166',
+    topic: 'punctuation',
+    q: `What is wrong with this sentence?
 
 "The ingredients we need are: eggs, flour and milk."`,
-      opts: [
-        `The colon should be removed, because the list completes the verb "are".`,
-        `The commas should all be replaced with semicolons.`,
-        `There should be a second colon after "eggs".`,
-        `Nothing is wrong with the sentence.`,
-      ],
-      a: `The colon should be removed, because the list completes the verb "are".`,
-      hint: `Check whether the words before the colon make a complete statement.`,
-      ex: `"The ingredients we need are" is not a complete statement, so no colon should interrupt the verb.`,
-    },
-    {
-      id: `pu167`,
-      topic: `punctuation`,
-      q: `Which sentence uses brackets correctly?`,
-      opts: [
-        `The summit (over 1,000 metres high) was hidden in cloud.`,
-        `The summit over 1,000 metres high (was hidden in cloud).`,
-        `The summit (over 1,000 metres high was hidden in cloud).`,
-        `(The summit over 1,000 metres high) was hidden in cloud.`,
-      ],
-      a: `The summit (over 1,000 metres high) was hidden in cloud.`,
-      hint: `Remove the bracketed words — the sentence must still make sense.`,
-      ex: `The brackets enclose only the extra detail, leaving "The summit was hidden in cloud" complete.`,
-    },
-    {
-      id: `pu168`,
-      topic: `punctuation`,
-      q: `What job are the brackets doing?
+    opts: [
+      'The colon should be removed, because the list completes the verb "are".',
+      'The commas should all be replaced with semicolons.',
+      'There should be a second colon after "eggs".',
+      'Nothing is wrong with the sentence.',
+    ],
+    a: 'The colon should be removed, because the list completes the verb "are".',
+    hint: 'Check whether the words before the colon make a complete statement.',
+    ex: '"The ingredients we need are" is not a complete statement, so no colon should interrupt the verb.',
+  },
+  {
+    id: 'pu167',
+    topic: 'punctuation',
+    q: 'Which sentence uses brackets correctly?',
+    opts: [
+      'The summit (over 1,000 metres high) was hidden in cloud.',
+      'The summit over 1,000 metres high (was hidden in cloud).',
+      'The summit (over 1,000 metres high was hidden in cloud).',
+      '(The summit over 1,000 metres high) was hidden in cloud.',
+    ],
+    a: 'The summit (over 1,000 metres high) was hidden in cloud.',
+    hint: 'Remove the bracketed words — the sentence must still make sense.',
+    ex: 'The brackets enclose only the extra detail, leaving "The summit was hidden in cloud" complete.',
+  },
+  {
+    id: 'pu168',
+    topic: 'punctuation',
+    q: `What job are the brackets doing?
 
 "The town hall (built in 1888) is being restored."`,
-      opts: [
-        `They add extra information that could be removed.`,
-        `They show that someone is speaking.`,
-        `They show that words have been left out.`,
-        `They join two main clauses together.`,
-      ],
-      a: `They add extra information that could be removed.`,
-      hint: `Try reading the sentence without the bracketed words.`,
-      ex: `Brackets hold a parenthesis — extra detail the sentence does not need in order to make sense.`,
-    },
-    {
-      id: `pu169`,
-      topic: `punctuation`,
-      q: `What is the ellipsis doing in this sentence?
+    opts: [
+      'They add extra information that could be removed.',
+      'They show that someone is speaking.',
+      'They show that words have been left out.',
+      'They join two main clauses together.',
+    ],
+    a: 'They add extra information that could be removed.',
+    hint: 'Try reading the sentence without the bracketed words.',
+    ex: 'Brackets hold a parenthesis — extra detail the sentence does not need in order to make sense.',
+  },
+  {
+    id: 'pu169',
+    topic: 'punctuation',
+    q: `What is the ellipsis doing in this sentence?
 
 "He opened the ancient door and then..."`,
-      opts: [
-        `It leaves the reader in suspense about what happens next.`,
-        `It shows that a question is being asked.`,
-        `It marks the end of a list.`,
-        `It shows that something belongs to someone.`,
-      ],
-      a: `It leaves the reader in suspense about what happens next.`,
-      hint: `Notice how the sentence trails off unfinished.`,
-      ex: `Three dots leave the idea hanging, building suspense about what comes next.`,
-    },
-    {
-      id: `pu170`,
-      topic: `punctuation`,
-      q: `Which punctuation mark should end this sentence?
+    opts: [
+      'It leaves the reader in suspense about what happens next.',
+      'It shows that a question is being asked.',
+      'It marks the end of a list.',
+      'It shows that something belongs to someone.',
+    ],
+    a: 'It leaves the reader in suspense about what happens next.',
+    hint: 'Notice how the sentence trails off unfinished.',
+    ex: 'Three dots leave the idea hanging, building suspense about what comes next.',
+  },
+  {
+    id: 'pu170',
+    topic: 'punctuation',
+    q: `Which punctuation mark should end this sentence?
 
 "Have you ever seen the northern lights"`,
-      opts: [
-        `a question mark`,
-        `a full stop`,
-        `an exclamation mark`,
-        `a comma`,
-      ],
-      a: `a question mark`,
-      hint: `Decide what the sentence is doing — telling or asking.`,
-      ex: `The sentence asks something and expects an answer, so it ends with a question mark.`,
-    },
-    {
-      id: `pu171`,
-      topic: `punctuation`,
-      q: `Which is punctuated correctly?`,
-      opts: [
-        `What a magnificent view this is!`,
-        `What a magnificent view this is?`,
-        `What a magnificent view this is!?`,
-        `What, a magnificent view this is`,
-      ],
-      a: `What a magnificent view this is!`,
-      hint: `The sentence is not asking anything, even though it starts with "What".`,
-      ex: `This is an exclamation expressing strong feeling, so it takes a single exclamation mark.`,
-    },
-    {
-      id: `pu172`,
-      topic: `punctuation`,
-      q: `Which punctuation mark should end this sentence?
+    opts: ['a question mark', 'a full stop', 'an exclamation mark', 'a comma'],
+    a: 'a question mark',
+    hint: 'Decide what the sentence is doing — telling or asking.',
+    ex: 'The sentence asks something and expects an answer, so it ends with a question mark.',
+  },
+  {
+    id: 'pu171',
+    topic: 'punctuation',
+    q: 'Which is punctuated correctly?',
+    opts: [
+      'What a magnificent view this is!',
+      'What a magnificent view this is?',
+      'What a magnificent view this is!?',
+      'What, a magnificent view this is',
+    ],
+    a: 'What a magnificent view this is!',
+    hint: 'The sentence is not asking anything, even though it starts with "What".',
+    ex: 'This is an exclamation expressing strong feeling, so it takes a single exclamation mark.',
+  },
+  {
+    id: 'pu172',
+    topic: 'punctuation',
+    q: `Which punctuation mark should end this sentence?
 
 "Please close the gate behind you"`,
-      opts: [
-        `a full stop`,
-        `a question mark`,
-        `an exclamation mark`,
-        `a colon`,
-      ],
-      a: `a full stop`,
-      hint: `This is a polite instruction, not a question or a shout.`,
-      ex: `A calm command or statement ends with a full stop.`,
-    },
-    {
-      id: `pu173`,
-      topic: `punctuation`,
-      q: `What is wrong with this sentence?
+    opts: ['a full stop', 'a question mark', 'an exclamation mark', 'a colon'],
+    a: 'a full stop',
+    hint: 'This is a polite instruction, not a question or a shout.',
+    ex: 'A calm command or statement ends with a full stop.',
+  },
+  {
+    id: 'pu173',
+    topic: 'punctuation',
+    q: `What is wrong with this sentence?
 
 "on saturday we sailed from oban to mull."`,
-      opts: [
-        `"on", "saturday", "oban" and "mull" all need capital letters.`,
-        `Only "oban" and "mull" need capital letters.`,
-        `Only "saturday" needs a capital letter.`,
-        `Nothing is wrong with the sentence.`,
-      ],
-      a: `"on", "saturday", "oban" and "mull" all need capital letters.`,
-      hint: `Look for the first word as well as names of days and places.`,
-      ex: `Sentences begin with a capital, and days and place names are proper nouns that always take one.`,
-    },
-    {
-      id: `pu174`,
-      topic: `punctuation`,
-      q: `Which word in this sentence is missing a capital letter?
+    opts: [
+      '"on", "saturday", "oban" and "mull" all need capital letters.',
+      'Only "oban" and "mull" need capital letters.',
+      'Only "saturday" needs a capital letter.',
+      'Nothing is wrong with the sentence.',
+    ],
+    a: '"on", "saturday", "oban" and "mull" all need capital letters.',
+    hint: 'Look for the first word as well as names of days and places.',
+    ex: 'Sentences begin with a capital, and days and place names are proper nouns that always take one.',
+  },
+  {
+    id: 'pu174',
+    topic: 'punctuation',
+    q: `Which word in this sentence is missing a capital letter?
 
 "We are learning french this term."`,
-      opts: [`french`, `learning`, `term`, `We`],
-      a: `french`,
-      hint: `Languages are proper nouns.`,
-      ex: `"French" is the name of a language, a proper noun, so it must start with a capital letter.`,
-    },
-    {
-      id: `pu175`,
-      topic: `punctuation`,
-      q: `Which sentence uses a semicolon correctly?`,
-      opts: [
-        `The rain hammered down; the match was abandoned.`,
-        `The rain hammered down; and the match was abandoned.`,
-        `The rain hammered down; because the match was abandoned.`,
-        `The rain; hammered down the match was abandoned.`,
-      ],
-      a: `The rain hammered down; the match was abandoned.`,
-      hint: `A semicolon needs a complete sentence on each side and no joining word.`,
-      ex: `Both halves are complete main clauses, so a semicolon can link them without a connective.`,
-    },
-    {
-      id: `pu176`,
-      topic: `punctuation`,
-      q: `What job is the semicolon doing?
+    opts: ['french', 'learning', 'term', 'We'],
+    a: 'french',
+    hint: 'Languages are proper nouns.',
+    ex: '"French" is the name of a language, a proper noun, so it must start with a capital letter.',
+  },
+  {
+    id: 'pu175',
+    topic: 'punctuation',
+    q: 'Which sentence uses a semicolon correctly?',
+    opts: [
+      'The rain hammered down; the match was abandoned.',
+      'The rain hammered down; and the match was abandoned.',
+      'The rain hammered down; because the match was abandoned.',
+      'The rain; hammered down the match was abandoned.',
+    ],
+    a: 'The rain hammered down; the match was abandoned.',
+    hint: 'A semicolon needs a complete sentence on each side and no joining word.',
+    ex: 'Both halves are complete main clauses, so a semicolon can link them without a connective.',
+  },
+  {
+    id: 'pu176',
+    topic: 'punctuation',
+    q: `What job is the semicolon doing?
 
 "Rory prefers the hills; Freya prefers the sea."`,
-      opts: [
-        `It joins two closely linked main clauses.`,
-        `It introduces a list of items.`,
-        `It shows that letters have been missed out.`,
-        `It shows that someone is speaking.`,
-      ],
-      a: `It joins two closely linked main clauses.`,
-      hint: `Look at what sits on either side of the mark.`,
-      ex: `Each side could stand alone as a sentence, and the semicolon shows the ideas are closely connected.`,
-    },
-    {
-      id: `pu177`,
-      topic: `punctuation`,
-      q: `Which sentence uses a pair of dashes correctly?`,
-      opts: [
-        `The whole class — even the quiet ones — joined in the singing.`,
-        `The whole class — even the quiet ones joined in the singing.`,
-        `The whole class even the quiet ones — joined in the singing.`,
-        `The whole class — even — the quiet ones joined in the singing.`,
-      ],
-      a: `The whole class — even the quiet ones — joined in the singing.`,
-      hint: `Dashes used for extra information work in pairs, like brackets.`,
-      ex: `A dash at each end fences off the extra detail, leaving "The whole class joined in the singing" intact.`,
-    },
-    {
-      id: `pu178`,
-      topic: `punctuation`,
-      q: `What is the dash doing in this sentence?
+    opts: [
+      'It joins two closely linked main clauses.',
+      'It introduces a list of items.',
+      'It shows that letters have been missed out.',
+      'It shows that someone is speaking.',
+    ],
+    a: 'It joins two closely linked main clauses.',
+    hint: 'Look at what sits on either side of the mark.',
+    ex: 'Each side could stand alone as a sentence, and the semicolon shows the ideas are closely connected.',
+  },
+  {
+    id: 'pu177',
+    topic: 'punctuation',
+    q: 'Which sentence uses a pair of dashes correctly?',
+    opts: [
+      'The whole class — even the quiet ones — joined in the singing.',
+      'The whole class — even the quiet ones joined in the singing.',
+      'The whole class even the quiet ones — joined in the singing.',
+      'The whole class — even — the quiet ones joined in the singing.',
+    ],
+    a: 'The whole class — even the quiet ones — joined in the singing.',
+    hint: 'Dashes used for extra information work in pairs, like brackets.',
+    ex: 'A dash at each end fences off the extra detail, leaving "The whole class joined in the singing" intact.',
+  },
+  {
+    id: 'pu178',
+    topic: 'punctuation',
+    q: `What is the dash doing in this sentence?
 
 "We searched every room for the cat — and found her asleep in the shed."`,
-      opts: [
-        `It adds a final idea for effect.`,
-        `It joins two words into one.`,
-        `It shows that letters are missing.`,
-        `It introduces direct speech.`,
-      ],
-      a: `It adds a final idea for effect.`,
-      hint: `Notice how the ending completes the story with a small pause.`,
-      ex: `A single dash can hold back a final idea, giving the ending a little extra weight.`,
-    },
-    {
-      id: `pu179`,
-      topic: `punctuation`,
-      q: `Which sentence uses semicolons correctly in a complicated list?`,
-      opts: [
-        `The tour visited Perth, a historic city; Stirling, with its castle; and Inverness, in the Highlands.`,
-        `The tour visited Perth, a historic city, Stirling; with its castle, Inverness; in the Highlands.`,
-        `The tour visited; Perth, a historic city, Stirling, with its castle, and Inverness.`,
-        `The tour visited Perth; a historic city Stirling; with its castle Inverness; in the Highlands.`,
-      ],
-      a: `The tour visited Perth, a historic city; Stirling, with its castle; and Inverness, in the Highlands.`,
-      hint: `When list items already contain commas, a stronger mark separates the items.`,
-      ex: `Each item already has a comma inside it, so semicolons separate one item from the next.`,
-    },
-    {
-      id: `pu180`,
-      topic: `punctuation`,
-      q: `Which punctuation mark best completes the sentence?
+    opts: [
+      'It adds a final idea for effect.',
+      'It joins two words into one.',
+      'It shows that letters are missing.',
+      'It introduces direct speech.',
+    ],
+    a: 'It adds a final idea for effect.',
+    hint: 'Notice how the ending completes the story with a small pause.',
+    ex: 'A single dash can hold back a final idea, giving the ending a little extra weight.',
+  },
+  {
+    id: 'pu179',
+    topic: 'punctuation',
+    q: 'Which sentence uses semicolons correctly in a complicated list?',
+    opts: [
+      'The tour visited Perth, a historic city; Stirling, with its castle; and Inverness, in the Highlands.',
+      'The tour visited Perth, a historic city, Stirling; with its castle, Inverness; in the Highlands.',
+      'The tour visited; Perth, a historic city, Stirling, with its castle, and Inverness.',
+      'The tour visited Perth; a historic city Stirling; with its castle Inverness; in the Highlands.',
+    ],
+    a: 'The tour visited Perth, a historic city; Stirling, with its castle; and Inverness, in the Highlands.',
+    hint: 'When list items already contain commas, a stronger mark separates the items.',
+    ex: 'Each item already has a comma inside it, so semicolons separate one item from the next.',
+  },
+  {
+    id: 'pu180',
+    topic: 'punctuation',
+    q: `Which punctuation mark best completes the sentence?
 
 "There is one thing every walker should carry ___ a waterproof jacket."`,
-      opts: [`a colon`, `a semicolon`, `a question mark`, `an apostrophe`],
-      a: `a colon`,
-      hint: `The words after the mark name the "one thing" just mentioned.`,
-      ex: `A colon introduces the item that the complete statement before it is pointing towards.`,
-    },
-    {
-      id: `co126`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['a colon', 'a semicolon', 'a question mark', 'an apostrophe'],
+    a: 'a colon',
+    hint: 'The words after the mark name the "one thing" just mentioned.',
+    ex: 'A colon introduces the item that the complete statement before it is pointing towards.',
+  },
+  {
+    id: 'co126',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "We set off early. ___, we still missed the train."`,
-      opts: [`However`, `Therefore`, `Furthermore`, `Meanwhile`],
-      a: `However`,
-      hint: `The second sentence goes against what the first led you to expect.`,
-      ex: `"However" signals contrast, which is the relationship between the two sentences.`,
-    },
-    {
-      id: `co127`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['However', 'Therefore', 'Furthermore', 'Meanwhile'],
+    a: 'However',
+    hint: 'The second sentence goes against what the first led you to expect.',
+    ex: '"However" signals contrast, which is the relationship between the two sentences.',
+  },
+  {
+    id: 'co127',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Aisha likes spicy food, ___ her brother cannot stand it."`,
-      opts: [`whereas`, `because`, `so that`, `therefore`],
-      a: `whereas`,
-      hint: `Two people are being set against each other.`,
-      ex: `"Whereas" compares two things that are different, which fits their opposite tastes.`,
-    },
-    {
-      id: `co128`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['whereas', 'because', 'so that', 'therefore'],
+    a: 'whereas',
+    hint: 'Two people are being set against each other.',
+    ex: '"Whereas" compares two things that are different, which fits their opposite tastes.',
+  },
+  {
+    id: 'co128',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "___ he had studied for weeks, Rory felt unprepared."`,
-      opts: [`Although`, `Because`, `Since`, `So`],
-      a: `Although`,
-      hint: `The result is the opposite of what the first idea would suggest.`,
-      ex: `"Although" introduces a concession — weeks of study would normally leave him ready.`,
-    },
-    {
-      id: `co129`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['Although', 'Because', 'Since', 'So'],
+    a: 'Although',
+    hint: 'The result is the opposite of what the first idea would suggest.',
+    ex: '"Although" introduces a concession — weeks of study would normally leave him ready.',
+  },
+  {
+    id: 'co129',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "___ the freezing temperatures, the ceremony went ahead."`,
-      opts: [`Despite`, `Although`, `However`, `Nevertheless`],
-      a: `Despite`,
-      hint: `Only one of these can be followed straight away by a noun phrase.`,
-      ex: `"Despite" is followed by a noun phrase such as "the freezing temperatures".`,
-    },
-    {
-      id: `co130`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Despite', 'Although', 'However', 'Nevertheless'],
+    a: 'Despite',
+    hint: 'Only one of these can be followed straight away by a noun phrase.',
+    ex: '"Despite" is followed by a noun phrase such as "the freezing temperatures".',
+  },
+  {
+    id: 'co130',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The route was long and exhausting. ___, no one wanted to give up."`,
-      opts: [`Nevertheless`, `Consequently`, `Similarly`, `Meanwhile`],
-      a: `Nevertheless`,
-      hint: `Did the difficulty stop them, or not?`,
-      ex: `"Nevertheless" shows that something happened in spite of the difficulty just described.`,
-    },
-    {
-      id: `co131`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Nevertheless', 'Consequently', 'Similarly', 'Meanwhile'],
+    a: 'Nevertheless',
+    hint: 'Did the difficulty stop them, or not?',
+    ex: '"Nevertheless" shows that something happened in spite of the difficulty just described.',
+  },
+  {
+    id: 'co131',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The river burst its banks. ___, the low fields flooded."`,
-      opts: [`Therefore`, `However`, `Meanwhile`, `Nevertheless`],
-      a: `Therefore`,
-      hint: `The second sentence is the result of the first.`,
-      ex: `"Therefore" signals a consequence, and the flooding is the result of the burst banks.`,
-    },
-    {
-      id: `co132`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Therefore', 'However', 'Meanwhile', 'Nevertheless'],
+    a: 'Therefore',
+    hint: 'The second sentence is the result of the first.',
+    ex: '"Therefore" signals a consequence, and the flooding is the result of the burst banks.',
+  },
+  {
+    id: 'co132',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Freya trained every day ___ she wanted to make the team."`,
-      opts: [`because`, `although`, `whereas`, `despite`],
-      a: `because`,
-      hint: `The second part gives the reason for the first.`,
-      ex: `"Because" introduces the cause — wanting to make the team is why she trained.`,
-    },
-    {
-      id: `co133`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['because', 'although', 'whereas', 'despite'],
+    a: 'because',
+    hint: 'The second part gives the reason for the first.',
+    ex: '"Because" introduces the cause — wanting to make the team is why she trained.',
+  },
+  {
+    id: 'co133',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The power had been cut all night. ___, the freezers had defrosted by morning."`,
-      opts: [`As a result`, `In addition`, `On the other hand`, `By contrast`],
-      a: `As a result`,
-      hint: `Ask what caused what.`,
-      ex: `"As a result" marks an effect, and the defrosting was caused by the power cut.`,
-    },
-    {
-      id: `co134`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['As a result', 'In addition', 'On the other hand', 'By contrast'],
+    a: 'As a result',
+    hint: 'Ask what caused what.',
+    ex: '"As a result" marks an effect, and the defrosting was caused by the power cut.',
+  },
+  {
+    id: 'co134',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "___ the road was closed, the buses were diverted through the village."`,
-      opts: [`Since`, `Despite`, `However`, `Whereas`],
-      a: `Since`,
-      hint: `The opening clause explains why the buses changed route.`,
-      ex: `"Since" can mean "because", giving the reason for the diversion.`,
-    },
-    {
-      id: `co135`,
-      topic: `cohesion`,
-      q: `Which connective signals a RESULT?`,
-      opts: [`Consequently`, `Furthermore`, `Meanwhile`, `Similarly`],
-      a: `Consequently`,
-      hint: `Three of these add, compare or mark time instead.`,
-      ex: `"Consequently" tells the reader that what follows was caused by what came before.`,
-    },
-    {
-      id: `co136`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Since', 'Despite', 'However', 'Whereas'],
+    a: 'Since',
+    hint: 'The opening clause explains why the buses changed route.',
+    ex: '"Since" can mean "because", giving the reason for the diversion.',
+  },
+  {
+    id: 'co135',
+    topic: 'cohesion',
+    q: 'Which connective signals a RESULT?',
+    opts: ['Consequently', 'Furthermore', 'Meanwhile', 'Similarly'],
+    a: 'Consequently',
+    hint: 'Three of these add, compare or mark time instead.',
+    ex: '"Consequently" tells the reader that what follows was caused by what came before.',
+  },
+  {
+    id: 'co136',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The new hall is bigger than the old one. ___, it is far warmer."`,
-      opts: [`Furthermore`, `However`, `Therefore`, `Meanwhile`],
-      a: `Furthermore`,
-      hint: `Is the writer adding another point, or turning against the first?`,
-      ex: `"Furthermore" adds a second point that supports the same idea.`,
-    },
-    {
-      id: `co137`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Furthermore', 'However', 'Therefore', 'Meanwhile'],
+    a: 'Furthermore',
+    hint: 'Is the writer adding another point, or turning against the first?',
+    ex: '"Furthermore" adds a second point that supports the same idea.',
+  },
+  {
+    id: 'co137',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "The path needs resurfacing. ___, the fence must be repaired."`,
-      opts: [`Moreover`, `Instead`, `Nevertheless`, `Consequently`],
-      a: `Moreover`,
-      hint: `The second job is stacked on top of the first.`,
-      ex: `"Moreover" adds a further point of the same kind, building up the case.`,
-    },
-    {
-      id: `co138`,
-      topic: `cohesion`,
-      q: `Which phrase tells the reader that the writer is ADDING another point?`,
-      opts: [`In addition`, `On the other hand`, `As a result`, `Even so`],
-      a: `In addition`,
-      hint: `Two of the others signal contrast and one signals a consequence.`,
-      ex: `"In addition" introduces extra supporting information rather than a contrast or a result.`,
-    },
-    {
-      id: `co139`,
-      topic: `cohesion`,
-      q: `Choose the best connective:
+    opts: ['Moreover', 'Instead', 'Nevertheless', 'Consequently'],
+    a: 'Moreover',
+    hint: 'The second job is stacked on top of the first.',
+    ex: '"Moreover" adds a further point of the same kind, building up the case.',
+  },
+  {
+    id: 'co138',
+    topic: 'cohesion',
+    q: 'Which phrase tells the reader that the writer is ADDING another point?',
+    opts: ['In addition', 'On the other hand', 'As a result', 'Even so'],
+    a: 'In addition',
+    hint: 'Two of the others signal contrast and one signals a consequence.',
+    ex: '"In addition" introduces extra supporting information rather than a contrast or a result.',
+  },
+  {
+    id: 'co139',
+    topic: 'cohesion',
+    q: `Choose the best connective:
 
 "Rory stirred the sauce. ___, Aisha chopped the vegetables."`,
-      opts: [`Meanwhile`, `Therefore`, `However`, `Furthermore`],
-      a: `Meanwhile`,
-      hint: `The two actions are happening at the same time.`,
-      ex: `"Meanwhile" shows that the second action took place during the first.`,
-    },
-    {
-      id: `co140`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['Meanwhile', 'Therefore', 'However', 'Furthermore'],
+    a: 'Meanwhile',
+    hint: 'The two actions are happening at the same time.',
+    ex: '"Meanwhile" shows that the second action took place during the first.',
+  },
+  {
+    id: 'co140',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "The band released one quiet album. They ___ became world-famous."`,
-      opts: [`subsequently`, `previously`, `similarly`, `instead`],
-      a: `subsequently`,
-      hint: `Which word means "after that"?`,
-      ex: `"Subsequently" means afterwards, matching the order of the events.`,
-    },
-    {
-      id: `co141`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: ['subsequently', 'previously', 'similarly', 'instead'],
+    a: 'subsequently',
+    hint: 'Which word means "after that"?',
+    ex: '"Subsequently" means afterwards, matching the order of the events.',
+  },
+  {
+    id: 'co141',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "After hours of searching, they ___ found the lost keys."`,
-      opts: [`eventually`, `immediately`, `meanwhile`, `instead`],
-      a: `eventually`,
-      hint: `The search took a long time — which word matches that?`,
-      ex: `"Eventually" signals that something happened at last, after a long delay.`,
-    },
-    {
-      id: `co142`,
-      topic: `cohesion`,
-      q: `Which connective best opens the FIRST step of a set of instructions?`,
-      opts: [`Firstly`, `Finally`, `However`, `Nevertheless`],
-      a: `Firstly`,
-      hint: `Think about signposting the reader through the steps in order.`,
-      ex: `"Firstly" tells the reader they are at the beginning of the sequence.`,
-    },
-    {
-      id: `co143`,
-      topic: `cohesion`,
-      q: `Which sentence is the best topic sentence for a paragraph about why reading is important?`,
-      opts: [
-        `Reading brings a surprising number of benefits.`,
-        `My favourite book has a bright red cover.`,
-        `Last night I stayed up far too late.`,
-        `Then I put the book back on the shelf.`,
-      ],
-      a: `Reading brings a surprising number of benefits.`,
-      hint: `A topic sentence sets up what the rest of the paragraph will cover.`,
-      ex: `It announces the subject and signals that reasons will follow, which the other options do not.`,
-    },
-    {
-      id: `co144`,
-      topic: `cohesion`,
-      q: `Where in a paragraph is a topic sentence usually found?`,
-      opts: [
-        `at or near the beginning`,
-        `only at the very end`,
-        `in the middle, hidden among details`,
-        `in a separate paragraph of its own`,
-      ],
-      a: `at or near the beginning`,
-      hint: `Think about when the reader needs to know the main idea.`,
-      ex: `A topic sentence usually opens the paragraph so the reader knows what it will be about.`,
-    },
-    {
-      id: `co145`,
-      topic: `cohesion`,
-      q: `Which sentence would work best as the topic sentence of a paragraph arguing FOR more school sport?`,
-      opts: [
-        `More time for sport would bring real benefits.`,
-        `Our gym hall has wooden floors.`,
-        `I forgot my kit again on Monday.`,
-        `Finally, that is all I wanted to say.`,
-      ],
-      a: `More time for sport would bring real benefits.`,
-      hint: `The topic sentence should carry the line of argument.`,
-      ex: `It states the paragraph's position and prepares the reader for the benefits that follow.`,
-    },
-    {
-      id: `co146`,
-      topic: `cohesion`,
-      q: `A paragraph has praised the new library. Which opening best links the NEXT paragraph, which is about its problems?`,
-      opts: [
-        `For all its strengths, the library has flaws.`,
-        `The library is open until eight each evening.`,
-        `In conclusion, the library is a success.`,
-        `Firstly, the library is very quiet.`,
-      ],
-      a: `For all its strengths, the library has flaws.`,
-      hint: `A good link looks back at the last paragraph and forward to the new one.`,
-      ex: `"For all its strengths" refers back to the praise while introducing the new, contrasting idea.`,
-    },
-    {
-      id: `co147`,
-      topic: `cohesion`,
-      q: `Why do writers use linking phrases between paragraphs?`,
-      opts: [
-        `To show how one paragraph relates to the next.`,
-        `To make each paragraph look longer.`,
-        `To signal that someone is about to speak.`,
-        `To avoid using any punctuation.`,
-      ],
-      a: `To show how one paragraph relates to the next.`,
-      hint: `Think about what the reader needs in order to follow the argument.`,
-      ex: `Linking phrases hold a text together by showing the relationship between one paragraph and the next.`,
-    },
-    {
-      id: `co148`,
-      topic: `cohesion`,
-      q: `What is the problem with this sentence?
+    opts: ['eventually', 'immediately', 'meanwhile', 'instead'],
+    a: 'eventually',
+    hint: 'The search took a long time — which word matches that?',
+    ex: '"Eventually" signals that something happened at last, after a long delay.',
+  },
+  {
+    id: 'co142',
+    topic: 'cohesion',
+    q: 'Which connective best opens the FIRST step of a set of instructions?',
+    opts: ['Firstly', 'Finally', 'However', 'Nevertheless'],
+    a: 'Firstly',
+    hint: 'Think about signposting the reader through the steps in order.',
+    ex: '"Firstly" tells the reader they are at the beginning of the sequence.',
+  },
+  {
+    id: 'co143',
+    topic: 'cohesion',
+    q: 'Which sentence is the best topic sentence for a paragraph about why reading is important?',
+    opts: [
+      'Reading brings a surprising number of benefits.',
+      'My favourite book has a bright red cover.',
+      'Last night I stayed up far too late.',
+      'Then I put the book back on the shelf.',
+    ],
+    a: 'Reading brings a surprising number of benefits.',
+    hint: 'A topic sentence sets up what the rest of the paragraph will cover.',
+    ex: 'It announces the subject and signals that reasons will follow, which the other options do not.',
+  },
+  {
+    id: 'co144',
+    topic: 'cohesion',
+    q: 'Where in a paragraph is a topic sentence usually found?',
+    opts: [
+      'at or near the beginning',
+      'only at the very end',
+      'in the middle, hidden among details',
+      'in a separate paragraph of its own',
+    ],
+    a: 'at or near the beginning',
+    hint: 'Think about when the reader needs to know the main idea.',
+    ex: 'A topic sentence usually opens the paragraph so the reader knows what it will be about.',
+  },
+  {
+    id: 'co145',
+    topic: 'cohesion',
+    q: 'Which sentence would work best as the topic sentence of a paragraph arguing FOR more school sport?',
+    opts: [
+      'More time for sport would bring real benefits.',
+      'Our gym hall has wooden floors.',
+      'I forgot my kit again on Monday.',
+      'Finally, that is all I wanted to say.',
+    ],
+    a: 'More time for sport would bring real benefits.',
+    hint: 'The topic sentence should carry the line of argument.',
+    ex: "It states the paragraph's position and prepares the reader for the benefits that follow.",
+  },
+  {
+    id: 'co146',
+    topic: 'cohesion',
+    q: 'A paragraph has praised the new library. Which opening best links the NEXT paragraph, which is about its problems?',
+    opts: [
+      'For all its strengths, the library has flaws.',
+      'The library is open until eight each evening.',
+      'In conclusion, the library is a success.',
+      'Firstly, the library is very quiet.',
+    ],
+    a: 'For all its strengths, the library has flaws.',
+    hint: 'A good link looks back at the last paragraph and forward to the new one.',
+    ex: '"For all its strengths" refers back to the praise while introducing the new, contrasting idea.',
+  },
+  {
+    id: 'co147',
+    topic: 'cohesion',
+    q: 'Why do writers use linking phrases between paragraphs?',
+    opts: [
+      'To show how one paragraph relates to the next.',
+      'To make each paragraph look longer.',
+      'To signal that someone is about to speak.',
+      'To avoid using any punctuation.',
+    ],
+    a: 'To show how one paragraph relates to the next.',
+    hint: 'Think about what the reader needs in order to follow the argument.',
+    ex: 'Linking phrases hold a text together by showing the relationship between one paragraph and the next.',
+  },
+  {
+    id: 'co148',
+    topic: 'cohesion',
+    q: `What is the problem with this sentence?
 
 "Callum told Rory that he had passed the test."`,
-      opts: [
-        `It is not clear who "he" refers to.`,
-        `It should end with a question mark.`,
-        `It is missing an apostrophe.`,
-        `"Told" should be spelled "telled".`,
-      ],
-      a: `It is not clear who "he" refers to.`,
-      hint: `Count how many people the pronoun could point back to.`,
-      ex: `A pronoun must point clearly to one noun, but "he" could mean either Callum or Rory.`,
-    },
-    {
-      id: `co149`,
-      topic: `cohesion`,
-      q: `Choose the correct word:
+    opts: [
+      'It is not clear who "he" refers to.',
+      'It should end with a question mark.',
+      'It is missing an apostrophe.',
+      '"Told" should be spelled "telled".',
+    ],
+    a: 'It is not clear who "he" refers to.',
+    hint: 'Count how many people the pronoun could point back to.',
+    ex: 'A pronoun must point clearly to one noun, but "he" could mean either Callum or Rory.',
+  },
+  {
+    id: 'co149',
+    topic: 'cohesion',
+    q: `Choose the correct word:
 
 "Aisha lifted the lid of the box. ___ was full of old photographs."`,
-      opts: [`It`, `He`, `She`, `They`],
-      a: `It`,
-      hint: `Work out which noun in the first sentence the pronoun replaces.`,
-      ex: `The pronoun stands for the box, a single thing, so "It" refers back clearly.`,
-    },
-    {
-      id: `co150`,
-      topic: `cohesion`,
-      q: `Which version avoids clumsy repetition best?`,
-      opts: [
-        `Euan loves the guitar. He practises it every evening.`,
-        `Euan loves the guitar. Euan practises the guitar every evening.`,
-        `Euan loves the guitar. Euan practises the guitar every evening, Euan says.`,
-        `Euan loves the guitar. The guitar is loved by Euan every evening.`,
-      ],
-      a: `Euan loves the guitar. He practises it every evening.`,
-      hint: `Pronouns can stand in for nouns already used.`,
-      ex: `Using "He" and "it" refers back clearly without repeating the same words.`,
-    },
-  ];
+    opts: ['It', 'He', 'She', 'They'],
+    a: 'It',
+    hint: 'Work out which noun in the first sentence the pronoun replaces.',
+    ex: 'The pronoun stands for the box, a single thing, so "It" refers back clearly.',
+  },
+  {
+    id: 'co150',
+    topic: 'cohesion',
+    q: 'Which version avoids clumsy repetition best?',
+    opts: [
+      'Euan loves the guitar. He practises it every evening.',
+      'Euan loves the guitar. Euan practises the guitar every evening.',
+      'Euan loves the guitar. Euan practises the guitar every evening, Euan says.',
+      'Euan loves the guitar. The guitar is loved by Euan every evening.',
+    ],
+    a: 'Euan loves the guitar. He practises it every evening.',
+    hint: 'Pronouns can stand in for nouns already used.',
+    ex: 'Using "He" and "it" refers back clearly without repeating the same words.',
+  },
+];

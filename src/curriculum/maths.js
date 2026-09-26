@@ -1,701 +1,874 @@
+/**
+ * The Maths subject: every maths topic the app offers, in menu order.
+ *
+ * Three kinds of topic live here:
+ *
+ *  - Hand-written generators (place value, factors, percentages, algebra,
+ *    measure, angles). Each picks one of a few question styles at random and
+ *    scales its numbers with the difficulty tier via `byTier`. They are wrapped
+ *    in `tierAware` so the question records the tier it was built at.
+ *  - Style-based topics built with `makeTopic` (imported from topics-varied.js
+ *    and challenges.js), which are tier-aware on their own.
+ *  - Fixed item banks (the "me*" topics): hand-authored questions from
+ *    items/maths-*.js served at random. They do not scale with tier.
+ *
+ * Every generator draws all of its randomness from the `rng` it is given, so a
+ * seed always replays exactly the same question. Keep the order of rng calls
+ * stable when editing: saved review items and tests rely on it.
+ */
 import { formatNumber, makeQuestion, numericAnswer, numericOptions } from './question.js';
-import { angleSvg, arrayGridSvg, balanceSvg, barModelSvg, cuboidSvg, lShapeSvg, numberLineSvg, percentGridSvg, placeValueSvg, priceTagSvg, quadAngleSvg, rectSvg, sequenceSvg, straightLineSvg, triangleAngleSvg, triangleSvg } from './visual.js';
-import { ANGLES, AREA_PERIMETER, COORDINATES, FRACTIONS_DECIMALS_PERCENT, MEAN_MEDIAN_RANGE, MONEY, MULTIPLES_FACTORS, RATIO_PROPORTION, ROUNDING_ESTIMATION, SHAPES_3D, UNIT_CONVERSIONS, VOLUME } from './items/maths-expanded.js';
-import { ANGLES_X, AREA_PERIMETER_X, COORDINATES_X, FRACTIONS_DECIMALS_PERCENT_X, MEAN_MEDIAN_RANGE_X, MONEY_X, MULTIPLES_FACTORS_X, RATIO_PROPORTION_X, ROUNDING_ESTIMATION_X, SHAPES_3D_X, UNIT_CONVERSIONS_X, VOLUME_X } from './items/maths-expanded-extra.js';
+import {
+  angleSvg,
+  arrayGridSvg,
+  balanceSvg,
+  barModelSvg,
+  cuboidSvg,
+  lShapeSvg,
+  numberLineSvg,
+  percentGridSvg,
+  placeValueSvg,
+  priceTagSvg,
+  quadAngleSvg,
+  rectSvg,
+  sequenceSvg,
+  straightLineSvg,
+  triangleAngleSvg,
+  triangleSvg,
+} from './visual.js';
+import {
+  ANGLES,
+  AREA_PERIMETER,
+  COORDINATES,
+  FRACTIONS_DECIMALS_PERCENT,
+  MEAN_MEDIAN_RANGE,
+  MONEY,
+  MULTIPLES_FACTORS,
+  RATIO_PROPORTION,
+  ROUNDING_ESTIMATION,
+  SHAPES_3D,
+  UNIT_CONVERSIONS,
+  VOLUME,
+} from './items/maths-expanded.js';
+import {
+  ANGLES_X,
+  AREA_PERIMETER_X,
+  COORDINATES_X,
+  FRACTIONS_DECIMALS_PERCENT_X,
+  MEAN_MEDIAN_RANGE_X,
+  MONEY_X,
+  MULTIPLES_FACTORS_X,
+  RATIO_PROPORTION_X,
+  ROUNDING_ESTIMATION_X,
+  SHAPES_3D_X,
+  UNIT_CONVERSIONS_X,
+  VOLUME_X,
+} from './items/maths-expanded-extra.js';
 import { FORMULAE, GRAPHS, PROBABILITY, SEQUENCES } from './items/maths-advanced.js';
 import { TIER, byTier } from '../engine/difficulty.js';
-import { averagesTopic, bodmasTopic, decimalsTopic, fractionsTopic, negativesTopic, problemSolvingTopic, ratioTopic, timeSpeedTopic } from './topics-varied.js';
+import {
+  averagesTopic,
+  bodmasTopic,
+  decimalsTopic,
+  fractionsTopic,
+  negativesTopic,
+  problemSolvingTopic,
+  ratioTopic,
+  timeSpeedTopic,
+} from './topics-varied.js';
 import { challengesTopic } from './challenges.js';
 
-function itemBankTopic(e, t, n, r) {
+/**
+ * A topic that serves hand-authored items at random. Items carry their own
+ * prompt/answer/options/hint/explain/visual; the topic just fills in the
+ * bookkeeping fields. Item banks have a fixed difficulty, so `tier` is null.
+ */
+function itemBankTopic(id, label, level, items) {
   return {
-    id: e,
-    label: t,
-    level: n,
-    tierAware: !1,
-    generate(t) {
-      let n = t.pick(r);
+    id,
+    label,
+    level,
+    tierAware: false,
+    generate(rng) {
+      const item = rng.pick(items);
       return {
-        subject: `maths`,
-        topic: e,
-        reviewKey: `maths:${e}`,
-        prompt: n.prompt,
-        answer: String(n.answer),
-        options: n.options ?? null,
-        type: n.options ? `mc` : `input`,
-        hint: n.hint ?? ``,
-        explain: n.explain ?? ``,
-        visual: n.visual ?? null,
+        subject: 'maths',
+        topic: id,
+        reviewKey: `maths:${id}`,
+        prompt: item.prompt,
+        answer: String(item.answer),
+        options: item.options ?? null,
+        type: item.options ? 'mc' : 'input',
+        hint: item.hint ?? '',
+        explain: item.explain ?? '',
+        visual: item.visual ?? null,
         tier: null,
       };
     },
   };
 }
 
-function tierAware(e) {
+/** Mark a hand-written generator as tier-aware and stamp the tier onto each question. */
+function tierAware(topic) {
   return {
-    ...e,
-    tierAware: !0,
-    generate(t, n = null, r = TIER.STANDARD) {
-      let i = e.generate(t, n, r);
-      return i && { ...i, tier: r };
+    ...topic,
+    tierAware: true,
+    generate(rng, styleId = null, tier = TIER.STANDARD) {
+      const question = topic.generate(rng, styleId, tier);
+      return question && { ...question, tier };
     },
   };
 }
 
-const gcd = (e, t) => (t ? gcd(t, e % t) : Math.abs(e));
+const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 
-const round2 = (e) => Math.round(e * 100) / 100;
+/** Round to 2 d.p., cleaning up floating-point noise such as 1.2300000000000002. */
+const round2 = (value) => Math.round(value * 100) / 100;
 
-const NAMES = [
-    `Aisha`,
-    `Callum`,
-    `Freya`,
-    `Jamie`,
-    `Lena`,
-    `Rory`,
-    `Skye`,
-    `Finlay`,
-    `Nadia`,
-    `Euan`,
-  ];
+const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
 
+/**
+ * Place value & rounding. The hand-written topics below ignore `styleId` and
+ * always choose a style at random.
+ */
 const placeValueTopic = {
-    id: `place-value`,
-    label: `Place value & rounding`,
-    level: 1,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 3);
-      if (r === 0) {
-        let [t, r] = byTier(n, [1e3, 9e4], [1e5, 9999999], [1e6, 99999999]),
-          i = e.int(t, r),
-          a = [
-            { name: `ten`, unit: 10 },
-            { name: `hundred`, unit: 100 },
-            { name: `thousand`, unit: 1e3 },
-            { name: `ten thousand`, unit: 1e4 },
-          ],
-          o = e.pick(byTier(n, a.slice(0, 2), a, a)),
-          s = Math.round(i / o.unit) * o.unit;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `place-value`,
-          reviewKey: `maths:place-value`,
-          prompt: `Round ${formatNumber(i)} to the nearest ${o.name}.`,
-          answer: s,
-          options: null,
-          hint: `Look at the digit just to the right of the ${o.name} column. 5 or more rounds up.`,
-          visual: placeValueSvg(i, String(i).length - 1 - Math.round(Math.log10(o.unit))),
-          explain: `${formatNumber(i)} rounded to the nearest ${o.name} is ${formatNumber(s)}.`,
-        });
-      }
-      if (r === 1) {
-        let t = e.int(1e6, 9999999),
-          r = String(t).split(``),
-          [i, a] = byTier(n, [2, 3], [0, 3], [0, 3]),
-          o = e.int(i, a);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `place-value`,
-          reviewKey: `maths:place-value`,
-          prompt: `In the number ${formatNumber(t)}, which digit is in the ${[`millions`, `hundred thousands`, `ten thousands`, `thousands`][o]} column?`,
-          answer: r[o],
-          options:
-            [...new Set([r[0], r[1], r[2], r[3]])].length === 4
-              ? e.shuffle([r[0], r[1], r[2], r[3]])
-              : null,
-          hint: `Split the number into groups of three from the right: millions, thousands, units.`,
-          visual: placeValueSvg(t),
-          explain: `Reading left to right: ${r[0]} millions, ${r[1]} hundred thousands, ${r[2]} ten thousands, ${r[3]} thousands.`,
-        });
-      }
-      if (r === 2) {
-        let [t, r] = byTier(n, [100, 999], [100, 9999], [9999, 99999]),
-          i = round2(e.int(t, r) / 100 + e.int(0, 9) / 100),
-          a = n === TIER.EASY ? 0 : e.int(0, 1),
-          o = a === 0 ? Math.round(i) : round2(Math.round(i * 10) / 10);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `place-value`,
-          reviewKey: `maths:place-value`,
-          prompt: `Round ${i.toFixed(2)} to ${a === 0 ? `the nearest whole number` : `1 decimal place`}.`,
-          answer: a === 0 ? o : o.toFixed(1),
-          hint:
-            a === 0
-              ? `Look at the tenths digit.`
-              : `Look at the hundredths digit.`,
-          visual:
-            a === 0
-              ? numberLineSvg(Math.floor(i), Math.floor(i) + 1, i, i.toFixed(2))
-              : null,
-          explain: `${i.toFixed(2)} → ${a === 0 ? o : o.toFixed(1)}`,
-        });
-      }
-      let [i, a] = byTier(n, [120, 480], [180, 940], [500, 4940]),
-        o = e.int(i, a),
-        s = e.int(i, a),
-        c = Math.round(o / 100) * 100 * (Math.round(s / 100) * 100);
-      return makeQuestion({
-        subject: `maths`,
-        topic: `place-value`,
-        reviewKey: `maths:place-value`,
-        prompt: `Estimate ${o} × ${s} by rounding each number to the nearest hundred.`,
-        answer: c,
-        options: numericOptions(e, c),
-        hint: `${o} rounds to ${Math.round(o / 100) * 100}, ${s} rounds to ${Math.round(s / 100) * 100}.`,
-        explain: `${Math.round(o / 100) * 100} × ${Math.round(s / 100) * 100} = ${formatNumber(c)}`,
-      });
-    },
-  };
+  id: 'place-value',
+  label: 'Place value & rounding',
+  level: 1,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 3);
 
+    // Round a whole number to the nearest 10 / 100 / 1000 / 10 000. Easy tier
+    // only rounds to tens and hundreds. Highlighting the column being rounded
+    // to is fair scaffolding: the answer is the whole rounded number, not the
+    // highlighted digit.
+    if (style === 0) {
+      const [min, max] = byTier(tier, [1000, 90000], [100000, 9999999], [1000000, 99999999]);
+      const number = rng.int(min, max);
+      const places = [
+        { name: 'ten', unit: 10 },
+        { name: 'hundred', unit: 100 },
+        { name: 'thousand', unit: 1000 },
+        { name: 'ten thousand', unit: 10000 },
+      ];
+      const place = rng.pick(byTier(tier, places.slice(0, 2), places, places));
+      const rounded = Math.round(number / place.unit) * place.unit;
+      const highlightColumn = String(number).length - 1 - Math.round(Math.log10(place.unit));
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'place-value',
+        reviewKey: 'maths:place-value',
+        prompt: `Round ${formatNumber(number)} to the nearest ${place.name}.`,
+        answer: rounded,
+        options: null,
+        hint: `Look at the digit just to the right of the ${place.name} column. 5 or more rounds up.`,
+        visual: placeValueSvg(number, highlightColumn),
+        explain: `${formatNumber(number)} rounded to the nearest ${place.name} is ${formatNumber(rounded)}.`,
+      });
+    }
+
+    // Which digit sits in a given column of a 7-digit number? The place-value
+    // chart deliberately highlights nothing — colouring the asked-about column
+    // would hand over the answer. Easy tier only asks about the lower two
+    // columns. Multiple choice only when the first four digits are distinct.
+    if (style === 1) {
+      const number = rng.int(1000000, 9999999);
+      const digits = String(number).split('');
+      const [minColumn, maxColumn] = byTier(tier, [2, 3], [0, 3], [0, 3]);
+      const column = rng.int(minColumn, maxColumn);
+      const columnNames = ['millions', 'hundred thousands', 'ten thousands', 'thousands'];
+      const leadingDigits = [digits[0], digits[1], digits[2], digits[3]];
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'place-value',
+        reviewKey: 'maths:place-value',
+        prompt: `In the number ${formatNumber(number)}, which digit is in the ${columnNames[column]} column?`,
+        answer: digits[column],
+        options:
+          [...new Set(leadingDigits)].length === 4
+            ? rng.shuffle([digits[0], digits[1], digits[2], digits[3]])
+            : null,
+        hint: 'Split the number into groups of three from the right: millions, thousands, units.',
+        visual: placeValueSvg(number),
+        explain: `Reading left to right: ${digits[0]} millions, ${digits[1]} hundred thousands, ${digits[2]} ten thousands, ${digits[3]} thousands.`,
+      });
+    }
+
+    // Round a 2-d.p. decimal to the nearest whole number, or (not on easy
+    // tier) to 1 d.p. Only the whole-number case gets a number line: a line
+    // with just two whole-number ticks doesn't help with tenths.
+    if (style === 2) {
+      const [min, max] = byTier(tier, [100, 999], [100, 9999], [9999, 99999]);
+      const value = round2(rng.int(min, max) / 100 + rng.int(0, 9) / 100);
+      const precision = tier === TIER.EASY ? 0 : rng.int(0, 1);
+      const toWhole = precision === 0;
+      const rounded = toWhole ? Math.round(value) : round2(Math.round(value * 10) / 10);
+      const answer = toWhole ? rounded : rounded.toFixed(1);
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'place-value',
+        reviewKey: 'maths:place-value',
+        prompt: `Round ${value.toFixed(2)} to ${toWhole ? 'the nearest whole number' : '1 decimal place'}.`,
+        answer,
+        hint: toWhole ? 'Look at the tenths digit.' : 'Look at the hundredths digit.',
+        visual: toWhole
+          ? numberLineSvg(Math.floor(value), Math.floor(value) + 1, value, value.toFixed(2))
+          : null,
+        explain: `${value.toFixed(2)} → ${answer}`,
+      });
+    }
+
+    // Estimate a product by rounding both factors to the nearest hundred.
+    const [min, max] = byTier(tier, [120, 480], [180, 940], [500, 4940]);
+    const a = rng.int(min, max);
+    const b = rng.int(min, max);
+    const roundedA = Math.round(a / 100) * 100;
+    const roundedB = Math.round(b / 100) * 100;
+    const estimate = roundedA * roundedB;
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'place-value',
+      reviewKey: 'maths:place-value',
+      prompt: `Estimate ${a} × ${b} by rounding each number to the nearest hundred.`,
+      answer: estimate,
+      options: numericOptions(rng, estimate),
+      hint: `${a} rounds to ${roundedA}, ${b} rounds to ${roundedB}.`,
+      explain: `${roundedA} × ${roundedB} = ${formatNumber(estimate)}`,
+    });
+  },
+};
+
+/** Factors, multiples & primes. */
 const factorsTopic = {
-    id: `factors`,
-    label: `Factors, multiples & primes`,
-    level: 2,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 3);
-      if (r === 0) {
-        let t = [11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61],
-          r = [21, 27, 33, 35, 39, 49, 51, 55, 57, 63, 65, 69, 77, 87, 91],
-          i = byTier(n, t.slice(0, 7), t, t.slice(7)),
-          a = byTier(n, r.slice(0, 7), r, r.slice(7)),
-          o = e.next() > 0.5,
-          s = o ? e.pick(i) : e.pick(a);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `factors`,
-          reviewKey: `maths:factors`,
-          prompt: `Is ${s} a prime number?`,
-          answer: o ? `Yes` : `No`,
-          options: [`Yes`, `No`],
-          hint: `A prime has exactly two factors: 1 and itself. Test 2, 3, 5, 7, 11…`,
-          explain: o
-            ? `${s} has no factors other than 1 and ${s}, so it is prime.`
-            : `${s} = ${(() => {
-                for (let e = 2; e * e <= s; e++)
-                  if (s % e === 0) return `${e} × ${s / e}`;
-                return ``;
-              })()}, so it is not prime.`,
-        });
-      }
-      if (r === 1) {
-        let t = byTier(
-            n,
-            [12, 16, 18, 20, 24],
-            [24, 36, 40, 48, 56, 60, 72, 84, 90, 96],
-            [96, 108, 120, 132, 144, 150, 168, 180],
-          ),
-          r = e.pick(t),
-          i = [];
-        for (let e = 1; e <= r; e++) r % e === 0 && i.push(e);
-        let a = i.filter((e) => e * e <= r).pop(),
-          o = r / a;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `factors`,
-          reviewKey: `maths:factors`,
-          prompt: `How many factors does ${r} have altogether?`,
-          answer: i.length,
-          options: numericOptions(e, i.length),
-          hint: `Work in pairs: 1 × n, 2 × …, and stop when the pairs meet.`,
-          visual:
-            a * o <= 100 ? arrayGridSvg(a, o, `${r} counters in a rectangle`) : null,
-          explain: `The factors of ${r} are ${i.join(`, `)} — that is ${i.length} factors.`,
-        });
-      }
-      if (r === 2) {
-        let t = byTier(
-            n,
-            [6, 8, 9, 10, 12],
-            [12, 16, 18, 20, 24, 28, 30, 36],
-            [36, 42, 48, 54, 60],
-          ),
-          r = byTier(
-            n,
-            [8, 9, 10, 12, 15],
-            [16, 18, 24, 27, 30, 32, 40, 45],
-            [45, 48, 60, 63, 72],
-          ),
-          i = e.pick(t),
-          a = e.pick(r),
-          o = gcd(i, a);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `factors`,
-          reviewKey: `maths:factors`,
-          prompt: `What is the highest common factor (HCF) of ${i} and ${a}?`,
-          answer: o,
-          options: numericOptions(e, o),
-          hint: `List the factors of each number and find the biggest one in both lists.`,
-          explain: `The largest number that divides into both ${i} and ${a} is ${o}.`,
-        });
-      }
-      let [i, a] = byTier(n, [2, 5], [3, 9], [6, 12]),
-        [o, s] = byTier(n, [3, 6], [4, 12], [8, 15]),
-        c = e.int(i, a),
-        l = e.int(o, s),
-        u = (c * l) / gcd(c, l);
-      return makeQuestion({
-        subject: `maths`,
-        topic: `factors`,
-        reviewKey: `maths:factors`,
-        prompt: `What is the lowest common multiple (LCM) of ${c} and ${l}?`,
-        answer: u,
-        options: numericOptions(e, u),
-        hint: `Count up in each number until you hit the same value.`,
-        explain: `The first number in both times-tables is ${u}.`,
-      });
-    },
-  };
+  id: 'factors',
+  label: 'Factors, multiples & primes',
+  level: 2,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 3);
 
-const percentagesTopic = {
-    id: `percentages`,
-    label: `Percentages`,
-    level: 3,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 3);
-      if (r === 0) {
-        let t = byTier(
-            n,
-            [5, 10, 20, 25, 50],
-            [5, 10, 15, 20, 25, 30, 40, 50, 60, 75],
-            [55, 65, 70, 80, 85, 90, 95],
-          ),
-          r = e.pick(t),
-          [i, a] = byTier(n, [2, 15], [2, 40], [40, 90]),
-          o = e.int(i, a) * 20,
-          s = (o * r) / 100;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `percentages`,
-          reviewKey: `maths:percentages`,
-          prompt: `Find ${r}% of ${formatNumber(o)}.`,
-          answer: s,
-          hint: `Find 10% first by dividing by 10, then scale it up to ${r}%.`,
-          visual: percentGridSvg(r, `${r}% of ${formatNumber(o)}`),
-          explain: `${r}% of ${formatNumber(o)} = ${formatNumber(s)}`,
-        });
-      }
-      if (r === 1) {
-        let t = byTier(n, [10, 20, 25], [10, 15, 20, 25, 30, 40], [35, 45, 55, 60]),
-          r = e.pick(t),
-          [i, a] = byTier(n, [2, 10], [2, 25], [25, 60]),
-          o = e.int(i, a) * 20,
-          s = o - (o * r) / 100;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `percentages`,
-          reviewKey: `maths:percentages`,
-          prompt: `A jacket costs £${o}.\nIn the sale it is reduced by ${r}%.\nWhat is the sale price?`,
-          ...numericAnswer(e, s, { prefix: `£` }),
-          hint: `Find ${r}% of £${o}, then take it away from £${o}.`,
-          visual: priceTagSvg(o, r),
-          explain: `${r}% of £${o} = £${(o * r) / 100}. £${o} − £${(o * r) / 100} = £${s}.`,
-        });
-      }
-      if (r === 2) {
-        let t = byTier(
-            n,
-            [20, 25, 40, 50],
-            [20, 25, 40, 50, 80, 200],
-            [120, 150, 250, 300, 400],
-          ),
-          r = e.pick(t),
-          i = byTier(
-            n,
-            [0.1, 0.25, 0.5],
-            [0.1, 0.2, 0.25, 0.4, 0.5, 0.6, 0.75],
-            [0.15, 0.35, 0.45, 0.65, 0.85],
-          ),
-          a = Math.round(r * e.pick(i)),
-          o = Math.round((a / r) * 100);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `percentages`,
-          reviewKey: `maths:percentages`,
-          prompt: `${e.pick(NAMES)} scored ${a} out of ${r} in a test.\nWhat percentage is that?`,
-          ...numericAnswer(e, o, { suffix: `%` }),
-          hint: `Work out ${a} ÷ ${r}, then multiply by 100.`,
-          explain: `${a} ÷ ${r} × 100 = ${o}%`,
-        });
-      }
-      let i = byTier(n, [10, 20], [10, 20, 25, 50], [25, 50, 75, 100]),
-        a = e.pick(i),
-        [o, s] = byTier(n, [2, 10], [2, 20], [20, 50]),
-        c = e.int(o, s) * 20,
-        l = c + (c * a) / 100;
-      return makeQuestion({
-        subject: `maths`,
-        topic: `percentages`,
-        reviewKey: `maths:percentages`,
-        prompt: `A club had ${c} members.\nMembership rose by ${a}%.\nHow many members are there now?`,
-        answer: l,
-        options: numericOptions(e, l),
-        hint: `Find ${a}% of ${c} and add it on.`,
-        visual: barModelSvg(
-          [
-            {
-              label: `members`,
-              segments: [
-                { span: c, text: String(c) },
-                { span: (c * a) / 100, text: `+${a}%`, colour: `#4cceac` },
-              ],
-            },
-          ],
-          `how many members now?`,
-        ),
-        explain: `${a}% of ${c} = ${(c * a) / 100}. ${c} + ${(c * a) / 100} = ${l}.`,
-      });
-    },
-  };
-
-const algebraTopic = {
-    id: `algebra`,
-    label: `Algebra`,
-    level: 4,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 4),
-        i = e.pick([`x`, `n`, `y`, `a`]);
-      if (r === 0) {
-        let [t, r] = byTier(n, [2, 5], [2, 9], [4, 12]),
-          [a, o] = byTier(n, [2, 6], [2, 12], [8, 20]),
-          [s, c] = byTier(n, [1, 10], [1, 20], [10, 40]),
-          l = e.int(t, r),
-          u = e.int(a, o),
-          d = e.int(s, c),
-          f = l * u + d;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `algebra`,
-          reviewKey: `maths:algebra`,
-          prompt: `Solve for ${i}:\n\n${l}${i} + ${d} = ${f}`,
-          answer: u,
-          hint: `Take ${d} away from both sides first, then divide by ${l}.`,
-          visual: balanceSvg(l, d, f, i),
-          explain: `${l}${i} = ${f} − ${d} = ${l * u}, so ${i} = ${l * u} ÷ ${l} = ${u}.`,
-        });
-      }
-      if (r === 1) {
-        let [t, r] = byTier(n, [2, 5], [2, 9], [5, 12]),
-          [a, o] = byTier(n, [3, 8], [3, 14], [10, 20]),
-          [s, c] = byTier(n, [1, 8], [1, 15], [10, 30]),
-          l = e.int(t, r),
-          u = e.int(a, o),
-          d = e.int(s, c),
-          f = l * u - d;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `algebra`,
-          reviewKey: `maths:algebra`,
-          prompt: `Solve for ${i}:\n\n${l}${i} − ${d} = ${f}`,
-          answer: u,
-          hint: `Add ${d} to both sides, then divide by ${l}.`,
-          explain: `${l}${i} = ${f} + ${d} = ${l * u}, so ${i} = ${u}.`,
-        });
-      }
-      if (r === 2) {
-        let [t, r] = byTier(n, [2, 4], [2, 7], [6, 15]),
-          a = e.int(t, r),
-          o = e.int(t, r),
-          s = a + o,
-          c = `${s}${i}`,
-          l = [
-            `${a * o}${i}`,
-            `${s}${i}²`,
-            `${s + 1}${i}`,
-            `${s - 1}${i}`,
-            `${s + 2}${i}`,
-          ],
-          u = [];
-        for (let e of l) {
-          if (u.length === 3) break;
-          e !== c && !u.includes(e) && u.push(e);
+    // Prime or not? Composites are all odd so "it's even" is never the shortcut.
+    if (style === 0) {
+      const primes = [11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61];
+      const composites = [21, 27, 33, 35, 39, 49, 51, 55, 57, 63, 65, 69, 77, 87, 91];
+      const primePool = byTier(tier, primes.slice(0, 7), primes, primes.slice(7));
+      const compositePool = byTier(tier, composites.slice(0, 7), composites, composites.slice(7));
+      const isPrime = rng.next() > 0.5;
+      const number = isPrime ? rng.pick(primePool) : rng.pick(compositePool);
+      const smallestFactorPair = () => {
+        for (let factor = 2; factor * factor <= number; factor++) {
+          if (number % factor === 0) return `${factor} × ${number / factor}`;
         }
-        return makeQuestion({
-          subject: `maths`,
-          topic: `algebra`,
-          reviewKey: `maths:algebra`,
-          prompt: `Simplify:\n\n${a}${i} + ${o}${i}`,
-          answer: c,
-          options: e.shuffle([c, ...u]),
-          hint: `Collect like terms — the letter stays the same.`,
-          explain: `${a}${i} + ${o}${i} = ${s}${i}`,
-        });
-      }
-      if (r === 3) {
-        let [t, r] = byTier(n, [2, 5], [2, 8], [6, 15]),
-          [a, o] = byTier(n, [1, 6], [1, 12], [10, 30]),
-          [s, c] = byTier(n, [2, 5], [2, 10], [8, 20]),
-          l = e.int(t, r),
-          u = e.int(a, o),
-          d = e.int(s, c),
-          f = l * d + u;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `algebra`,
-          reviewKey: `maths:algebra`,
-          prompt: `If ${i} = ${d}, what is the value of  ${l}${i} + ${u} ?`,
-          answer: f,
-          options: numericOptions(e, f),
-          hint: `Replace ${i} with ${d}: ${l} × ${d} + ${u}.`,
-          explain: `${l} × ${d} = ${l * d}, + ${u} = ${f}.`,
-        });
-      }
-      let [a, o] = byTier(n, [1, 6], [2, 9], [8, 20]),
-        [s, c] = byTier(n, [2, 6], [3, 11], [8, 20]),
-        l = e.int(a, o),
-        u = e.int(s, c),
-        d = [l, l + u, l + 2 * u, l + 3 * u],
-        f = l + 4 * u;
+        return '';
+      };
       return makeQuestion({
-        subject: `maths`,
-        topic: `algebra`,
-        reviewKey: `maths:algebra`,
-        prompt: `Here is a sequence:\n\n${d.join(`, `)}, …\n\nWhat is the next term?`,
-        answer: f,
-        options: numericOptions(e, f),
-        hint: `Find the gap between each pair of terms.`,
-        visual: sequenceSvg([...d, null]),
-        explain: `The sequence goes up in ${u}s, so the next term is ${d[3]} + ${u} = ${f}.`,
+        subject: 'maths',
+        topic: 'factors',
+        reviewKey: 'maths:factors',
+        prompt: `Is ${number} a prime number?`,
+        answer: isPrime ? 'Yes' : 'No',
+        options: ['Yes', 'No'],
+        hint: 'A prime has exactly two factors: 1 and itself. Test 2, 3, 5, 7, 11…',
+        explain: isPrime
+          ? `${number} has no factors other than 1 and ${number}, so it is prime.`
+          : `${number} = ${smallestFactorPair()}, so it is not prime.`,
       });
-    },
-  };
+    }
 
+    // Count the factors of a highly composite number. The counters grid is the
+    // most-square factor pair, and is only drawn when it has at most 100 cells
+    // so it stays small enough to actually count.
+    if (style === 1) {
+      const pool = byTier(
+        tier,
+        [12, 16, 18, 20, 24],
+        [24, 36, 40, 48, 56, 60, 72, 84, 90, 96],
+        [96, 108, 120, 132, 144, 150, 168, 180],
+      );
+      const number = rng.pick(pool);
+      const factors = [];
+      for (let candidate = 1; candidate <= number; candidate++) {
+        if (number % candidate === 0) factors.push(candidate);
+      }
+      const rows = factors.filter((factor) => factor * factor <= number).pop();
+      const columns = number / rows;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'factors',
+        reviewKey: 'maths:factors',
+        prompt: `How many factors does ${number} have altogether?`,
+        answer: factors.length,
+        options: numericOptions(rng, factors.length),
+        hint: 'Work in pairs: 1 × n, 2 × …, and stop when the pairs meet.',
+        visual:
+          rows * columns <= 100
+            ? arrayGridSvg(rows, columns, `${number} counters in a rectangle`)
+            : null,
+        explain: `The factors of ${number} are ${factors.join(', ')} — that is ${factors.length} factors.`,
+      });
+    }
+
+    // Highest common factor of two numbers.
+    if (style === 2) {
+      const firstPool = byTier(
+        tier,
+        [6, 8, 9, 10, 12],
+        [12, 16, 18, 20, 24, 28, 30, 36],
+        [36, 42, 48, 54, 60],
+      );
+      const secondPool = byTier(
+        tier,
+        [8, 9, 10, 12, 15],
+        [16, 18, 24, 27, 30, 32, 40, 45],
+        [45, 48, 60, 63, 72],
+      );
+      const a = rng.pick(firstPool);
+      const b = rng.pick(secondPool);
+      const hcf = gcd(a, b);
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'factors',
+        reviewKey: 'maths:factors',
+        prompt: `What is the highest common factor (HCF) of ${a} and ${b}?`,
+        answer: hcf,
+        options: numericOptions(rng, hcf),
+        hint: 'List the factors of each number and find the biggest one in both lists.',
+        explain: `The largest number that divides into both ${a} and ${b} is ${hcf}.`,
+      });
+    }
+
+    // Lowest common multiple of two numbers.
+    const [minA, maxA] = byTier(tier, [2, 5], [3, 9], [6, 12]);
+    const [minB, maxB] = byTier(tier, [3, 6], [4, 12], [8, 15]);
+    const a = rng.int(minA, maxA);
+    const b = rng.int(minB, maxB);
+    const lcm = (a * b) / gcd(a, b);
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'factors',
+      reviewKey: 'maths:factors',
+      prompt: `What is the lowest common multiple (LCM) of ${a} and ${b}?`,
+      answer: lcm,
+      options: numericOptions(rng, lcm),
+      hint: 'Count up in each number until you hit the same value.',
+      explain: `The first number in both times-tables is ${lcm}.`,
+    });
+  },
+};
+
+/**
+ * Percentages. Amounts are always multiples of 20 so every percentage used
+ * gives a whole-number (or whole-pound) answer.
+ */
+const percentagesTopic = {
+  id: 'percentages',
+  label: 'Percentages',
+  level: 3,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 3);
+
+    // Percentage of an amount. The 10×10 grid shades the percentage, which is
+    // given in the prompt anyway (an earlier donut chart was dropped because a
+    // proportional wedge let learners read answers off the picture).
+    if (style === 0) {
+      const percentPool = byTier(
+        tier,
+        [5, 10, 20, 25, 50],
+        [5, 10, 15, 20, 25, 30, 40, 50, 60, 75],
+        [55, 65, 70, 80, 85, 90, 95],
+      );
+      const percent = rng.pick(percentPool);
+      const [min, max] = byTier(tier, [2, 15], [2, 40], [40, 90]);
+      const amount = rng.int(min, max) * 20;
+      const result = (amount * percent) / 100;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'percentages',
+        reviewKey: 'maths:percentages',
+        prompt: `Find ${percent}% of ${formatNumber(amount)}.`,
+        answer: result,
+        hint: `Find 10% first by dividing by 10, then scale it up to ${percent}%.`,
+        visual: percentGridSvg(percent, `${percent}% of ${formatNumber(amount)}`),
+        explain: `${percent}% of ${formatNumber(amount)} = ${formatNumber(result)}`,
+      });
+    }
+
+    // Percentage decrease: a sale price.
+    if (style === 1) {
+      const percentPool = byTier(tier, [10, 20, 25], [10, 15, 20, 25, 30, 40], [35, 45, 55, 60]);
+      const percent = rng.pick(percentPool);
+      const [min, max] = byTier(tier, [2, 10], [2, 25], [25, 60]);
+      const price = rng.int(min, max) * 20;
+      const discount = (price * percent) / 100;
+      const salePrice = price - discount;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'percentages',
+        reviewKey: 'maths:percentages',
+        prompt: `A jacket costs £${price}.\nIn the sale it is reduced by ${percent}%.\nWhat is the sale price?`,
+        ...numericAnswer(rng, salePrice, { prefix: '£' }),
+        hint: `Find ${percent}% of £${price}, then take it away from £${price}.`,
+        visual: priceTagSvg(price, percent),
+        explain: `${percent}% of £${price} = £${discount}. £${price} − £${discount} = £${salePrice}.`,
+      });
+    }
+
+    // Express a test score as a percentage.
+    if (style === 2) {
+      const totalPool = byTier(
+        tier,
+        [20, 25, 40, 50],
+        [20, 25, 40, 50, 80, 200],
+        [120, 150, 250, 300, 400],
+      );
+      const total = rng.pick(totalPool);
+      const fractionPool = byTier(
+        tier,
+        [0.1, 0.25, 0.5],
+        [0.1, 0.2, 0.25, 0.4, 0.5, 0.6, 0.75],
+        [0.15, 0.35, 0.45, 0.65, 0.85],
+      );
+      const score = Math.round(total * rng.pick(fractionPool));
+      const percent = Math.round((score / total) * 100);
+      const name = rng.pick(NAMES);
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'percentages',
+        reviewKey: 'maths:percentages',
+        prompt: `${name} scored ${score} out of ${total} in a test.\nWhat percentage is that?`,
+        ...numericAnswer(rng, percent, { suffix: '%' }),
+        hint: `Work out ${score} ÷ ${total}, then multiply by 100.`,
+        explain: `${score} ÷ ${total} × 100 = ${percent}%`,
+      });
+    }
+
+    // Percentage increase: club membership.
+    const percentPool = byTier(tier, [10, 20], [10, 20, 25, 50], [25, 50, 75, 100]);
+    const percent = rng.pick(percentPool);
+    const [min, max] = byTier(tier, [2, 10], [2, 20], [20, 50]);
+    const members = rng.int(min, max) * 20;
+    const increase = (members * percent) / 100;
+    const newMembers = members + increase;
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'percentages',
+      reviewKey: 'maths:percentages',
+      prompt: `A club had ${members} members.\nMembership rose by ${percent}%.\nHow many members are there now?`,
+      answer: newMembers,
+      options: numericOptions(rng, newMembers),
+      hint: `Find ${percent}% of ${members} and add it on.`,
+      visual: barModelSvg(
+        [
+          {
+            label: 'members',
+            segments: [
+              { span: members, text: String(members) },
+              { span: increase, text: `+${percent}%`, colour: '#4cceac' },
+            ],
+          },
+        ],
+        'how many members now?',
+      ),
+      explain: `${percent}% of ${members} = ${increase}. ${members} + ${increase} = ${newMembers}.`,
+    });
+  },
+};
+
+/** Algebra: one- and two-step equations, collecting terms, substitution, sequences. */
+const algebraTopic = {
+  id: 'algebra',
+  label: 'Algebra',
+  level: 4,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 4);
+    // Vary the letter so learners don't think algebra is only ever about x.
+    const letter = rng.pick(['x', 'n', 'y', 'a']);
+
+    // Solve  ax + b = c. The balance picture shows both sides of the equation.
+    if (style === 0) {
+      const [minCoefficient, maxCoefficient] = byTier(tier, [2, 5], [2, 9], [4, 12]);
+      const [minSolution, maxSolution] = byTier(tier, [2, 6], [2, 12], [8, 20]);
+      const [minConstant, maxConstant] = byTier(tier, [1, 10], [1, 20], [10, 40]);
+      const coefficient = rng.int(minCoefficient, maxCoefficient);
+      const solution = rng.int(minSolution, maxSolution);
+      const constant = rng.int(minConstant, maxConstant);
+      const total = coefficient * solution + constant;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'algebra',
+        reviewKey: 'maths:algebra',
+        prompt: `Solve for ${letter}:\n\n${coefficient}${letter} + ${constant} = ${total}`,
+        answer: solution,
+        hint: `Take ${constant} away from both sides first, then divide by ${coefficient}.`,
+        visual: balanceSvg(coefficient, constant, total, letter),
+        explain: `${coefficient}${letter} = ${total} − ${constant} = ${coefficient * solution}, so ${letter} = ${coefficient * solution} ÷ ${coefficient} = ${solution}.`,
+      });
+    }
+
+    // Solve  ax − b = c.
+    if (style === 1) {
+      const [minCoefficient, maxCoefficient] = byTier(tier, [2, 5], [2, 9], [5, 12]);
+      const [minSolution, maxSolution] = byTier(tier, [3, 8], [3, 14], [10, 20]);
+      const [minConstant, maxConstant] = byTier(tier, [1, 8], [1, 15], [10, 30]);
+      const coefficient = rng.int(minCoefficient, maxCoefficient);
+      const solution = rng.int(minSolution, maxSolution);
+      const constant = rng.int(minConstant, maxConstant);
+      const total = coefficient * solution - constant;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'algebra',
+        reviewKey: 'maths:algebra',
+        prompt: `Solve for ${letter}:\n\n${coefficient}${letter} − ${constant} = ${total}`,
+        answer: solution,
+        hint: `Add ${constant} to both sides, then divide by ${coefficient}.`,
+        explain: `${coefficient}${letter} = ${total} + ${constant} = ${coefficient * solution}, so ${letter} = ${solution}.`,
+      });
+    }
+
+    // Collect like terms: ax + bx. Distractors are the classic slips —
+    // multiplying the coefficients, squaring the letter, and near misses.
+    if (style === 2) {
+      const [min, max] = byTier(tier, [2, 4], [2, 7], [6, 15]);
+      const a = rng.int(min, max);
+      const b = rng.int(min, max);
+      const sum = a + b;
+      const answer = `${sum}${letter}`;
+      const candidates = [
+        `${a * b}${letter}`,
+        `${sum}${letter}²`,
+        `${sum + 1}${letter}`,
+        `${sum - 1}${letter}`,
+        `${sum + 2}${letter}`,
+      ];
+      const distractors = [];
+      for (const candidate of candidates) {
+        if (distractors.length === 3) break;
+        if (candidate !== answer && !distractors.includes(candidate)) distractors.push(candidate);
+      }
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'algebra',
+        reviewKey: 'maths:algebra',
+        prompt: `Simplify:\n\n${a}${letter} + ${b}${letter}`,
+        answer,
+        options: rng.shuffle([answer, ...distractors]),
+        hint: 'Collect like terms — the letter stays the same.',
+        explain: `${a}${letter} + ${b}${letter} = ${sum}${letter}`,
+      });
+    }
+
+    // Substitute a value into  ax + b.
+    if (style === 3) {
+      const [minCoefficient, maxCoefficient] = byTier(tier, [2, 5], [2, 8], [6, 15]);
+      const [minConstant, maxConstant] = byTier(tier, [1, 6], [1, 12], [10, 30]);
+      const [minValue, maxValue] = byTier(tier, [2, 5], [2, 10], [8, 20]);
+      const coefficient = rng.int(minCoefficient, maxCoefficient);
+      const constant = rng.int(minConstant, maxConstant);
+      const value = rng.int(minValue, maxValue);
+      const result = coefficient * value + constant;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'algebra',
+        reviewKey: 'maths:algebra',
+        prompt: `If ${letter} = ${value}, what is the value of  ${coefficient}${letter} + ${constant} ?`,
+        answer: result,
+        options: numericOptions(rng, result),
+        hint: `Replace ${letter} with ${value}: ${coefficient} × ${value} + ${constant}.`,
+        explain: `${coefficient} × ${value} = ${coefficient * value}, + ${constant} = ${result}.`,
+      });
+    }
+
+    // Next term of an arithmetic sequence.
+    const [minStart, maxStart] = byTier(tier, [1, 6], [2, 9], [8, 20]);
+    const [minStep, maxStep] = byTier(tier, [2, 6], [3, 11], [8, 20]);
+    const start = rng.int(minStart, maxStart);
+    const step = rng.int(minStep, maxStep);
+    const terms = [start, start + step, start + 2 * step, start + 3 * step];
+    const nextTerm = start + 4 * step;
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'algebra',
+      reviewKey: 'maths:algebra',
+      prompt: `Here is a sequence:\n\n${terms.join(', ')}, …\n\nWhat is the next term?`,
+      answer: nextTerm,
+      options: numericOptions(rng, nextTerm),
+      hint: 'Find the gap between each pair of terms.',
+      visual: sequenceSvg([...terms, null]),
+      explain: `The sequence goes up in ${step}s, so the next term is ${terms[3]} + ${step} = ${nextTerm}.`,
+    });
+  },
+};
+
+/** Area, perimeter & volume of rectangles, triangles, cuboids and L-shapes. */
 const measureTopic = {
-    id: `measure`,
-    label: `Area, perimeter & volume`,
-    level: 3,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 4),
-        [i, a] = byTier(n, [4, 12], [4, 25], [15, 60]),
-        [o, s] = byTier(n, [3, 9], [3, 18], [10, 40]);
-      if (r === 0) {
-        let t = e.int(i, a),
-          n = e.int(o, s);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `measure`,
-          reviewKey: `maths:measure`,
-          prompt: `A rectangular playground is ${t} m long and ${n} m wide.\nWhat is its area?`,
-          ...numericAnswer(e, t * n, { suffix: ` m²` }),
-          hint: `Area of a rectangle = length × width.`,
-          visual: rectSvg(t, n, `m`, { fillArea: !0 }),
-          explain: `${t} × ${n} = ${t * n} m²`,
-        });
-      }
-      if (r === 1) {
-        let t = e.int(i, a),
-          n = e.int(o, s),
-          r = 2 * (t + n);
-        return makeQuestion({
-          subject: `maths`,
-          topic: `measure`,
-          reviewKey: `maths:measure`,
-          prompt: `A rectangular garden is ${t} m by ${n} m.\nHow much fencing is needed to go all the way round?`,
-          ...numericAnswer(e, r, { suffix: ` m` }),
-          hint: `Perimeter = add all four sides, or 2 × (length + width).`,
-          visual: rectSvg(t, n, `m`),
-          explain: `2 × (${t} + ${n}) = ${r} m`,
-        });
-      }
-      if (r === 2) {
-        let [t, r] = byTier(n, [4, 10], [4, 20], [15, 40]),
-          [i, a] = byTier(n, [3, 8], [3, 16], [10, 30]),
-          o = e.int(t, r),
-          s = e.int(i, a),
-          c = (o * s) / 2;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `measure`,
-          reviewKey: `maths:measure`,
-          prompt: `A triangle has a base of ${o} cm and a height of ${s} cm.\nWhat is its area?`,
-          ...numericAnswer(e, c, { suffix: ` cm²` }),
-          hint: `Area of a triangle = (base × height) ÷ 2.`,
-          visual: triangleSvg(o, s, `cm`),
-          explain: `(${o} × ${s}) ÷ 2 = ${c} cm²`,
-        });
-      }
-      if (r === 3) {
-        let [t, r] = byTier(n, [2, 6], [2, 12], [10, 25]),
-          [i, a] = byTier(n, [2, 5], [2, 10], [8, 20]),
-          [o, s] = byTier(n, [2, 4], [2, 9], [6, 15]),
-          c = e.int(t, r),
-          l = e.int(i, a),
-          u = e.int(o, s),
-          d = c * l * u;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `measure`,
-          reviewKey: `maths:measure`,
-          prompt: `A box measures ${c} cm × ${l} cm × ${u} cm.\nWhat is its volume?`,
-          ...numericAnswer(e, d, { suffix: ` cm³` }),
-          hint: `Volume of a cuboid = length × width × height.`,
-          visual: cuboidSvg(c, l, u, `cm`),
-          explain: `${c} × ${l} × ${u} = ${d} cm³`,
-        });
-      }
-      let [c, l] = byTier(n, [3, 6], [3, 10], [10, 20]),
-        [u, d] = byTier(n, [2, 4], [2, 6], [5, 10]),
-        f = e.int(c, l),
-        p = e.int(c, l),
-        m = e.int(u, d),
-        h = e.int(u, d),
-        g = f * p + m * h;
+  id: 'measure',
+  label: 'Area, perimeter & volume',
+  level: 3,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 4);
+    // Shared by the two rectangle styles.
+    const [minLength, maxLength] = byTier(tier, [4, 12], [4, 25], [15, 60]);
+    const [minWidth, maxWidth] = byTier(tier, [3, 9], [3, 18], [10, 40]);
+
+    // Area of a rectangle.
+    if (style === 0) {
+      const length = rng.int(minLength, maxLength);
+      const width = rng.int(minWidth, maxWidth);
       return makeQuestion({
-        subject: `maths`,
-        topic: `measure`,
-        reviewKey: `maths:measure`,
-        prompt: `An L-shaped room is made of two rectangles:\none ${f} m × ${p} m and one ${m} m × ${h} m.\nWhat is the total floor area?`,
-        ...numericAnswer(e, g, { suffix: ` m²` }),
-        hint: `Work out each rectangle separately, then add them together.`,
-        visual: lShapeSvg(f, p, m, h, `m`),
-        explain: `(${f} × ${p}) + (${m} × ${h}) = ${f * p} + ${m * h} = ${g} m²`,
+        subject: 'maths',
+        topic: 'measure',
+        reviewKey: 'maths:measure',
+        prompt: `A rectangular playground is ${length} m long and ${width} m wide.\nWhat is its area?`,
+        ...numericAnswer(rng, length * width, { suffix: ' m²' }),
+        hint: 'Area of a rectangle = length × width.',
+        visual: rectSvg(length, width, 'm', { fillArea: true }),
+        explain: `${length} × ${width} = ${length * width} m²`,
       });
-    },
-  };
+    }
 
+    // Perimeter of a rectangle.
+    if (style === 1) {
+      const length = rng.int(minLength, maxLength);
+      const width = rng.int(minWidth, maxWidth);
+      const perimeter = 2 * (length + width);
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'measure',
+        reviewKey: 'maths:measure',
+        prompt: `A rectangular garden is ${length} m by ${width} m.\nHow much fencing is needed to go all the way round?`,
+        ...numericAnswer(rng, perimeter, { suffix: ' m' }),
+        hint: 'Perimeter = add all four sides, or 2 × (length + width).',
+        visual: rectSvg(length, width, 'm'),
+        explain: `2 × (${length} + ${width}) = ${perimeter} m`,
+      });
+    }
+
+    // Area of a triangle (answers can be .5).
+    if (style === 2) {
+      const [minBase, maxBase] = byTier(tier, [4, 10], [4, 20], [15, 40]);
+      const [minHeight, maxHeight] = byTier(tier, [3, 8], [3, 16], [10, 30]);
+      const base = rng.int(minBase, maxBase);
+      const height = rng.int(minHeight, maxHeight);
+      const area = (base * height) / 2;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'measure',
+        reviewKey: 'maths:measure',
+        prompt: `A triangle has a base of ${base} cm and a height of ${height} cm.\nWhat is its area?`,
+        ...numericAnswer(rng, area, { suffix: ' cm²' }),
+        hint: 'Area of a triangle = (base × height) ÷ 2.',
+        visual: triangleSvg(base, height, 'cm'),
+        explain: `(${base} × ${height}) ÷ 2 = ${area} cm²`,
+      });
+    }
+
+    // Volume of a cuboid.
+    if (style === 3) {
+      const [minLength3d, maxLength3d] = byTier(tier, [2, 6], [2, 12], [10, 25]);
+      const [minWidth3d, maxWidth3d] = byTier(tier, [2, 5], [2, 10], [8, 20]);
+      const [minHeight, maxHeight] = byTier(tier, [2, 4], [2, 9], [6, 15]);
+      const length = rng.int(minLength3d, maxLength3d);
+      const width = rng.int(minWidth3d, maxWidth3d);
+      const height = rng.int(minHeight, maxHeight);
+      const volume = length * width * height;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'measure',
+        reviewKey: 'maths:measure',
+        prompt: `A box measures ${length} cm × ${width} cm × ${height} cm.\nWhat is its volume?`,
+        ...numericAnswer(rng, volume, { suffix: ' cm³' }),
+        hint: 'Volume of a cuboid = length × width × height.',
+        visual: cuboidSvg(length, width, height, 'cm'),
+        explain: `${length} × ${width} × ${height} = ${volume} cm³`,
+      });
+    }
+
+    // Compound area: an L-shape made of two rectangles.
+    const [minBig, maxBig] = byTier(tier, [3, 6], [3, 10], [10, 20]);
+    const [minSmall, maxSmall] = byTier(tier, [2, 4], [2, 6], [5, 10]);
+    const bigLength = rng.int(minBig, maxBig);
+    const bigWidth = rng.int(minBig, maxBig);
+    const smallLength = rng.int(minSmall, maxSmall);
+    const smallWidth = rng.int(minSmall, maxSmall);
+    const totalArea = bigLength * bigWidth + smallLength * smallWidth;
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'measure',
+      reviewKey: 'maths:measure',
+      prompt: `An L-shaped room is made of two rectangles:\none ${bigLength} m × ${bigWidth} m and one ${smallLength} m × ${smallWidth} m.\nWhat is the total floor area?`,
+      ...numericAnswer(rng, totalArea, { suffix: ' m²' }),
+      hint: 'Work out each rectangle separately, then add them together.',
+      visual: lShapeSvg(bigLength, bigWidth, smallLength, smallWidth, 'm'),
+      explain: `(${bigLength} × ${bigWidth}) + (${smallLength} × ${smallWidth}) = ${bigLength * bigWidth} + ${smallLength * smallWidth} = ${totalArea} m²`,
+    });
+  },
+};
+
+/** Angle facts: triangles, straight lines, naming angles, quadrilaterals. */
 const anglesTopic = {
-    id: `angles`,
-    label: `Angles`,
-    level: 3,
-    generate(e, t = null, n = TIER.STANDARD) {
-      let r = e.int(0, 3);
-      if (r === 0) {
-        let [t, r] = byTier(n, [20, 45], [25, 80], [30, 90]),
-          i = e.int(t, r),
-          a = e.int(t, r === 90 ? 80 : r),
-          o = 180 - i - a;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `angles`,
-          reviewKey: `maths:angles`,
-          prompt: `Two angles in a triangle are ${i}° and ${a}°.\nWhat is the third angle?`,
-          ...numericAnswer(e, o, { suffix: `°` }),
-          hint: `The three angles in any triangle add up to 180°.`,
-          visual: triangleAngleSvg(i, a),
-          explain: `180 − ${i} − ${a} = ${o}°`,
-        });
-      }
-      if (r === 1) {
-        let [t, r] = byTier(n, [20, 80], [30, 150], [100, 170]),
-          i = e.int(t, r),
-          a = 180 - i;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `angles`,
-          reviewKey: `maths:angles`,
-          prompt: `Two angles sit on a straight line.\nOne of them is ${i}°.\nWhat is the other one?`,
-          ...numericAnswer(e, a, { suffix: `°` }),
-          hint: `Angles on a straight line add up to 180°.`,
-          visual: straightLineSvg(i),
-          explain: `180 − ${i} = ${a}°`,
-        });
-      }
-      if (r === 2) {
-        let [r, i] = byTier(n, [20, 170], [20, 340], [160, 340]),
-          a = e.int(r, i);
-        if (a === 180) return anglesTopic.generate(e, t, n);
-        let o =
-          a < 90 ? `Acute` : a === 90 ? `Right` : a < 180 ? `Obtuse` : `Reflex`;
-        return makeQuestion({
-          subject: `maths`,
-          topic: `angles`,
-          reviewKey: `maths:angles`,
-          prompt: `What type of angle is ${a}°?`,
-          answer: o,
-          options: [`Acute`, `Right`, `Obtuse`, `Reflex`],
-          hint: `Under 90° acute · exactly 90° right · 90–180° obtuse · over 180° reflex.`,
-          visual: angleSvg(a),
-          explain: `${a}° is ${o.toLowerCase()}.`,
-        });
-      }
-      let [i, a] = byTier(n, [40, 90], [40, 140], [60, 150]),
-        o = e.int(i, a),
-        s = e.int(i, a),
-        c = e.int(i, a),
-        l = 360 - o - s - c;
-      return l < 20
-        ? anglesTopic.generate(e, t, n)
-        : makeQuestion({
-            subject: `maths`,
-            topic: `angles`,
-            reviewKey: `maths:angles`,
-            prompt: `Three angles of a quadrilateral are ${o}°, ${s}° and ${c}°.\nWhat is the fourth angle?`,
-            ...numericAnswer(e, l, { suffix: `°` }),
-            hint: `The four angles in a quadrilateral add up to 360°.`,
-            visual: quadAngleSvg(o, s, c),
-            explain: `360 − ${o} − ${s} − ${c} = ${l}°`,
-          });
-    },
-  };
+  id: 'angles',
+  label: 'Angles',
+  level: 3,
+  generate(rng, styleId = null, tier = TIER.STANDARD) {
+    const style = rng.int(0, 3);
 
-const fdpBankTopic = itemBankTopic(`me1`, `Fractions, decimals & %`, 2, [...FRACTIONS_DECIMALS_PERCENT, ...FRACTIONS_DECIMALS_PERCENT_X]);
+    // Missing angle in a triangle. On hard tier the second angle is capped at
+    // 80° so two large angles can't leave nothing for the third.
+    if (style === 0) {
+      const [min, max] = byTier(tier, [20, 45], [25, 80], [30, 90]);
+      const first = rng.int(min, max);
+      const second = rng.int(min, max === 90 ? 80 : max);
+      const third = 180 - first - second;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'angles',
+        reviewKey: 'maths:angles',
+        prompt: `Two angles in a triangle are ${first}° and ${second}°.\nWhat is the third angle?`,
+        ...numericAnswer(rng, third, { suffix: '°' }),
+        hint: 'The three angles in any triangle add up to 180°.',
+        visual: triangleAngleSvg(first, second),
+        explain: `180 − ${first} − ${second} = ${third}°`,
+      });
+    }
 
-const moneyBankTopic = itemBankTopic(`me2`, `Money & coins`, 1, [...MONEY, ...MONEY_X]);
+    // Angles on a straight line.
+    if (style === 1) {
+      const [min, max] = byTier(tier, [20, 80], [30, 150], [100, 170]);
+      const given = rng.int(min, max);
+      const other = 180 - given;
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'angles',
+        reviewKey: 'maths:angles',
+        prompt: `Two angles sit on a straight line.\nOne of them is ${given}°.\nWhat is the other one?`,
+        ...numericAnswer(rng, other, { suffix: '°' }),
+        hint: 'Angles on a straight line add up to 180°.',
+        visual: straightLineSvg(given),
+        explain: `180 − ${given} = ${other}°`,
+      });
+    }
 
-const conversionsBankTopic = itemBankTopic(`me3`, `Unit conversions`, 2, [...UNIT_CONVERSIONS, ...UNIT_CONVERSIONS_X]);
+    // Name the type of angle. Exactly 180° (a straight angle) isn't one of
+    // the four options, so re-roll it.
+    if (style === 2) {
+      const [min, max] = byTier(tier, [20, 170], [20, 340], [160, 340]);
+      const angle = rng.int(min, max);
+      if (angle === 180) return anglesTopic.generate(rng, styleId, tier);
+      let type;
+      if (angle < 90) type = 'Acute';
+      else if (angle === 90) type = 'Right';
+      else if (angle < 180) type = 'Obtuse';
+      else type = 'Reflex';
+      return makeQuestion({
+        subject: 'maths',
+        topic: 'angles',
+        reviewKey: 'maths:angles',
+        prompt: `What type of angle is ${angle}°?`,
+        answer: type,
+        options: ['Acute', 'Right', 'Obtuse', 'Reflex'],
+        hint: 'Under 90° acute · exactly 90° right · 90–180° obtuse · over 180° reflex.',
+        visual: angleSvg(angle),
+        explain: `${angle}° is ${type.toLowerCase()}.`,
+      });
+    }
 
-const areaPerimeterBankTopic = itemBankTopic(`me4`, `Area & perimeter`, 2, [...AREA_PERIMETER, ...AREA_PERIMETER_X]);
+    // Fourth angle of a quadrilateral. Re-roll if the missing angle would be
+    // tiny or negative.
+    const [min, max] = byTier(tier, [40, 90], [40, 140], [60, 150]);
+    const first = rng.int(min, max);
+    const second = rng.int(min, max);
+    const third = rng.int(min, max);
+    const fourth = 360 - first - second - third;
+    if (fourth < 20) return anglesTopic.generate(rng, styleId, tier);
+    return makeQuestion({
+      subject: 'maths',
+      topic: 'angles',
+      reviewKey: 'maths:angles',
+      prompt: `Three angles of a quadrilateral are ${first}°, ${second}° and ${third}°.\nWhat is the fourth angle?`,
+      ...numericAnswer(rng, fourth, { suffix: '°' }),
+      hint: 'The four angles in a quadrilateral add up to 360°.',
+      visual: quadAngleSvg(first, second, third),
+      explain: `360 − ${first} − ${second} − ${third} = ${fourth}°`,
+    });
+  },
+};
 
-const volumeBankTopic = itemBankTopic(`me5`, `Volume`, 2, [...VOLUME, ...VOLUME_X]);
-
-const angleFactsBankTopic = itemBankTopic(`me6`, `Angles`, 2, [...ANGLES, ...ANGLES_X]);
-
-const coordinatesBankTopic = itemBankTopic(`me7`, `Coordinates`, 2, [...COORDINATES, ...COORDINATES_X]);
-
-const averagesBankTopic = itemBankTopic(`me8`, `Mean, median & range`, 2, [...MEAN_MEDIAN_RANGE, ...MEAN_MEDIAN_RANGE_X]);
-
-const shapes3dBankTopic = itemBankTopic(`me9`, `3-D shapes`, 1, [...SHAPES_3D, ...SHAPES_3D_X]);
-
-const multiplesBankTopic = itemBankTopic(`me10`, `Multiples & factors`, 1, [...MULTIPLES_FACTORS, ...MULTIPLES_FACTORS_X]);
-
-const ratioBankTopic = itemBankTopic(`me11`, `Ratio & proportion`, 2, [...RATIO_PROPORTION, ...RATIO_PROPORTION_X]);
-
-const roundingBankTopic = itemBankTopic(`me12`, `Rounding & estimation`, 1, [...ROUNDING_ESTIMATION, ...ROUNDING_ESTIMATION_X]);
-
-const sequencesBankTopic = itemBankTopic(`me13`, `Sequences`, 2, SEQUENCES);
-
-const probabilityBankTopic = itemBankTopic(`me14`, `Probability`, 3, PROBABILITY);
-
-const graphsBankTopic = itemBankTopic(`me15`, `Reading graphs & charts`, 2, GRAPHS);
-
-const formulaeBankTopic = itemBankTopic(`me16`, `Using formulae`, 3, FORMULAE);
+// Item-bank topics. Their "me<n>" ids are persisted in saved progress and
+// review keys, so they must never change.
+const fdpBankTopic = itemBankTopic('me1', 'Fractions, decimals & %', 2, [
+  ...FRACTIONS_DECIMALS_PERCENT,
+  ...FRACTIONS_DECIMALS_PERCENT_X,
+]);
+const moneyBankTopic = itemBankTopic('me2', 'Money & coins', 1, [...MONEY, ...MONEY_X]);
+const conversionsBankTopic = itemBankTopic('me3', 'Unit conversions', 2, [
+  ...UNIT_CONVERSIONS,
+  ...UNIT_CONVERSIONS_X,
+]);
+const areaPerimeterBankTopic = itemBankTopic('me4', 'Area & perimeter', 2, [
+  ...AREA_PERIMETER,
+  ...AREA_PERIMETER_X,
+]);
+const volumeBankTopic = itemBankTopic('me5', 'Volume', 2, [...VOLUME, ...VOLUME_X]);
+const angleFactsBankTopic = itemBankTopic('me6', 'Angles', 2, [...ANGLES, ...ANGLES_X]);
+const coordinatesBankTopic = itemBankTopic('me7', 'Coordinates', 2, [
+  ...COORDINATES,
+  ...COORDINATES_X,
+]);
+const averagesBankTopic = itemBankTopic('me8', 'Mean, median & range', 2, [
+  ...MEAN_MEDIAN_RANGE,
+  ...MEAN_MEDIAN_RANGE_X,
+]);
+const shapes3dBankTopic = itemBankTopic('me9', '3-D shapes', 1, [...SHAPES_3D, ...SHAPES_3D_X]);
+const multiplesBankTopic = itemBankTopic('me10', 'Multiples & factors', 1, [
+  ...MULTIPLES_FACTORS,
+  ...MULTIPLES_FACTORS_X,
+]);
+const ratioBankTopic = itemBankTopic('me11', 'Ratio & proportion', 2, [
+  ...RATIO_PROPORTION,
+  ...RATIO_PROPORTION_X,
+]);
+const roundingBankTopic = itemBankTopic('me12', 'Rounding & estimation', 1, [
+  ...ROUNDING_ESTIMATION,
+  ...ROUNDING_ESTIMATION_X,
+]);
+const sequencesBankTopic = itemBankTopic('me13', 'Sequences', 2, SEQUENCES);
+const probabilityBankTopic = itemBankTopic('me14', 'Probability', 3, PROBABILITY);
+const graphsBankTopic = itemBankTopic('me15', 'Reading graphs & charts', 2, GRAPHS);
+const formulaeBankTopic = itemBankTopic('me16', 'Using formulae', 3, FORMULAE);
 
 export const mathsSubject = {
-    id: `maths`,
-    label: `Maths`,
-    icon: `📐`,
-    topics: [
-      tierAware(placeValueTopic),
-      bodmasTopic,
-      tierAware(factorsTopic),
-      fractionsTopic,
-      decimalsTopic,
-      tierAware(percentagesTopic),
-      ratioTopic,
-      negativesTopic,
-      tierAware(algebraTopic),
-      tierAware(measureTopic),
-      tierAware(anglesTopic),
-      averagesTopic,
-      timeSpeedTopic,
-      problemSolvingTopic,
-      fdpBankTopic,
-      moneyBankTopic,
-      conversionsBankTopic,
-      areaPerimeterBankTopic,
-      volumeBankTopic,
-      angleFactsBankTopic,
-      coordinatesBankTopic,
-      averagesBankTopic,
-      shapes3dBankTopic,
-      multiplesBankTopic,
-      ratioBankTopic,
-      roundingBankTopic,
-      sequencesBankTopic,
-      probabilityBankTopic,
-      graphsBankTopic,
-      formulaeBankTopic,
-      challengesTopic,
-    ],
-  };
+  id: 'maths',
+  label: 'Maths',
+  icon: '📐',
+  topics: [
+    tierAware(placeValueTopic),
+    bodmasTopic,
+    tierAware(factorsTopic),
+    fractionsTopic,
+    decimalsTopic,
+    tierAware(percentagesTopic),
+    ratioTopic,
+    negativesTopic,
+    tierAware(algebraTopic),
+    tierAware(measureTopic),
+    tierAware(anglesTopic),
+    averagesTopic,
+    timeSpeedTopic,
+    problemSolvingTopic,
+    fdpBankTopic,
+    moneyBankTopic,
+    conversionsBankTopic,
+    areaPerimeterBankTopic,
+    volumeBankTopic,
+    angleFactsBankTopic,
+    coordinatesBankTopic,
+    averagesBankTopic,
+    shapes3dBankTopic,
+    multiplesBankTopic,
+    ratioBankTopic,
+    roundingBankTopic,
+    sequencesBankTopic,
+    probabilityBankTopic,
+    graphsBankTopic,
+    formulaeBankTopic,
+    challengesTopic,
+  ],
+};

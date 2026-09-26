@@ -1,223 +1,196 @@
 import { useRef, useState } from 'react';
-import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 
-async function copyText(e, t) {
+async function copyText(text, textarea) {
   try {
-    if (navigator.clipboard && window.isSecureContext)
-      return (await navigator.clipboard.writeText(e), !0);
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
   } catch {}
   try {
-    return (
-      t?.select(),
-      t?.setSelectionRange(0, e.length),
-      document.execCommand(`copy`)
-    );
+    textarea?.select();
+    textarea?.setSelectionRange(0, text.length);
+    return document.execCommand('copy');
   } catch {
-    return !1;
+    return false;
   }
 }
 
-function downloadFile(e, t) {
+function downloadFile(text, filename) {
   try {
-    let n = new Blob([e], { type: `application/json` }),
-      r = URL.createObjectURL(n),
-      i = document.createElement(`a`);
-    return (
-      (i.href = r),
-      (i.download = t),
-      (i.rel = `noopener`),
-      document.body.appendChild(i),
-      i.click(),
-      setTimeout(() => {
-        (document.body.removeChild(i), URL.revokeObjectURL(r));
-      }, 4e3),
-      !0
-    );
+    const blob = new Blob([text], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 4000);
+    return true;
   } catch {
-    return !1;
+    return false;
   }
 }
 
-export function Backup({ getSave: e, onRestore: t, name: n }) {
-  let [r, i] = (0, useState)(null),
-    [a, o] = (0, useState)(``),
-    [s, c] = (0, useState)(``),
-    [l, u] = (0, useState)(null),
-    d = (0, useRef)(null),
-    f = (0, useRef)(null);
-  function p() {
-    let t = JSON.stringify(e());
-    (o(t), i(`export`), u(null));
+export function Backup({ getSave, onRestore, name }) {
+  const [mode, setMode] = useState(null);
+  const [saveCode, setSaveCode] = useState('');
+  const [pasted, setPasted] = useState('');
+  const [notice, setNotice] = useState(null);
+  const exportBoxRef = useRef(null);
+  const fileInputRef = useRef(null);
+  function startExport() {
+    const code = JSON.stringify(getSave());
+    setSaveCode(code);
+    setMode('export');
+    setNotice(null);
   }
-  async function m() {
-    let e = await copyText(a, d.current);
-    u(
-      e
-        ? {
-            ok: !0,
-            text: `Save code copied. Paste it into Brain Blast on the other device.`,
-          }
+  async function copyCode() {
+    const copied = await copyText(saveCode, exportBoxRef.current);
+    setNotice(
+      copied
+        ? { ok: true, text: 'Save code copied. Paste it into Brain Blast on the other device.' }
         : {
-            ok: !1,
-            text: `Could not copy automatically — select the text above and copy it yourself.`,
+            ok: false,
+            text: 'Could not copy automatically — select the text above and copy it yourself.',
           },
     );
   }
-  function h() {
-    let e = downloadFile(a, `brainblast-${(n || `profile`).replace(/\s+/g, `-`)}.json`);
-    u(
-      e
+  function saveAsFile() {
+    const started = downloadFile(
+      saveCode,
+      `brainblast-${(name || 'profile').replace(/\s+/g, '-')}.json`,
+    );
+    setNotice(
+      started
         ? {
-            ok: !0,
-            text: `If no file appeared, this browser blocks downloads — use the save code instead.`,
+            ok: true,
+            text: 'If no file appeared, this browser blocks downloads — use the save code instead.',
           }
         : {
-            ok: !1,
-            text: `This browser blocked the download. Use the save code above instead.`,
+            ok: false,
+            text: 'This browser blocked the download. Use the save code above instead.',
           },
     );
   }
-  function g(e) {
-    let n = String(e || ``).trim();
-    if (!n) {
-      u({ ok: !1, text: `Paste your save code first.` });
+  function restoreFromText(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) {
+      setNotice({ ok: false, text: 'Paste your save code first.' });
       return;
     }
-    let r;
+    let save;
     try {
-      r = JSON.parse(n);
+      save = JSON.parse(trimmed);
     } catch {
-      u({
-        ok: !1,
-        text: `That does not look like a save code. Copy the whole thing, including the { and }.`,
+      setNotice({
+        ok: false,
+        text: 'That does not look like a save code. Copy the whole thing, including the { and }.',
       });
       return;
     }
-    if (!r || typeof r != `object` || !r.name) {
-      u({ ok: !1, text: `That is valid text but not a Brain Blast save.` });
+    if (!save || typeof save != 'object' || !save.name) {
+      setNotice({ ok: false, text: 'That is valid text but not a Brain Blast save.' });
       return;
     }
-    (t(r), u({ ok: !0, text: `Restored "${r.name}".` }), c(``));
+    onRestore(save);
+    setNotice({ ok: true, text: `Restored "${save.name}".` });
+    setPasted('');
   }
-  function v(e) {
-    let t = new FileReader();
-    ((t.onload = (e) => g(e.target.result)),
-      (t.onerror = () =>
-        u({
-          ok: !1,
-          text: `Could not read that file. Use the save code instead.`,
-        })),
-      t.readAsText(e));
+  function restoreFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = (event) => restoreFromText(event.target.result);
+    reader.onerror = () =>
+      setNotice({ ok: false, text: 'Could not read that file. Use the save code instead.' });
+    reader.readAsText(file);
   }
-  return (0, jsxs)(Fragment, {
-    children: [
-      (0, jsx)(`p`, {
-        className: `small strong mb`,
-        children: `Progress backup`,
-      }),
-      (0, jsxs)(`div`, {
-        className: `btn-row`,
-        children: [
-          (0, jsx)(`button`, {
-            className: `btn btn-ghost`,
-            onClick: p,
-            children: `⬆ Back up progress`,
-          }),
-          (0, jsx)(`button`, {
-            className: `btn btn-ghost`,
-            onClick: () => {
-              (i(`import`), u(null));
-            },
-            children: `⬇ Restore progress`,
-          }),
-        ],
-      }),
-      r === `export` &&
-        (0, jsxs)(`div`, {
-          className: `panel mt`,
-          children: [
-            (0, jsx)(`p`, {
-              className: `tiny muted mb`,
-              children: `Your save code. Copy it and keep it somewhere safe.`,
-            }),
-            (0, jsx)(`textarea`, {
-              ref: d,
-              className: `field code-box`,
-              readOnly: !0,
-              value: a,
-              rows: 4,
-              onFocus: (e) => e.target.select(),
-              "aria-label": `Save code`,
-            }),
-            (0, jsxs)(`div`, {
-              className: `btn-row mt`,
-              children: [
-                (0, jsx)(`button`, {
-                  className: `btn btn-primary`,
-                  onClick: m,
-                  children: `Copy code`,
-                }),
-                (0, jsx)(`button`, {
-                  className: `btn btn-ghost`,
-                  onClick: h,
-                  children: `Save as file`,
-                }),
-              ],
-            }),
-          ],
-        }),
-      r === `import` &&
-        (0, jsxs)(`div`, {
-          className: `panel mt`,
-          children: [
-            (0, jsx)(`p`, {
-              className: `tiny muted mb`,
-              children: `Paste a save code here, or choose a backup file.`,
-            }),
-            (0, jsx)(`textarea`, {
-              className: `field code-box`,
-              value: s,
-              rows: 4,
-              placeholder: `Paste your save code…`,
-              onChange: (e) => c(e.target.value),
-              "aria-label": `Paste save code`,
-            }),
-            (0, jsxs)(`div`, {
-              className: `btn-row mt`,
-              children: [
-                (0, jsx)(`button`, {
-                  className: `btn btn-primary`,
-                  onClick: () => g(s),
-                  children: `Restore`,
-                }),
-                (0, jsx)(`button`, {
-                  className: `btn btn-ghost`,
-                  onClick: () => f.current?.click(),
-                  children: `Choose file`,
-                }),
-              ],
-            }),
-            (0, jsx)(`input`, {
-              ref: f,
-              type: `file`,
-              accept: `.json,application/json,text/plain`,
-              style: { display: `none` },
-              onChange: (e) => {
-                let t = e.target.files[0];
-                (t && v(t), (e.target.value = ``));
-              },
-            }),
-          ],
-        }),
-      l &&
-        (0, jsxs)(`p`, {
-          className: `small mt ${l.ok ? `ok-note` : `bad-note`}`,
-          children: [l.ok ? `✓ ` : `⚠ `, l.text],
-        }),
-      (0, jsx)(`p`, {
-        className: `tiny muted mt`,
-        children: `The save code carries your coins, streak and progress. It works even where file downloads are blocked.`,
-      }),
-    ],
-  });
+  return (
+    <>
+      <p className="small strong mb">Progress backup</p>
+      <div className="btn-row">
+        <button className="btn btn-ghost" onClick={startExport}>
+          ⬆ Back up progress
+        </button>
+        <button
+          className="btn btn-ghost"
+          onClick={() => {
+            setMode('import');
+            setNotice(null);
+          }}
+        >
+          ⬇ Restore progress
+        </button>
+      </div>
+      {mode === 'export' && (
+        <div className="panel mt">
+          <p className="tiny muted mb">Your save code. Copy it and keep it somewhere safe.</p>
+          <textarea
+            ref={exportBoxRef}
+            className="field code-box"
+            readOnly
+            value={saveCode}
+            rows={4}
+            onFocus={(event) => event.target.select()}
+            aria-label="Save code"
+          />
+          <div className="btn-row mt">
+            <button className="btn btn-primary" onClick={copyCode}>
+              Copy code
+            </button>
+            <button className="btn btn-ghost" onClick={saveAsFile}>
+              Save as file
+            </button>
+          </div>
+        </div>
+      )}
+      {mode === 'import' && (
+        <div className="panel mt">
+          <p className="tiny muted mb">Paste a save code here, or choose a backup file.</p>
+          <textarea
+            className="field code-box"
+            value={pasted}
+            rows={4}
+            placeholder="Paste your save code…"
+            onChange={(event) => setPasted(event.target.value)}
+            aria-label="Paste save code"
+          />
+          <div className="btn-row mt">
+            <button className="btn btn-primary" onClick={() => restoreFromText(pasted)}>
+              Restore
+            </button>
+            <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}>
+              Choose file
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json,text/plain"
+            style={{ display: 'none' }}
+            onChange={(event) => {
+              const file = event.target.files[0];
+              if (file) {
+                restoreFromFile(file);
+              }
+              event.target.value = '';
+            }}
+          />
+        </div>
+      )}
+      {notice && (
+        <p className={`small mt ${notice.ok ? 'ok-note' : 'bad-note'}`}>
+          {notice.ok ? '✓ ' : '⚠ '}
+          {notice.text}
+        </p>
+      )}
+      <p className="tiny muted mt">
+        The save code carries your coins, streak and progress. It works even where file downloads
+        are blocked.
+      </p>
+    </>
+  );
 }

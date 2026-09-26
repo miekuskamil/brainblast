@@ -1,301 +1,276 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { jsx, jsxs } from 'react/jsx-runtime';
 import { isCorrect } from '../curriculum/question.js';
 import { Coins, TierBadge, TopBar } from './common.jsx';
 import { playJump } from '../engine/sounds.js';
 import { createWorld, drawWorld, jump, passGate, step } from '../engine/platformer.js';
 
+// Hints in the runner always cost coins (no free first hint, unlike Quiz).
 const HINT_COST = 5;
 
+// "Run & Learn" platformer. The canvas world (engine/platformer.js) runs on a
+// requestAnimationFrame loop; when the runner reaches a gate the world pauses
+// and hands over a pending gate, which this component shows as a question
+// overlay. A correct answer is shown for 550 ms, then the gate opens and the
+// run resumes; a wrong answer just asks for another go. As in Quiz, only the
+// first attempt at each gate is reported via onAnswer.
+// Keyboard: Space / ArrowUp jump (ignored while typing in the answer box);
+// pointer-down on the canvas also jumps. Focus returns to the canvas whenever
+// no gate is open.
 export function Game({
-  title: e,
-  questions: t,
-  coins: n,
-  settings: r,
-  onAnswer: i,
-  onSpendCoins: a,
-  onFinish: o,
-  onBack: s,
+  title,
+  questions,
+  coins,
+  settings,
+  onAnswer,
+  onSpendCoins,
+  onFinish,
+  onBack,
 }) {
-  let c = (0, useRef)(null),
-    l = (0, useRef)(null),
-    u = (0, useRef)(0),
-    [d, f] = (0, useState)(null),
-    [p, m] = (0, useState)({ passed: 0, stars: 0, total: r.gates }),
-    [h, g] = (0, useState)(``),
-    [v, y] = (0, useState)(!1),
-    [b, x] = (0, useState)(``),
-    [S, C] = (0, useState)(!1),
-    [w, ee] = (0, useState)(null),
-    [te, ne] = (0, useState)(!1),
-    [T, E] = (0, useState)(null),
-    re = (0, useRef)(!1),
-    ie = (0, useRef)(null),
-    ae = (0, useRef)(null),
-    oe = (0, useCallback)((e) => {
-      (y(!1), x(``), ee(null), ne(!1), E(null), (re.current = !1), f(e));
-    }, []);
-  ((0, useEffect)(() => {
-    let e = c.current,
-      n = e.getContext(`2d`),
-      i = createWorld({
-        gateCount: r.gates,
-        speedMultiplier: r.speed,
-        difficulty: r.difficulty ?? 1,
-        questions: t,
-      });
-    l.current = i;
-    let a = () => {
-      let e = l.current;
-      if (!(!e || e.stopped)) {
-        if ((step(e), e.pendingGate)) {
-          let t = e.pendingGate;
-          ((e.pendingGate = null), oe(t));
-        }
-        (drawWorld(n, e), (u.current = requestAnimationFrame(a)));
+  const canvasRef = useRef(null);
+  const worldRef = useRef(null);
+  const frameRef = useRef(0);
+  const [gate, setGate] = useState(null);
+  const [progress, setProgress] = useState({ passed: 0, stars: 0, total: settings.gates });
+  const [flash, setFlash] = useState('');
+  const [hintShown, setHintShown] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [finished, setFinished] = useState(false);
+  const [wrongAnswer, setWrongAnswer] = useState(null);
+  const [showTryAgain, setShowTryAgain] = useState(false);
+  const [acceptedAnswer, setAcceptedAnswer] = useState(null);
+  const firstAttemptRecorded = useRef(false);
+  const inputRef = useRef(null);
+  const passTimerRef = useRef(null);
+  const openGate = useCallback((pendingGate) => {
+    setHintShown(false);
+    setTyped('');
+    setWrongAnswer(null);
+    setShowTryAgain(false);
+    setAcceptedAnswer(null);
+    firstAttemptRecorded.current = false;
+    setGate(pendingGate);
+  }, []);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const world = createWorld({
+      gateCount: settings.gates,
+      speedMultiplier: settings.speed,
+      difficulty: settings.difficulty ?? 1,
+      questions,
+    });
+    worldRef.current = world;
+    const tick = () => {
+      const activeWorld = worldRef.current;
+      if (!activeWorld || activeWorld.stopped) return;
+      step(activeWorld);
+      if (activeWorld.pendingGate) {
+        const pending = activeWorld.pendingGate;
+        activeWorld.pendingGate = null;
+        openGate(pending);
+      }
+      drawWorld(ctx, activeWorld);
+      frameRef.current = requestAnimationFrame(tick);
+    };
+    frameRef.current = requestAnimationFrame(tick);
+    canvas.focus();
+    const handleKeyDown = (event) => {
+      if (event.code !== 'Space' && event.code !== 'ArrowUp' && event.key !== 'ArrowUp') return;
+      if (document.activeElement?.tagName === 'INPUT') return;
+      event.preventDefault();
+      if (worldRef.current && !worldRef.current.paused) {
+        jump(worldRef.current);
+        playJump();
       }
     };
-    ((u.current = requestAnimationFrame(a)), e.focus());
-    let o = (e) => {
-      if (e.code === `Space` || e.code === `ArrowUp` || e.key === `ArrowUp`) {
-        if (document.activeElement?.tagName === `INPUT`) return;
-        (e.preventDefault(),
-          l.current && !l.current.paused && (jump(l.current), playJump()));
-      }
+    window.addEventListener('keydown', handleKeyDown, { passive: false });
+    return () => {
+      cancelAnimationFrame(frameRef.current);
+      if (worldRef.current) worldRef.current.stopped = true;
+      window.removeEventListener('keydown', handleKeyDown);
+      if (passTimerRef.current) clearTimeout(passTimerRef.current);
     };
-    return (
-      window.addEventListener(`keydown`, o, { passive: !1 }),
-      () => {
-        (cancelAnimationFrame(u.current),
-          l.current && (l.current.stopped = !0),
-          window.removeEventListener(`keydown`, o),
-          ae.current && clearTimeout(ae.current));
-      }
-    );
-  }, [t, r.gates, r.speed, r.difficulty, oe]),
-    (0, useEffect)(() => {
-      if (!d && !S) {
-        let e = setTimeout(() => c.current?.focus(), 50);
-        return () => clearTimeout(e);
-      }
-      if (d && !d.question?.options) {
-        let e = setTimeout(() => ie.current?.focus(), 60);
-        return () => clearTimeout(e);
-      }
-    }, [d, S]));
-  function D(e, t = 1300) {
-    (g(e), setTimeout(() => g(``), t));
+  }, [questions, settings.gates, settings.speed, settings.difficulty, openGate]);
+  useEffect(() => {
+    if (!gate && !finished) {
+      const timer = setTimeout(() => canvasRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+    if (gate && !gate.question?.options) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 60);
+      return () => clearTimeout(timer);
+    }
+  }, [gate, finished]);
+  function showFlash(message, ms = 1300) {
+    setFlash(message);
+    setTimeout(() => setFlash(''), ms);
   }
-  function O(e) {
-    if (T !== null) return;
-    let t = l.current,
-      n = d,
-      r = isCorrect(e, n.question.answer);
-    if ((re.current || (i(n.question, r), (re.current = !0)), !r)) {
-      (ee(String(e)), ne(!0), x(``));
+  function submitAnswer(given) {
+    if (acceptedAnswer !== null) return;
+    const world = worldRef.current;
+    const currentGate = gate;
+    const ok = isCorrect(given, currentGate.question.answer);
+    if (!firstAttemptRecorded.current) {
+      onAnswer(currentGate.question, ok);
+      firstAttemptRecorded.current = true;
+    }
+    if (!ok) {
+      setWrongAnswer(String(given));
+      setShowTryAgain(true);
+      setTyped('');
       return;
     }
-    (ee(null),
-      ne(!1),
-      E(String(e)),
-      (ae.current = setTimeout(() => {
-        ((ae.current = null),
-          E(null),
-          f(null),
-          passGate(t, n),
-          m({ passed: t.passedCount, stars: t.starsTaken, total: t.gateCount }),
-          D(
-            n.question.explain
-              ? `Gate open! 🎉 ${n.question.explain}`
-              : `Gate open — keep running! 🎉`,
-            n.question.explain ? 3200 : 1300,
-          ),
-          t.passedCount >= t.gateCount &&
-            ((t.stopped = !0),
-            cancelAnimationFrame(u.current),
-            C(!0),
-            o({ gates: t.passedCount, stars: t.starsTaken, falls: t.falls })));
-      }, 550)));
+    setWrongAnswer(null);
+    setShowTryAgain(false);
+    setAcceptedAnswer(String(given));
+    passTimerRef.current = setTimeout(() => {
+      passTimerRef.current = null;
+      setAcceptedAnswer(null);
+      setGate(null);
+      passGate(world, currentGate);
+      setProgress({ passed: world.passedCount, stars: world.starsTaken, total: world.gateCount });
+      showFlash(
+        currentGate.question.explain
+          ? `Gate open! 🎉 ${currentGate.question.explain}`
+          : 'Gate open — keep running! 🎉',
+        currentGate.question.explain ? 3200 : 1300,
+      );
+      if (world.passedCount >= world.gateCount) {
+        world.stopped = true;
+        cancelAnimationFrame(frameRef.current);
+        setFinished(true);
+        onFinish({ gates: world.passedCount, stars: world.starsTaken, falls: world.falls });
+      }
+    }, 550);
   }
-  function k() {
-    v || n < HINT_COST || (a(HINT_COST), y(!0));
+  function handleHint() {
+    if (hintShown || coins < HINT_COST) return;
+    onSpendCoins(HINT_COST);
+    setHintShown(true);
   }
-  let A = d?.question;
-  return (0, jsxs)(`div`, {
-    className: `card rise`,
-    style: { padding: 14 },
-    children: [
-      (0, jsx)(TopBar, {
-        onBack: () => {
-          (l.current && (l.current.stopped = !0),
-            cancelAnimationFrame(u.current),
-            s());
-        },
-        title: e,
-        sub: `Gate ${p.passed} of ${p.total}`,
-        right: (0, jsx)(Coins, { n }),
-      }),
-      (0, jsxs)(`div`, {
-        className: `stage`,
-        style: { aspectRatio: `640 / 300` },
-        children: [
-          (0, jsx)(`canvas`, {
-            ref: c,
-            width: 640,
-            height: 300,
-            tabIndex: 0,
-            "aria-label": `Running game. Press space or arrow up to jump.`,
-            onPointerDown: (e) => {
-              (e.preventDefault(),
-                l.current && !l.current.paused && (jump(l.current), playJump()));
-            },
-          }),
-          h && (0, jsx)(`div`, { className: `flash`, children: h }),
-        ],
-      }),
-      d &&
-        A &&
-        (0, jsx)(`div`, {
-          className: `overlay`,
-          children: (0, jsxs)(`div`, {
-            className: `overlay-card`,
-            children: [
-              (0, jsxs)(`div`, {
-                className: `row-between`,
-                style: { marginBottom: 10 },
-                children: [
-                  (0, jsxs)(`span`, {
-                    className: `chip chip-brand`,
-                    children: [`Gate `, d.index + 1],
-                  }),
-                  (0, jsxs)(`span`, {
-                    className: `wrap`,
-                    style: { justifyContent: `flex-end` },
-                    children: [
-                      (0, jsx)(TierBadge, { tier: A.tier }),
-                      A.isReview &&
-                        (0, jsx)(`span`, {
-                          className: `review-flag`,
-                          children: `🔁 Review`,
-                        }),
-                    ],
-                  }),
-                ],
-              }),
-              (0, jsx)(`div`, {
-                className: `qbox`,
-                style: { minHeight: 68, margin: `0 0 14px` },
-                children: A.prompt,
-              }),
-              A.options
-                ? (0, jsx)(`div`, {
-                    className: `opts ${A.options.some((e) => String(e).length > 18) ? `` : `two-up`}`,
-                    children: A.options.map((e, t) =>
-                      (0, jsx)(
-                        `button`,
-                        {
-                          className: `opt ${w === String(e) ? `wrong` : ``} ${T === String(e) ? `correct` : ``}`,
-                          onClick: () => O(e),
-                          disabled: T !== null,
-                          children: e,
-                        },
-                        t,
-                      ),
-                    ),
-                  })
-                : (0, jsxs)(`div`, {
-                    className: `stack`,
-                    children: [
-                      (0, jsx)(`input`, {
-                        ref: ie,
-                        className: `field ${T === null ? `` : `correct`}`,
-                        value: T === null ? b : T,
-                        placeholder: `Type your answer…`,
-                        autoComplete: `off`,
-                        spellCheck: !1,
-                        disabled: T !== null,
-                        onChange: (e) => x(e.target.value),
-                        onKeyDown: (e) => {
-                          (e.stopPropagation(),
-                            e.key === `Enter` && b.trim() && O(b.trim()));
-                        },
-                        "aria-label": `Your answer`,
-                      }),
-                      (0, jsx)(`button`, {
-                        className: `btn btn-primary`,
-                        disabled: !b.trim() || T !== null,
-                        onClick: () => O(b.trim()),
-                        children: `Check`,
-                      }),
-                    ],
-                  }),
-              te &&
-                (0, jsx)(`div`, {
-                  className: `try-again`,
-                  role: `status`,
-                  "aria-live": `assertive`,
-                  children: `Not quite — have another go 🙂`,
-                }),
-              v &&
-                A.hint &&
-                (0, jsxs)(`div`, {
-                  className: `hint`,
-                  children: [`💡 `, A.hint],
-                }),
-              !v &&
-                A.hint &&
-                (0, jsxs)(`button`, {
-                  className: `btn btn-ghost mt`,
-                  onClick: k,
-                  disabled: n < HINT_COST,
-                  children: [
-                    `💡 `,
-                    n >= HINT_COST ? `Hint — ${HINT_COST} coins` : `Hint needs ${HINT_COST} coins`,
-                  ],
-                }),
-            ],
-          }),
-        }),
-      S &&
-        (0, jsx)(`div`, {
-          className: `overlay`,
-          children: (0, jsxs)(`div`, {
-            className: `overlay-card center`,
-            children: [
-              (0, jsx)(`div`, {
-                style: { fontSize: `3.2rem` },
-                children: `🏆`,
-              }),
-              (0, jsx)(`h1`, {
-                className: `mt`,
-                children: `All gates passed`,
-              }),
-              (0, jsxs)(`p`, {
-                className: `small muted mt`,
-                children: [
-                  p.stars,
-                  ` `,
-                  p.stars === 1 ? `star` : `stars`,
-                  ` collected along the way.`,
-                ],
-              }),
-              (0, jsx)(`button`, {
-                className: `btn btn-primary mt-lg`,
-                onClick: s,
-                children: `Back home`,
-              }),
-            ],
-          }),
-        }),
-      (0, jsxs)(`p`, {
-        className: `tiny muted center mt`,
-        children: [
-          (0, jsx)(`strong`, { children: `Space` }),
-          ` or `,
-          (0, jsx)(`strong`, { children: `↑` }),
-          ` to jump · tap the screen on mobile · she runs automatically`,
-        ],
-      }),
-    ],
-  });
+  function handleBack() {
+    if (worldRef.current) worldRef.current.stopped = true;
+    cancelAnimationFrame(frameRef.current);
+    onBack();
+  }
+  function handleCanvasPointerDown(event) {
+    event.preventDefault();
+    if (worldRef.current && !worldRef.current.paused) {
+      jump(worldRef.current);
+      playJump();
+    }
+  }
+  const question = gate?.question;
+  const longOptions = question?.options?.some((option) => String(option).length > 18);
+  return (
+    <div className="card rise" style={{ padding: 14 }}>
+      <TopBar
+        onBack={handleBack}
+        title={title}
+        sub={`Gate ${progress.passed} of ${progress.total}`}
+        right={<Coins n={coins} />}
+      />
+      <div className="stage" style={{ aspectRatio: '640 / 300' }}>
+        <canvas
+          ref={canvasRef}
+          width={640}
+          height={300}
+          tabIndex={0}
+          aria-label="Running game. Press space or arrow up to jump."
+          onPointerDown={handleCanvasPointerDown}
+        />
+        {flash && <div className="flash">{flash}</div>}
+      </div>
+      {gate && question && (
+        <div className="overlay">
+          <div className="overlay-card">
+            <div className="row-between" style={{ marginBottom: 10 }}>
+              <span className="chip chip-brand">Gate {gate.index + 1}</span>
+              <span className="wrap" style={{ justifyContent: 'flex-end' }}>
+                <TierBadge tier={question.tier} />
+                {question.isReview && <span className="review-flag">🔁 Review</span>}
+              </span>
+            </div>
+            <div className="qbox" style={{ minHeight: 68, margin: '0 0 14px' }}>
+              {question.prompt}
+            </div>
+            {question.options ? (
+              <div className={`opts ${longOptions ? '' : 'two-up'}`}>
+                {question.options.map((option, i) => (
+                  <button
+                    key={i}
+                    className={`opt ${wrongAnswer === String(option) ? 'wrong' : ''} ${acceptedAnswer === String(option) ? 'correct' : ''}`}
+                    onClick={() => submitAnswer(option)}
+                    disabled={acceptedAnswer !== null}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="stack">
+                <input
+                  ref={inputRef}
+                  className={`field ${acceptedAnswer === null ? '' : 'correct'}`}
+                  value={acceptedAnswer === null ? typed : acceptedAnswer}
+                  placeholder="Type your answer…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={acceptedAnswer !== null}
+                  onChange={(event) => setTyped(event.target.value)}
+                  onKeyDown={(event) => {
+                    // Keep Space/ArrowUp typed here from reaching the jump handler.
+                    event.stopPropagation();
+                    if (event.key === 'Enter' && typed.trim()) submitAnswer(typed.trim());
+                  }}
+                  aria-label="Your answer"
+                />
+                <button
+                  className="btn btn-primary"
+                  disabled={!typed.trim() || acceptedAnswer !== null}
+                  onClick={() => submitAnswer(typed.trim())}
+                >
+                  Check
+                </button>
+              </div>
+            )}
+            {showTryAgain && (
+              <div className="try-again" role="status" aria-live="assertive">
+                Not quite — have another go 🙂
+              </div>
+            )}
+            {hintShown && question.hint && <div className="hint">💡 {question.hint}</div>}
+            {!hintShown && question.hint && (
+              <button
+                className="btn btn-ghost mt"
+                onClick={handleHint}
+                disabled={coins < HINT_COST}
+              >
+                💡{' '}
+                {coins >= HINT_COST ? `Hint — ${HINT_COST} coins` : `Hint needs ${HINT_COST} coins`}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {finished && (
+        <div className="overlay">
+          <div className="overlay-card center">
+            <div style={{ fontSize: '3.2rem' }}>🏆</div>
+            <h1 className="mt">All gates passed</h1>
+            <p className="small muted mt">
+              {progress.stars} {progress.stars === 1 ? 'star' : 'stars'} collected along the way.
+            </p>
+            <button className="btn btn-primary mt-lg" onClick={onBack}>
+              Back home
+            </button>
+          </div>
+        </div>
+      )}
+      <p className="tiny muted center mt">
+        <strong>Space</strong> or <strong>↑</strong> to jump · tap the screen on mobile · she runs
+        automatically
+      </p>
+    </div>
+  );
 }

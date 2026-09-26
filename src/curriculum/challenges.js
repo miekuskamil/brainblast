@@ -1,359 +1,391 @@
+/**
+ * Multi-step challenges: longer, real-world word problems that chain three or
+ * four operations together (the "bring it all together" topic at the end of
+ * the maths menu).
+ *
+ * Each style builds a `longForm` question — the UI gives these more room and
+ * a scratch pad. Visuals organise the given information (a table of costs, a
+ * floor plan) but never show an intermediate result, because working that out
+ * is the point of the question. A style returns null when its random numbers
+ * don't make a sensible problem, and `makeTopic` simply rolls again.
+ */
 import { barModelSvg, journeySvg, rectSvg, tableSvg } from './visual.js';
 import { TIER, byTier } from '../engine/difficulty.js';
 import { makeTopic } from './topic.js';
 
-const NAMES = [
-    `Aisha`,
-    `Callum`,
-    `Freya`,
-    `Jamie`,
-    `Lena`,
-    `Rory`,
-    `Skye`,
-    `Finlay`,
-    `Nadia`,
-    `Euan`,
-  ];
+const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
 
 const PLACES = [
-    `Stirling Castle`,
-    `the Kelpies`,
-    `Edinburgh Zoo`,
-    `the Riverside Museum`,
-    `Dynamic Earth`,
-  ];
+  'Stirling Castle',
+  'the Kelpies',
+  'Edinburgh Zoo',
+  'the Riverside Museum',
+  'Dynamic Earth',
+];
 
-const pounds = (e) => (Number.isInteger(e) ? `£${e}` : `£${e.toFixed(2)}`);
+/** "£12" for whole pounds, "£12.50" otherwise. */
+const pounds = (amount) => (Number.isInteger(amount) ? `£${amount}` : `£${amount.toFixed(2)}`);
 
-export const challengesTopic = makeTopic(`challenges`, `Multi-step challenges`, 5, [
-    {
-      id: `school-trip`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [16, 24], [24, 32], [32, 45]),
-          [i, a] = byTier(t, [2, 4], [3, 5], [5, 8]),
-          [o, s] = byTier(t, [5, 10], [8, 15], [12, 22]),
-          [c, l] = byTier(t, [2, 5], [3, 8], [5, 12]),
-          [u, d] = byTier(t, [10, 18], [15, 26], [22, 35]),
-          [f, p] = byTier(t, [4, 10], [6, 16], [10, 25]),
-          m = e.int(n, r),
-          h = e.int(i, a),
-          g = e.int(o, s),
-          _ = g + e.int(c, l),
-          v = e.int(u, d) * 10,
-          y = m * g + h * _ + v,
-          b = e.int(f, p),
-          x = y - b * m;
-        return x < 60 || x > y * 0.7
-          ? null
-          : {
-              longForm: !0,
-              prompt: `P7 are going to ${e.pick(PLACES)}.
+export const challengesTopic = makeTopic('challenges', 'Multi-step challenges', 5, [
+  // Total a trip's costs, subtract money already raised, share the rest per
+  // pupil. The fundraising total is worked backwards from a whole-pound share
+  // so the division always comes out exactly.
+  {
+    id: 'school-trip',
+    build(rng, tier = TIER.STANDARD) {
+      const [minPupils, maxPupils] = byTier(tier, [16, 24], [24, 32], [32, 45]);
+      const [minAdults, maxAdults] = byTier(tier, [2, 4], [3, 5], [5, 8]);
+      const [minPupilPrice, maxPupilPrice] = byTier(tier, [5, 10], [8, 15], [12, 22]);
+      const [minAdultExtra, maxAdultExtra] = byTier(tier, [2, 5], [3, 8], [5, 12]);
+      const [minCoachTens, maxCoachTens] = byTier(tier, [10, 18], [15, 26], [22, 35]);
+      const [minShare, maxShare] = byTier(tier, [4, 10], [6, 16], [10, 25]);
+      const pupils = rng.int(minPupils, maxPupils);
+      const adults = rng.int(minAdults, maxAdults);
+      const pupilPrice = rng.int(minPupilPrice, maxPupilPrice);
+      const adultPrice = pupilPrice + rng.int(minAdultExtra, maxAdultExtra);
+      const coach = rng.int(minCoachTens, maxCoachTens) * 10;
+      const totalCost = pupils * pupilPrice + adults * adultPrice + coach;
+      const share = rng.int(minShare, maxShare);
+      const raised = totalCost - share * pupils;
+      // The cake sale should be a meaningful sum but not cover most of the trip.
+      if (raised < 60 || raised > totalCost * 0.7) return null;
+      return {
+        longForm: true,
+        prompt: `P7 are going to ${rng.pick(PLACES)}.
 
-There are ${m} pupils and ${h} adults going.
-Pupil tickets cost ${pounds(g)} each and adult tickets cost ${pounds(_)} each.
-The coach costs ${pounds(v)} for the day.
+There are ${pupils} pupils and ${adults} adults going.
+Pupil tickets cost ${pounds(pupilPrice)} each and adult tickets cost ${pounds(adultPrice)} each.
+The coach costs ${pounds(coach)} for the day.
 
-The class has already raised ${pounds(x)} from a cake sale.
+The class has already raised ${pounds(raised)} from a cake sale.
 The rest is shared equally between the pupils.
 
 How much does each pupil have to pay?`,
-              answer: b,
-              hint: `Start with the total cost of the trip: tickets for the pupils, tickets for the adults, and the coach.`,
-              visual: tableSvg(
-                [`Item`, `Cost`],
-                [
-                  [`${m} pupil tickets`, `${pounds(g)} each`],
-                  [`${h} adult tickets`, `${pounds(_)} each`],
-                  [`Coach`, pounds(v)],
-                  [`Already raised`, `− ${pounds(x)}`],
-                ],
-                { title: `Trip costs` },
-              ),
-              explain: `Pupils: ${m} × ${pounds(g)} = ${pounds(m * g)}. Adults: ${h} × ${pounds(_)} = ${pounds(h * _)}. Plus coach ${pounds(v)} gives ${pounds(y)}. Take off the ${pounds(x)} raised: ${pounds(y - x)}. Shared between ${m} pupils: ${pounds(b)} each.`,
-            };
-      },
+        answer: share,
+        hint: 'Start with the total cost of the trip: tickets for the pupils, tickets for the adults, and the coach.',
+        visual: tableSvg(
+          ['Item', 'Cost'],
+          [
+            [`${pupils} pupil tickets`, `${pounds(pupilPrice)} each`],
+            [`${adults} adult tickets`, `${pounds(adultPrice)} each`],
+            ['Coach', pounds(coach)],
+            ['Already raised', `− ${pounds(raised)}`],
+          ],
+          { title: 'Trip costs' },
+        ),
+        explain: `Pupils: ${pupils} × ${pounds(pupilPrice)} = ${pounds(pupils * pupilPrice)}. Adults: ${adults} × ${pounds(adultPrice)} = ${pounds(adults * adultPrice)}. Plus coach ${pounds(coach)} gives ${pounds(totalCost)}. Take off the ${pounds(raised)} raised: ${pounds(totalCost - raised)}. Shared between ${pupils} pupils: ${pounds(share)} each.`,
+      };
     },
-    {
-      id: `tuck-shop`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [4, 8], [6, 12], [10, 18]),
-          i = byTier(t, [10, 12], [10, 12, 20], [10, 12, 20, 25]),
-          [a, o] = byTier(t, [2, 4], [3, 7], [5, 9]),
-          s = byTier(t, [40, 50], [40, 50, 60, 75], [50, 60, 75, 90]),
-          [c, l] = byTier(t, [2, 8], [3, 15], [10, 25]),
-          u = e.int(n, r),
-          d = e.pick(i),
-          f = e.int(a, o),
-          p = e.pick(s),
-          m = e.int(c, l),
-          h = u * d;
-        if (m >= h) return null;
-        let g = ((h - m) * p) / 100,
-          _ = u * f,
-          v = g - _;
-        return Math.abs(v * 100 - Math.round(v * 100)) > 1e-6 || v <= 0
-          ? null
-          : {
-              longForm: !0,
-              prompt: `${e.pick(NAMES)} runs the school tuck shop.
+  },
 
-She buys ${u} boxes of cereal bars.
-Each box costs ${pounds(f)} and holds ${d} bars.
+  // Profit = takings on the bars actually sold − cost of the boxes. Mixes
+  // pence and pounds; rejects results that aren't a whole number of pence or
+  // aren't a profit.
+  {
+    id: 'tuck-shop',
+    build(rng, tier = TIER.STANDARD) {
+      const [minBoxes, maxBoxes] = byTier(tier, [4, 8], [6, 12], [10, 18]);
+      const barsPerBoxPool = byTier(tier, [10, 12], [10, 12, 20], [10, 12, 20, 25]);
+      const [minBoxPrice, maxBoxPrice] = byTier(tier, [2, 4], [3, 7], [5, 9]);
+      const barPricePool = byTier(tier, [40, 50], [40, 50, 60, 75], [50, 60, 75, 90]);
+      const [minUnsold, maxUnsold] = byTier(tier, [2, 8], [3, 15], [10, 25]);
+      const boxes = rng.int(minBoxes, maxBoxes);
+      const barsPerBox = rng.pick(barsPerBoxPool);
+      const boxPrice = rng.int(minBoxPrice, maxBoxPrice);
+      const barPricePence = rng.pick(barPricePool);
+      const unsold = rng.int(minUnsold, maxUnsold);
+      const totalBars = boxes * barsPerBox;
+      if (unsold >= totalBars) return null;
+      const takings = ((totalBars - unsold) * barPricePence) / 100;
+      const spent = boxes * boxPrice;
+      const profit = takings - spent;
+      if (Math.abs(profit * 100 - Math.round(profit * 100)) > 1e-6 || profit <= 0) return null;
+      return {
+        longForm: true,
+        prompt: `${rng.pick(NAMES)} runs the school tuck shop.
 
-She sells the bars at ${p}p each.
-By the end of the week ${m} bars are left unsold.
+She buys ${boxes} boxes of cereal bars.
+Each box costs ${pounds(boxPrice)} and holds ${barsPerBox} bars.
+
+She sells the bars at ${barPricePence}p each.
+By the end of the week ${unsold} bars are left unsold.
 
 How much profit does she make?
 (Give your answer in pounds, like 12.50)`,
-              answer: v.toFixed(2),
-              hint: `First work out how many bars she bought altogether: ${u} × ${d}.`,
-              visual: tableSvg(
-                [``, `Amount`],
-                [
-                  [`Boxes bought`, `${u} at ${pounds(f)}`],
-                  [`Bars per box`, String(d)],
-                  [`Selling price`, `${p}p each`],
-                  [`Left unsold`, String(m)],
-                ],
-                { title: `Tuck shop` },
-              ),
-              explain: `She bought ${u} × ${d} = ${h} bars, and sold ${h} − ${m} = ${h - m}. Money in: ${h - m} × ${p}p = £${g.toFixed(2)}. Money out: ${u} × ${pounds(f)} = ${pounds(_)}. Profit = £${g.toFixed(2)} − ${pounds(_)} = £${v.toFixed(2)}.`,
-            };
-      },
+        answer: profit.toFixed(2),
+        hint: `First work out how many bars she bought altogether: ${boxes} × ${barsPerBox}.`,
+        visual: tableSvg(
+          ['', 'Amount'],
+          [
+            ['Boxes bought', `${boxes} at ${pounds(boxPrice)}`],
+            ['Bars per box', String(barsPerBox)],
+            ['Selling price', `${barPricePence}p each`],
+            ['Left unsold', String(unsold)],
+          ],
+          { title: 'Tuck shop' },
+        ),
+        explain: `She bought ${boxes} × ${barsPerBox} = ${totalBars} bars, and sold ${totalBars} − ${unsold} = ${totalBars - unsold}. Money in: ${totalBars - unsold} × ${barPricePence}p = £${takings.toFixed(2)}. Money out: ${boxes} × ${pounds(boxPrice)} = ${pounds(spent)}. Profit = £${takings.toFixed(2)} − ${pounds(spent)} = £${profit.toFixed(2)}.`,
+      };
     },
-    {
-      id: `painting`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [3, 6], [4, 8], [7, 12]),
-          [i, a] = byTier(t, [2, 4], [3, 6], [5, 9]),
-          o = e.int(n, r),
-          s = e.int(i, a),
-          c = byTier(t, [3, 4], [4, 5, 6], [5, 6, 8]),
-          l = e.pick(c),
-          u = 2 * (o + s) * 3 - l,
-          d = byTier(t, [10, 12], [10, 12, 15], [10, 12, 15]),
-          f = e.pick(d),
-          [p, m] = byTier(t, [5, 9], [7, 14], [10, 18]),
-          h = e.int(p, m),
-          g = Math.ceil(u / f);
-        return {
-          longForm: !0,
-          prompt: `${e.pick(NAMES)} is painting the walls of a hall.
+  },
 
-The hall is ${o} m long, ${s} m wide and 3 m high.
+  // Wall area of a room (not the floor plan's area), minus doors and windows,
+  // then whole tins of paint — practises rounding up in context.
+  {
+    id: 'painting',
+    build(rng, tier = TIER.STANDARD) {
+      const [minLength, maxLength] = byTier(tier, [3, 6], [4, 8], [7, 12]);
+      const [minWidth, maxWidth] = byTier(tier, [2, 4], [3, 6], [5, 9]);
+      const length = rng.int(minLength, maxLength);
+      const width = rng.int(minWidth, maxWidth);
+      const gapsPool = byTier(tier, [3, 4], [4, 5, 6], [5, 6, 8]);
+      const gaps = rng.pick(gapsPool);
+      const wallArea = 2 * (length + width) * 3 - gaps;
+      const coveragePool = byTier(tier, [10, 12], [10, 12, 15], [10, 12, 15]);
+      const coverage = rng.pick(coveragePool);
+      const [minTinPrice, maxTinPrice] = byTier(tier, [5, 9], [7, 14], [10, 18]);
+      const tinPrice = rng.int(minTinPrice, maxTinPrice);
+      const tins = Math.ceil(wallArea / coverage);
+      return {
+        longForm: true,
+        prompt: `${rng.pick(NAMES)} is painting the walls of a hall.
+
+The hall is ${length} m long, ${width} m wide and 3 m high.
 He paints all four walls, but not the ceiling or the floor.
-The door and windows take up ${l} m² which he does not paint.
+The door and windows take up ${gaps} m² which he does not paint.
 
-One tin of paint covers ${f} m².
-Tins cost ${pounds(h)} each and he can only buy whole tins.
+One tin of paint covers ${coverage} m².
+Tins cost ${pounds(tinPrice)} each and he can only buy whole tins.
 
 How much does the paint cost?`,
-          answer: g * h,
-          hint: `The four walls are two walls of length × height and two of width × height.`,
-          visual: rectSvg(o, s, `m`, { label: `floor plan · walls are 3 m high` }),
-          explain: `Walls: 2 × (${o} + ${s}) × 3 = ${2 * (o + s) * 3} m². Take off the door and windows: ${2 * (o + s) * 3} − ${l} = ${u} m². Tins needed: ${u} ÷ ${f} = ${(u / f).toFixed(2)}, rounded up to ${g} whole tins. Cost: ${g} × ${pounds(h)} = ${pounds(g * h)}.`,
-        };
-      },
+        answer: tins * tinPrice,
+        hint: 'The four walls are two walls of length × height and two of width × height.',
+        visual: rectSvg(length, width, 'm', { label: 'floor plan · walls are 3 m high' }),
+        explain: `Walls: 2 × (${length} + ${width}) × 3 = ${2 * (length + width) * 3} m². Take off the door and windows: ${2 * (length + width) * 3} − ${gaps} = ${wallArea} m². Tins needed: ${wallArea} ÷ ${coverage} = ${(wallArea / coverage).toFixed(2)}, rounded up to ${tins} whole tins. Cost: ${tins} × ${pounds(tinPrice)} = ${pounds(tins * tinPrice)}.`,
+      };
     },
-    {
-      id: `sponsored-walk`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [8, 10, 12], [8, 10, 12, 16, 20], [12, 16, 20, 24, 30]),
-          r = byTier(t, [250, 400], [250, 400, 500], [400, 500, 750]),
-          i = e.pick(n),
-          a = e.pick(r),
-          o = (i * a) / 1e3;
-        if (!Number.isInteger(o * 2)) return null;
-        let s = e.sample(NAMES, 3),
-          [c, l] = byTier(t, [1, 3], [2, 5], [4, 8]),
-          [u, d] = byTier(t, [1, 2], [1, 3], [2, 5]),
-          [f, p] = byTier(t, [2, 4], [3, 6], [5, 9]),
-          m = [e.int(c, l), e.int(u, d), e.int(f, p)],
-          h = m.reduce((e, t) => e + t, 0),
-          g = o * h;
-        return Math.abs(g * 100 - Math.round(g * 100)) > 1e-6
-          ? null
-          : {
-              longForm: !0,
-              prompt: `${e.pick(NAMES)} is doing a sponsored walk round the school field.
+  },
 
-She walks ${i} laps, and one lap is ${a} m.
+  // Metres → kilometres, then a combined per-km sponsorship rate. Distance is
+  // kept to a whole or half km so the money works out cleanly.
+  {
+    id: 'sponsored-walk',
+    build(rng, tier = TIER.STANDARD) {
+      const lapsPool = byTier(tier, [8, 10, 12], [8, 10, 12, 16, 20], [12, 16, 20, 24, 30]);
+      const lapLengthPool = byTier(tier, [250, 400], [250, 400, 500], [400, 500, 750]);
+      const laps = rng.pick(lapsPool);
+      const lapLength = rng.pick(lapLengthPool);
+      const km = (laps * lapLength) / 1000;
+      if (!Number.isInteger(km * 2)) return null;
+      const sponsors = rng.sample(NAMES, 3);
+      const [minRate1, maxRate1] = byTier(tier, [1, 3], [2, 5], [4, 8]);
+      const [minRate2, maxRate2] = byTier(tier, [1, 2], [1, 3], [2, 5]);
+      const [minRate3, maxRate3] = byTier(tier, [2, 4], [3, 6], [5, 9]);
+      const rates = [
+        rng.int(minRate1, maxRate1),
+        rng.int(minRate2, maxRate2),
+        rng.int(minRate3, maxRate3),
+      ];
+      const ratePerKm = rates.reduce((sum, rate) => sum + rate, 0);
+      const raised = km * ratePerKm;
+      if (Math.abs(raised * 100 - Math.round(raised * 100)) > 1e-6) return null;
+      return {
+        longForm: true,
+        prompt: `${rng.pick(NAMES)} is doing a sponsored walk round the school field.
+
+She walks ${laps} laps, and one lap is ${lapLength} m.
 
 Three people sponsor her. The table shows what each of them pays her for every kilometre she walks.
 
 How much money does she raise altogether?
 (Give your answer in pounds)`,
-              answer: Number.isInteger(g) ? String(g) : g.toFixed(2),
-              hint: `First find how far she walked in kilometres. Remember 1000 m = 1 km.`,
-              visual: tableSvg(
-                [`Sponsor`, `Pays per km`],
-                s.map((e, t) => [e, pounds(m[t])]),
-                { title: `Sponsors` },
-              ),
-              explain: `Distance: ${i} × ${a} m = ${i * a} m = ${o} km. The sponsors together pay ${m.join(` + `)} = ${pounds(h)} per km. Raised: ${o} × ${pounds(h)} = ${pounds(g)}.`,
-            };
-      },
+        answer: Number.isInteger(raised) ? String(raised) : raised.toFixed(2),
+        hint: 'First find how far she walked in kilometres. Remember 1000 m = 1 km.',
+        visual: tableSvg(
+          ['Sponsor', 'Pays per km'],
+          sponsors.map((sponsor, i) => [sponsor, pounds(rates[i])]),
+          { title: 'Sponsors' },
+        ),
+        explain: `Distance: ${laps} × ${lapLength} m = ${laps * lapLength} m = ${km} km. The sponsors together pay ${rates.join(' + ')} = ${pounds(ratePerKm)} per km. Raised: ${km} × ${pounds(ratePerKm)} = ${pounds(raised)}.`,
+      };
     },
-    {
-      id: `compare-deals`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [6, 9], [6, 9, 12], [9, 12, 18]),
-          [r, i] = byTier(t, [4, 8], [6, 12], [10, 18]),
-          [a, o] = byTier(t, [1, 3], [2, 4], [3, 6]),
-          [s, c] = byTier(t, [2, 5], [3, 8], [6, 12]),
-          [l, u] = byTier(t, [4, 9], [6, 14], [8, 18]),
-          d = e.pick(n),
-          f = e.int(r, i),
-          p = e.int(a, o),
-          m = e.int(s, c),
-          h = f + e.int(l, u),
-          g = (f + p * m) * d,
-          _ = h * d,
-          v = Math.abs(g - _);
-        if (v === 0 || v > 400) return null;
-        let y = g < _ ? `Streamly` : `Playtime`;
-        return {
-          longForm: !0,
-          prompt: `${e.pick(NAMES)} is choosing between two music apps.
+  },
 
-Streamly charges ${pounds(f)} a month, plus ${pounds(p)} for every GB of data used.
-Playtime charges ${pounds(h)} a month with all the data included.
+  // Compare a pay-as-you-go plan with a flat-rate plan over several months.
+  {
+    id: 'compare-deals',
+    build(rng, tier = TIER.STANDARD) {
+      const monthsPool = byTier(tier, [6, 9], [6, 9, 12], [9, 12, 18]);
+      const [minFee, maxFee] = byTier(tier, [4, 8], [6, 12], [10, 18]);
+      const [minPerGb, maxPerGb] = byTier(tier, [1, 3], [2, 4], [3, 6]);
+      const [minGb, maxGb] = byTier(tier, [2, 5], [3, 8], [6, 12]);
+      const [minFlatExtra, maxFlatExtra] = byTier(tier, [4, 9], [6, 14], [8, 18]);
+      const months = rng.pick(monthsPool);
+      const streamlyFee = rng.int(minFee, maxFee);
+      const perGb = rng.int(minPerGb, maxPerGb);
+      const gbPerMonth = rng.int(minGb, maxGb);
+      const playtimeFee = streamlyFee + rng.int(minFlatExtra, maxFlatExtra);
+      const streamlyTotal = (streamlyFee + perGb * gbPerMonth) * months;
+      const playtimeTotal = playtimeFee * months;
+      const saving = Math.abs(streamlyTotal - playtimeTotal);
+      if (saving === 0 || saving > 400) return null;
+      const cheaper = streamlyTotal < playtimeTotal ? 'Streamly' : 'Playtime';
+      return {
+        longForm: true,
+        prompt: `${rng.pick(NAMES)} is choosing between two music apps.
 
-She uses ${m} GB every month, and wants to know the cost over ${d} months.
+Streamly charges ${pounds(streamlyFee)} a month, plus ${pounds(perGb)} for every GB of data used.
+Playtime charges ${pounds(playtimeFee)} a month with all the data included.
+
+She uses ${gbPerMonth} GB every month, and wants to know the cost over ${months} months.
 
 How much would she save by choosing the cheaper one?`,
-          answer: v,
-          hint: `Work out one month of Streamly first: the ${pounds(f)} fee plus ${m} GB of data.`,
-          visual: tableSvg(
-            [`App`, `Monthly cost`],
-            [
-              [`Streamly`, `${pounds(f)} + ${pounds(p)}/GB`],
-              [`Playtime`, `${pounds(h)} all in`],
-            ],
-            { title: `Used: ${m} GB a month` },
-          ),
-          explain: `Streamly: ${pounds(f)} + ${m} × ${pounds(p)} = ${pounds(f + p * m)} a month, so ${d} months costs ${pounds(g)}. Playtime: ${d} × ${pounds(h)} = ${pounds(_)}. ${y} is cheaper by ${pounds(v)}.`,
-        };
-      },
+        answer: saving,
+        hint: `Work out one month of Streamly first: the ${pounds(streamlyFee)} fee plus ${gbPerMonth} GB of data.`,
+        visual: tableSvg(
+          ['App', 'Monthly cost'],
+          [
+            ['Streamly', `${pounds(streamlyFee)} + ${pounds(perGb)}/GB`],
+            ['Playtime', `${pounds(playtimeFee)} all in`],
+          ],
+          { title: `Used: ${gbPerMonth} GB a month` },
+        ),
+        explain: `Streamly: ${pounds(streamlyFee)} + ${gbPerMonth} × ${pounds(perGb)} = ${pounds(streamlyFee + perGb * gbPerMonth)} a month, so ${months} months costs ${pounds(streamlyTotal)}. Playtime: ${months} × ${pounds(playtimeFee)} = ${pounds(playtimeTotal)}. ${cheaper} is cheaper by ${pounds(saving)}.`,
+      };
     },
-    {
-      id: `party-packs`,
-      build(e, t = TIER.STANDARD) {
-        let [n, r] = byTier(t, [8, 16], [14, 28], [24, 40]),
-          i = byTier(t, [2], [2, 3], [2, 3, 4]),
-          a = byTier(t, [6, 8], [6, 8, 10], [8, 10, 12]),
-          [o, s] = byTier(t, [1, 3], [2, 5], [4, 8]),
-          c = e.int(n, r),
-          l = e.pick(i),
-          u = e.pick(a),
-          d = e.int(o, s),
-          f = c * l,
-          p = Math.ceil(f / u),
-          m = p * d,
-          h = Math.ceil((m + e.int(3, 12)) / 5) * 5;
-        return {
-          longForm: !0,
-          prompt: `${e.pick(NAMES)} is making party bags for his birthday.
+  },
 
-${c} people are coming, and each bag needs ${l} chocolate bars.
+  // Buy whole packs (round up), then work out change. The bar model shows the
+  // spare bars in the last pack but is deliberately unlabelled: printing the
+  // "bars needed" total would pre-compute the hint's first step.
+  {
+    id: 'party-packs',
+    build(rng, tier = TIER.STANDARD) {
+      const [minGuests, maxGuests] = byTier(tier, [8, 16], [14, 28], [24, 40]);
+      const barsPerBagPool = byTier(tier, [2], [2, 3], [2, 3, 4]);
+      const packSizePool = byTier(tier, [6, 8], [6, 8, 10], [8, 10, 12]);
+      const [minPackPrice, maxPackPrice] = byTier(tier, [1, 3], [2, 5], [4, 8]);
+      const guests = rng.int(minGuests, maxGuests);
+      const barsPerBag = rng.pick(barsPerBagPool);
+      const packSize = rng.pick(packSizePool);
+      const packPrice = rng.int(minPackPrice, maxPackPrice);
+      const barsNeeded = guests * barsPerBag;
+      const packs = Math.ceil(barsNeeded / packSize);
+      const cost = packs * packPrice;
+      // Pay with the next multiple of £5 at least £3 above the cost.
+      const paid = Math.ceil((cost + rng.int(3, 12)) / 5) * 5;
+      const bought = packs * packSize;
+      return {
+        longForm: true,
+        prompt: `${rng.pick(NAMES)} is making party bags for his birthday.
 
-Chocolate bars come in packs of ${u}, and a pack costs ${pounds(d)}.
+${guests} people are coming, and each bag needs ${barsPerBag} chocolate bars.
+
+Chocolate bars come in packs of ${packSize}, and a pack costs ${pounds(packPrice)}.
 He can only buy whole packs.
 
-He pays with ${pounds(h)}.
+He pays with ${pounds(paid)}.
 
 How much change does he get?`,
-          answer: h - m,
-          hint: `First work out how many bars he needs altogether: ${c} × ${l}.`,
-          visual: barModelSvg(
-            [
-              {
-                label: `${c} bags × ${l} bars`,
-                segments:
-                  p * u > f
-                    ? [
-                        { span: f, text: ``, colour: `#7c6cff` },
-                        { span: p * u - f, text: `spare`, colour: `#e8e8f0` },
-                      ]
-                    : [{ span: f, text: ``, colour: `#7c6cff` }],
-              },
-            ],
-            `packs of ${u} — you cannot buy part of a pack`,
-          ),
-          explain: `Bars needed: ${c} × ${l} = ${f}. Packs: ${f} ÷ ${u} = ${(f / u).toFixed(2)}, rounded up to ${p} packs (${p * u} bars). Cost: ${p} × ${pounds(d)} = ${pounds(m)}. Change: ${pounds(h)} − ${pounds(m)} = ${pounds(h - m)}.`,
-        };
-      },
+        answer: paid - cost,
+        hint: `First work out how many bars he needs altogether: ${guests} × ${barsPerBag}.`,
+        visual: barModelSvg(
+          [
+            {
+              label: `${guests} bags × ${barsPerBag} bars`,
+              segments:
+                bought > barsNeeded
+                  ? [
+                      { span: barsNeeded, text: '', colour: '#7c6cff' },
+                      { span: bought - barsNeeded, text: 'spare', colour: '#e8e8f0' },
+                    ]
+                  : [{ span: barsNeeded, text: '', colour: '#7c6cff' }],
+            },
+          ],
+          `packs of ${packSize} — you cannot buy part of a pack`,
+        ),
+        explain: `Bars needed: ${guests} × ${barsPerBag} = ${barsNeeded}. Packs: ${barsNeeded} ÷ ${packSize} = ${(barsNeeded / packSize).toFixed(2)}, rounded up to ${packs} packs (${bought} bars). Cost: ${packs} × ${pounds(packPrice)} = ${pounds(cost)}. Change: ${pounds(paid)} − ${pounds(cost)} = ${pounds(paid - cost)}.`,
+      };
     },
-    {
-      id: `journey-legs`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [30, 40, 50], [40, 50, 60], [50, 60, 70, 80]),
-          r = byTier(t, [1], [1, 2], [2, 3]),
-          i = byTier(t, [15, 20, 30], [20, 30, 45], [30, 45, 60]),
-          a = byTier(t, [50, 60, 70], [60, 80, 90], [80, 90, 100, 110]),
-          o = byTier(t, [1], [1, 2], [2, 3]),
-          s = e.pick(n),
-          c = e.pick(r),
-          l = e.pick(i),
-          u = e.pick(a),
-          d = e.pick(o),
-          f = e.int(7, 13),
-          p = e.pick([0, 15, 30, 45]),
-          m = c * 60 + l + d * 60,
-          h = f * 60 + p + m,
-          g = (e) => String(e).padStart(2, `0`);
-        return {
-          longForm: !0,
-          prompt: `A coach travels from Glasgow to Inverness.
+  },
 
-It leaves at ${g(f)}:${g(p)}.
+  // Arrival time from driving and break durations. The speeds are a
+  // deliberate red herring: spotting unneeded information is the skill.
+  {
+    id: 'journey-legs',
+    build(rng, tier = TIER.STANDARD) {
+      const firstSpeedPool = byTier(tier, [30, 40, 50], [40, 50, 60], [50, 60, 70, 80]);
+      const firstHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
+      const breakPool = byTier(tier, [15, 20, 30], [20, 30, 45], [30, 45, 60]);
+      const secondSpeedPool = byTier(tier, [50, 60, 70], [60, 80, 90], [80, 90, 100, 110]);
+      const secondHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
+      const firstSpeed = rng.pick(firstSpeedPool);
+      const firstHours = rng.pick(firstHoursPool);
+      const breakMinutes = rng.pick(breakPool);
+      const secondSpeed = rng.pick(secondSpeedPool);
+      const secondHours = rng.pick(secondHoursPool);
+      const departHour = rng.int(7, 13);
+      const departMinute = rng.pick([0, 15, 30, 45]);
+      const journeyMinutes = firstHours * 60 + breakMinutes + secondHours * 60;
+      const arrival = departHour * 60 + departMinute + journeyMinutes;
+      const pad2 = (value) => String(value).padStart(2, '0');
+      const departs = `${pad2(departHour)}:${pad2(departMinute)}`;
+      const arrives = `${pad2(Math.floor(arrival / 60) % 24)}:${pad2(arrival % 60)}`;
+      return {
+        longForm: true,
+        prompt: `A coach travels from Glasgow to Inverness.
 
-First it drives for ${c} hour${c > 1 ? `s` : ``} at ${s} km/h.
-Then it stops for a ${l} minute break.
-Then it drives for ${d} hour${d > 1 ? `s` : ``} at ${u} km/h.
+It leaves at ${departs}.
+
+First it drives for ${firstHours} hour${firstHours > 1 ? 's' : ''} at ${firstSpeed} km/h.
+Then it stops for a ${breakMinutes} minute break.
+Then it drives for ${secondHours} hour${secondHours > 1 ? 's' : ''} at ${secondSpeed} km/h.
 
 What time does it arrive?
 (24-hour clock, like 14:35)`,
-          answer: `${g(Math.floor(h / 60) % 24)}:${g(h % 60)}`,
-          hint: `You do not need the speeds for this one — add up the time spent driving and resting.`,
-          visual: tableSvg(
-            [`Stage`, `Time`],
-            [
-              [`Driving`, `${c} h at ${s} km/h`],
-              [`Break`, `${l} min`],
-              [`Driving`, `${d} h at ${u} km/h`],
-            ],
-            { title: `Departs ${g(f)}:${g(p)}` },
-          ),
-          explain: `Total time: ${c} h + ${l} min + ${d} h = ${Math.floor(m / 60)} h ${m % 60} min. ${g(f)}:${g(p)} plus that gives ${g(Math.floor(h / 60) % 24)}:${g(h % 60)}. The speeds were extra information you did not need.`,
-        };
-      },
+        answer: arrives,
+        hint: 'You do not need the speeds for this one — add up the time spent driving and resting.',
+        visual: tableSvg(
+          ['Stage', 'Time'],
+          [
+            ['Driving', `${firstHours} h at ${firstSpeed} km/h`],
+            ['Break', `${breakMinutes} min`],
+            ['Driving', `${secondHours} h at ${secondSpeed} km/h`],
+          ],
+          { title: `Departs ${departs}` },
+        ),
+        explain: `Total time: ${firstHours} h + ${breakMinutes} min + ${secondHours} h = ${Math.floor(journeyMinutes / 60)} h ${journeyMinutes % 60} min. ${departs} plus that gives ${arrives}. The speeds were extra information you did not need.`,
+      };
     },
-    {
-      id: `journey-distance`,
-      build(e, t = TIER.STANDARD) {
-        let n = byTier(t, [30, 40, 50], [40, 50, 60, 70], [60, 70, 80, 90]),
-          r = byTier(t, [1, 2], [2, 3], [3, 4]),
-          i = byTier(t, [60, 70, 80], [80, 90, 100], [100, 110, 120]),
-          a = byTier(t, [1], [1, 2], [2, 3]),
-          o = e.pick(n),
-          s = e.pick(r),
-          c = e.pick(i),
-          l = e.pick(a),
-          u = o * s + c * l;
-        return {
-          longForm: !0,
-          prompt: `A lorry makes a delivery in two stages.
+  },
 
-For the first ${s} hours it drives on country roads at ${o} km/h.
-For the next ${l} hour${l > 1 ? `s` : ``} it drives on the motorway at ${c} km/h.
+  // Distance = speed × time for two stages, then add. The journey diagram
+  // shows only the total time so neither stage's distance is given away.
+  {
+    id: 'journey-distance',
+    build(rng, tier = TIER.STANDARD) {
+      const roadSpeedPool = byTier(tier, [30, 40, 50], [40, 50, 60, 70], [60, 70, 80, 90]);
+      const roadHoursPool = byTier(tier, [1, 2], [2, 3], [3, 4]);
+      const motorwaySpeedPool = byTier(tier, [60, 70, 80], [80, 90, 100], [100, 110, 120]);
+      const motorwayHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
+      const roadSpeed = rng.pick(roadSpeedPool);
+      const roadHours = rng.pick(roadHoursPool);
+      const motorwaySpeed = rng.pick(motorwaySpeedPool);
+      const motorwayHours = rng.pick(motorwayHoursPool);
+      const distance = roadSpeed * roadHours + motorwaySpeed * motorwayHours;
+      return {
+        longForm: true,
+        prompt: `A lorry makes a delivery in two stages.
+
+For the first ${roadHours} hours it drives on country roads at ${roadSpeed} km/h.
+For the next ${motorwayHours} hour${motorwayHours > 1 ? 's' : ''} it drives on the motorway at ${motorwaySpeed} km/h.
 
 How far does the lorry travel altogether?`,
-          answer: u,
-          hint: `Work out each stage separately with distance = speed × time, then add them.`,
-          visual: journeySvg(null, s + l, null),
-          explain: `Stage 1: ${o} × ${s} = ${o * s} km. Stage 2: ${c} × ${l} = ${c * l} km. Altogether: ${o * s} + ${c * l} = ${u} km.`,
-        };
-      },
+        answer: distance,
+        hint: 'Work out each stage separately with distance = speed × time, then add them.',
+        visual: journeySvg(null, roadHours + motorwayHours, null),
+        explain: `Stage 1: ${roadSpeed} × ${roadHours} = ${roadSpeed * roadHours} km. Stage 2: ${motorwaySpeed} × ${motorwayHours} = ${motorwaySpeed * motorwayHours} km. Altogether: ${roadSpeed * roadHours} + ${motorwaySpeed * motorwayHours} = ${distance} km.`,
+      };
     },
-  ]);
+  },
+]);
