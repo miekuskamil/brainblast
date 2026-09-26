@@ -1,0 +1,212 @@
+<title>Brain Blast Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#f6f5fb;--surface:#ffffff;--surface2:#f1f0fa;--ink:#17182b;--ink2:#4b4e69;--ink3:#868aa6;--line:#e2e1ef;
+  --brand:#5b5bd6;--brand-soft:#ecebfd;--gold:#e08e0b;--gold-soft:#fff3dc;
+  --ui:#5b5bd6;--ui-soft:#ecebfd;--eng:#0f8a7e;--eng-soft:#e2f5f2;--cur:#c2417f;--cur-soft:#fbe8f2;--data:#b86a12;--data-soft:#fdf0e1;--app:#3f6fd8;--app-soft:#e7eefc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111220;--surface:#191a2c;--surface2:#21233a;--ink:#ecebf7;--ink2:#b3b5cf;--ink3:#7f82a0;--line:#2d2f48;
+    --brand:#8f8dff;--brand-soft:#26264d;--gold:#f5b44a;--gold-soft:#3a2c12;
+    --ui:#8f8dff;--ui-soft:#26264d;--eng:#4fd1c0;--eng-soft:#13332f;--cur:#f07ab4;--cur-soft:#3a1a2b;--data:#f0a95a;--data-soft:#3a2714;--app:#7ea4ff;--app-soft:#1b2744;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111220;--surface:#191a2c;--surface2:#21233a;--ink:#ecebf7;--ink2:#b3b5cf;--ink3:#7f82a0;--line:#2d2f48;
+  --brand:#8f8dff;--brand-soft:#26264d;--gold:#f5b44a;--gold-soft:#3a2c12;
+  --ui:#8f8dff;--ui-soft:#26264d;--eng:#4fd1c0;--eng-soft:#13332f;--cur:#f07ab4;--cur-soft:#3a1a2b;--data:#f0a95a;--data-soft:#3a2714;--app:#7ea4ff;--app-soft:#1b2744;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15.5px/1.6 Nunito,system-ui,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:44px 16px 80px}
+h1,h2,h3{font-family:'Bricolage Grotesque',Nunito,sans-serif;letter-spacing:-.015em;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;margin:6px 0 10px;line-height:1.05}
+h2{font-size:23px;font-weight:800;margin:52px 0 6px}
+h3{font-size:17px;font-weight:800;margin:0 0 4px}
+.eyebrow{font:500 12px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--brand)}
+.lede{color:var(--ink2);max-width:70ch;margin:0;font-size:17px}
+.sub{color:var(--ink2);max-width:72ch;margin:0 0 18px}
+code{font:500 .86em 'JetBrains Mono',monospace;background:var(--surface2);padding:1px 5px;border-radius:5px;color:var(--ink)}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.fact{font-weight:700;font-size:13px;padding:6px 12px;border-radius:99px;background:var(--surface);border:1px solid var(--line);color:var(--ink2)}
+.fact b{color:var(--ink)}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;overflow-x:auto;margin-top:14px}
+.diagram svg{display:block;min-width:900px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 4px 0;font-size:13px;color:var(--ink2)}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--c);vertical-align:-1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;border-top:4px solid var(--c)}
+.card p{margin:4px 0 0;color:var(--ink2);font-size:14.5px}
+.card ul{margin:8px 0 0;padding-left:18px;color:var(--ink2);font-size:14.5px}
+.card li{margin:3px 0}
+.flow{counter-reset:s;display:grid;gap:10px;margin-top:6px}
+.flow li{list-style:none;counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px 12px 54px;position:relative;color:var(--ink2)}
+.flow li::before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font:800 13px 'Bricolage Grotesque';display:grid;place-items:center}
+.flow li b{color:var(--ink)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-top:8px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+tr:last-child td{border-bottom:0}
+td:first-child{white-space:nowrap}
+.boxes{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.box{font:500 12.5px 'JetBrains Mono',monospace;padding:6px 10px;border-radius:8px;background:var(--brand-soft);color:var(--brand)}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink3);font-size:13px}
+</style>
+
+<main>
+  <div class="eyebrow">Architecture · v1.1</div>
+  <h1>Brain Blast Architecture</h1>
+  <p class="lede">A client-only React 19 app. There is no server and no network. Each profile is one JSON document in <code>localStorage</code>, and every question is generated or looked up in the browser. It ships as a PWA and as a single self-contained <code>brainblast.html</code>.</p>
+  <div class="facts">
+    <span class="fact"><b>React 19</b> + Vite 8</span>
+    <span class="fact"><b>~70</b> JS modules</span>
+    <span class="fact"><b>62</b> topics · 4 subjects</span>
+    <span class="fact"><b>1,079</b> Vitest tests</span>
+    <span class="fact"><b>0</b> runtime dependencies beyond React</span>
+  </div>
+
+  <h2>System map</h2>
+  <p class="sub">Four layers, and dependencies only point downward. The UI never touches <code>localStorage</code> or item data directly. It goes through the session builder, answer checking and storage.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 1080 600" role="img" aria-label="Layered architecture: UI components call App helpers and the engine; the engine uses the curriculum; storage persists to localStorage">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink3)"/></marker>
+      </defs>
+      <style>
+        .lay{font:700 12px 'JetBrains Mono',monospace;letter-spacing:.1em;fill:var(--ink3)}
+        .t{font:800 14px 'Bricolage Grotesque',sans-serif;fill:var(--ink)}
+        .s{font:600 11.5px Nunito,sans-serif;fill:var(--ink2)}
+        .edge{stroke:var(--ink3);stroke-width:1.4;fill:none;marker-end:url(#ar)}
+        .edge.d{stroke-dasharray:4 4}
+      </style>
+      <!-- layer bands -->
+      <rect x="10" y="10" width="1060" height="118" rx="14" fill="var(--ui-soft)"/>
+      <rect x="10" y="142" width="1060" height="96" rx="14" fill="var(--app-soft)"/>
+      <rect x="10" y="252" width="1060" height="118" rx="14" fill="var(--eng-soft)"/>
+      <rect x="10" y="384" width="1060" height="118" rx="14" fill="var(--cur-soft)"/>
+      <rect x="10" y="516" width="1060" height="74" rx="14" fill="var(--data-soft)"/>
+      <text class="lay" x="26" y="32">UI · src/components</text>
+      <text class="lay" x="26" y="164">APP · src/App.jsx + src/app</text>
+      <text class="lay" x="26" y="274">ENGINE · src/engine</text>
+      <text class="lay" x="26" y="406">CURRICULUM · src/curriculum</text>
+      <text class="lay" x="26" y="538">DATA</text>
+
+      <!-- UI -->
+      <g>
+        <rect x="26" y="44" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="40" y="70">Hub</text><text class="s" x="40" y="90">due today · daily · tiles</text><text class="s" x="40" y="105">first-run card</text>
+        <rect x="198" y="44" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="212" y="70">Quiz · Results</text><text class="s" x="212" y="90">hint · reveal after 2</text><text class="s" x="212" y="105">read-aloud · timer</text>
+        <rect x="370" y="44" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="384" y="70">Exam</text><text class="s" x="384" y="90">setup · paper · review</text><text class="s" x="384" y="105">results · history</text>
+        <rect x="542" y="44" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="556" y="70">Game · TimesTable</text><text class="s" x="556" y="90">canvas runner gates</text><text class="s" x="556" y="105">keyboard · relaxed mode</text>
+        <rect x="714" y="44" width="170" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="728" y="70">screens.jsx</text><text class="s" x="728" y="90">topics · shop · progress</text><text class="s" x="728" y="105">settings · profiles · words</text>
+        <rect x="896" y="44" width="160" height="70" rx="10" fill="var(--surface)" stroke="var(--ui)"/>
+        <text class="t" x="910" y="70">Shell</text><text class="s" x="910" y="90">ParentGate · Backup</text><text class="s" x="910" y="105">ErrorBoundary · Toast</text>
+      </g>
+      <!-- APP -->
+      <g>
+        <rect x="26" y="176" width="300" height="50" rx="10" fill="var(--surface)" stroke="var(--app)"/>
+        <text class="t" x="40" y="198">App.jsx: screen state machine</text><text class="s" x="40" y="216">navigation · back-gesture guard · commit(state)</text>
+        <rect x="340" y="176" width="716" height="50" rx="10" fill="var(--surface)" stroke="var(--app)"/>
+        <text class="t" x="354" y="198">rewards · progress · resume · forms · pwa</text><text class="s" x="354" y="216">pure helpers: coins &amp; caps, readable labels, session snapshots, word-list cleaning, update prompt</text>
+      </g>
+      <!-- ENGINE -->
+      <g>
+        <rect x="26" y="286" width="190" height="72" rx="10" fill="var(--surface)" stroke="var(--eng)"/>
+        <text class="t" x="40" y="310">session</text><text class="s" x="40" y="330">buildRound · buildDaily</text><text class="s" x="40" y="346">buildExam · pruneOrphans</text>
+        <rect x="228" y="286" width="170" height="72" rx="10" fill="var(--surface)" stroke="var(--eng)"/>
+        <text class="t" x="242" y="310">review (SRS)</text><text class="s" x="242" y="330">Leitner boxes</text><text class="s" x="242" y="346">1·3·7·21·60 days</text>
+        <rect x="410" y="286" width="170" height="72" rx="10" fill="var(--surface)" stroke="var(--eng)"/>
+        <text class="t" x="424" y="310">mastery · tiers</text><text class="s" x="424" y="330">rolling accuracy</text><text class="s" x="424" y="346">EASY / STD / HARD</text>
+        <rect x="592" y="286" width="190" height="72" rx="10" fill="var(--surface)" stroke="var(--eng)"/>
+        <text class="t" x="606" y="310">storage</text><text class="s" x="606" y="330">slots · sanitize · validate</text><text class="s" x="606" y="346">streak · session resume</text>
+        <rect x="794" y="286" width="262" height="72" rx="10" fill="var(--surface)" stroke="var(--eng)"/>
+        <text class="t" x="808" y="310">exam · garden · feedback</text><text class="s" x="808" y="330">speech · sounds · platformer</text><text class="s" x="808" y="346">rng (seeded, testable)</text>
+      </g>
+      <!-- CURRICULUM -->
+      <g>
+        <rect x="26" y="418" width="230" height="72" rx="10" fill="var(--surface)" stroke="var(--cur)"/>
+        <text class="t" x="40" y="442">index (registry)</text><text class="s" x="40" y="462">SUBJECTS · generate</text><text class="s" x="40" y="478">regenerateByKey</text>
+        <rect x="268" y="418" width="230" height="72" rx="10" fill="var(--surface)" stroke="var(--cur)"/>
+        <text class="t" x="282" y="442">question</text><text class="s" x="282" y="462">makeQuestion · checkAnswer</text><text class="s" x="282" y="478">times · money · units</text>
+        <rect x="510" y="418" width="290" height="72" rx="10" fill="var(--surface)" stroke="var(--cur)"/>
+        <text class="t" x="524" y="442">subjects &amp; generators</text><text class="s" x="524" y="462">maths · topics-varied · challenges</text><text class="s" x="524" y="478">spelling · grammar · vocab</text>
+        <rect x="812" y="418" width="244" height="72" rx="10" fill="var(--surface)" stroke="var(--cur)"/>
+        <text class="t" x="826" y="442">visual · names</text><text class="s" x="826" y="462">spoiler-free SVG builders</text><text class="s" x="826" y="478">pronoun-aware name pool</text>
+      </g>
+      <!-- DATA -->
+      <g>
+        <rect x="26" y="548" width="520" height="32" rx="8" fill="var(--surface)" stroke="var(--data)"/>
+        <text class="s" x="40" y="569">items/*.js: 252 maths · 298 spelling · 501 grammar · 172 vocab · 6 passages</text>
+        <rect x="560" y="548" width="496" height="32" rx="8" fill="var(--surface)" stroke="var(--data)"/>
+        <text class="s" x="574" y="569">localStorage: bb.slot.N · bb.active · bb.session.N</text>
+      </g>
+      <!-- edges -->
+      <path class="edge" d="M 150 114 L 150 174"/>
+      <path class="edge" d="M 176 228 L 121 284"/>
+      <path class="edge" d="M 640 228 L 686 284"/>
+      <path class="edge" d="M 216 322 L 226 322"/>
+      <path class="edge" d="M 121 360 L 141 416"/>
+      <path class="edge" d="M 300 128 C 300 150 383 200 383 416" />
+      <path class="edge" d="M 256 454 L 266 454"/>
+      <path class="edge" d="M 530 490 L 530 546"/>
+      <path class="edge d" d="M 687 360 L 808 546"/>
+    </svg>
+    <div class="legend">
+      <span style="--c:var(--ui)">UI components</span>
+      <span style="--c:var(--app)">App orchestration</span>
+      <span style="--c:var(--eng)">Learning engine</span>
+      <span style="--c:var(--cur)">Curriculum</span>
+      <span style="--c:var(--data)">Data at rest</span>
+      <span style="--c:var(--ink3)">Solid: calls · dashed: persists</span>
+    </div>
+  </div>
+
+  <h2>One practice round, end to end</h2>
+  <ol class="flow">
+    <li><b>Hub → TopicPicker.</b> The child picks Maths → Fractions. App calls <code>buildRound({subject, topic, reviewState, masteryState, size})</code>.</li>
+    <li><b>Reviews first.</b> Due SRS keys are rebuilt with <code>regenerateByKey</code>. Keys that no longer exist, or that belong to another topic, are skipped before the cap of 4.</li>
+    <li><b>Fresh questions.</b> Topics are weighted to the weakest, with a per-topic cap. Each topic's tier comes from mastery (Standard until 4 attempts) unless a parent has pinned one.</li>
+    <li><b>Answering.</b> <code>checkAnswer(given, question)</code> canonicalises typing, then compares times, money, units and numbers structurally. Multiple choice is exact. After 2 misses the answer and "Why" are revealed.</li>
+    <li><b>Grading.</b> Only the first try counts. <code>applyGrade</code> promotes an item only if it was due, and <code>recordAnswer</code> updates mastery. The session is snapshotted so a refresh can resume it.</li>
+    <li><b>Finish.</b> <code>app/rewards</code> totals the coins, round bonus and streak reward, the garden is watered, the session is cleared, and Results shows the true total.</li>
+  </ol>
+
+  <h2>Module responsibilities</h2>
+  <div class="grid">
+    <div class="card" style="--c:var(--cur)"><h3>Question model</h3><p><code>curriculum/question.js</code>. One shape for every subject: prompt, answer, options, hint, explain, visual, accept, speak, passage, tier, reviewKey. It also owns fair answer checking.</p></div>
+    <div class="card" style="--c:var(--cur)"><h3>Registry (open/closed)</h3><p><code>curriculum/index.js</code>. Subjects register their topics here. Adding a topic changes nothing else. <code>regenerateByKey</code> means a review weeks later needs only its key.</p></div>
+    <div class="card" style="--c:var(--eng)"><h3>Session policy</h3><p><code>engine/session.js</code>. The one place that decides what a round, daily challenge or exam contains: review share, passage clusters, topic spread, de-duplication.</p></div>
+    <div class="card" style="--c:var(--eng)"><h3>Storage boundary</h3><p><code>engine/storage.js</code>. Every read passes through <code>sanitizeSave</code>, so a corrupt or hand-edited save can't crash the Hub. Restores use <code>validateSave</code> and a confirm that names the profile.</p></div>
+    <div class="card" style="--c:var(--app)"><h3>Pure App helpers</h3><p><code>src/app/*</code>. Rewards, progress labels, resume snapshots and form cleaning are pulled out of App.jsx, so they're unit-tested without a DOM.</p></div>
+    <div class="card" style="--c:var(--ui)"><h3>Shared UI</h3><p><code>components/common.jsx</code>. TopBar, Tile, SpeakButton, ConfirmDialog (native <code>&lt;dialog&gt;</code>), PassagePanel and TierBadge. <code>engine/feedback.js</code> holds the hint and reveal rules.</p></div>
+  </div>
+
+  <h2>Persistence schema</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Key</th><th>Holds</th><th>Safety</th></tr></thead>
+    <tbody>
+      <tr><td><code>bb.slot.0–3</code></td><td>Profile: name, coins, review{key→box,due,…}, mastery{topic→attempts,correct}, streak, garden, inventory, customWords, settings, stats, examHistory (≤20), ttCoins</td><td>Type-guarded on every load; bad records dropped, counters repaired</td></tr>
+      <tr><td><code>bb.active</code></td><td>Active slot index</td><td>Defaults to 0</td></tr>
+      <tr><td><code>bb.session.N</code></td><td>Unfinished round or exam snapshot</td><td>Expires after 12 h; cleared on finish or delete</td></tr>
+      <tr><td><code>brainblast.save.v5</code></td><td>Legacy single-profile save</td><td>Migrated once into slot 0, then removed</td></tr>
+    </tbody>
+  </table></div>
+  <div class="boxes"><span class="box">box 0 · today</span><span class="box">1 · +1d</span><span class="box">2 · +3d</span><span class="box">3 · +7d</span><span class="box">4 · +21d</span><span class="box">5 · +60d → mastered</span></div>
+
+  <h2>Delivery &amp; quality</h2>
+  <div class="grid">
+    <div class="card" style="--c:var(--brand)"><h3>Build targets</h3><ul><li><code>npm run build</code>: PWA with one manifest and a prompt-to-update toast</li><li><code>npm run bundle</code>: <code>brainblast.html</code>, fully inlined, opens with a double-click</li><li>No web fonts or runtime fetches, so it's offline by construction</li></ul></div>
+    <div class="card" style="--c:var(--gold)"><h3>Tests (Vitest, node)</h3><ul><li>Table-driven answer checking: 128 cases</li><li>SRS, DST, storage validation, session invariants</li><li>Sweeps of every topic × style × tier × many seeds: one correct option, no equivalent distractors, no float artefacts, pronoun agreement</li></ul></div>
+    <div class="card" style="--c:var(--eng)"><h3>Design rules</h3><ul><li>Dependencies only point downward</li><li>Pure functions in engine/curriculum; side effects at the edges</li><li>Seeded RNG everywhere, so every question is reproducible</li></ul></div>
+  </div>
+
+  <footer>Brain Blast · github.com/miekuskamil/brainblast · See ARCHITECTURE.md in the repo for the text version.</footer>
+</main>
