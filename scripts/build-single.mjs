@@ -10,7 +10,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const assets = join(root, 'dist', 'assets');
+const distDir = process.argv[2] || join(root, 'dist');
+const outFile = process.argv[3] || join(root, 'brainblast.html');
+const assets = join(distDir, 'assets');
 const files = readdirSync(assets);
 const js = files.filter((f) => f.endsWith('.js'));
 const css = files.find((f) => f.endsWith('.css'));
@@ -38,5 +40,5 @@ const html = `<!doctype html>
 </body>
 </html>
 `;
-writeFileSync(join(root, 'brainblast.html'), html);
-console.log(`brainblast.html written (${(html.length / 1024).toFixed(0)} KB)`);
+writeFileSync(outFile, html);
+console.log(`${outFile} written (${(html.length / 1024).toFixed(0)} KB)`);
