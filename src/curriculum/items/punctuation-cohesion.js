@@ -52,11 +52,11 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `Choose the correct word:
 
-"Aisha joined the ___ football team at her new school."`,
-    opts: ["women's", "womens'", 'womens', "women'"],
-    a: "women's",
-    hint: 'Does the plural form end in s before you add anything?',
-    ex: '"Women" is an irregular plural with no final s, so it takes an apostrophe and then s.',
+"Ava joined the ___ football team at her new school."`,
+    opts: ["girls'", "girl's", 'girls', "girls's"],
+    a: "girls'",
+    hint: 'The team belongs to many girls. Does the plural already end in s?',
+    ex: '"Girls" is a regular plural ending in s, so the apostrophe goes after the s: the girls\' team.',
   },
   {
     id: 'pu106',
@@ -90,7 +90,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `What is missing from this sentence?
 
-"My sisters phone battery died on the bus to Dundee." (Rory has one sister)`,
+"My sisters phone battery died on the bus to Dundee." (Arjun has one sister)`,
     opts: [
       'an apostrophe before the s in "sisters"',
       'an apostrophe after the s in "sisters"',
@@ -185,30 +185,30 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      'After the long walk, Freya sat down on a rock.',
-      'After the long walk Freya, sat down on a rock.',
-      'After, the long walk Freya sat down on a rock.',
-      'After the long walk Freya sat down, on a rock.',
+      'After the long walk, Leah sat down on a rock.',
+      'After the long walk Leah, sat down on a rock.',
+      'After, the long walk Leah sat down on a rock.',
+      'After the long walk Leah sat down, on a rock.',
     ],
-    a: 'After the long walk, Freya sat down on a rock.',
+    a: 'After the long walk, Leah sat down on a rock.',
     hint: 'A phrase placed before the main clause is closed off with one comma.',
     ex: '"After the long walk" is a fronted adverbial, so a comma separates it from the main clause.',
   },
   {
     id: 'pu117',
     topic: 'punctuation',
-    q: `What is missing from this sentence?
+    q: `A writer wants to add one comma to make this sentence easier to read. Where should it go?
 
 "Later that afternoon the rain finally stopped."`,
     opts: [
       'a comma after "afternoon"',
       'a comma after "rain"',
       'a comma after "Later"',
-      'a semicolon after "afternoon"',
+      'a comma after "finally"',
     ],
     a: 'a comma after "afternoon"',
     hint: 'Find where the opening time phrase ends and the main clause begins.',
-    ex: 'The fronted adverbial "Later that afternoon" needs a comma before the main clause starts.',
+    ex: 'A comma after the fronted adverbial "Later that afternoon" marks where the main clause starts. After a short opening phrase some writers leave it out, but adding it is never wrong.',
   },
   {
     id: 'pu118',
@@ -231,14 +231,14 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      'Euan, who had never skied before, stayed on the nursery slope.',
-      'Euan who had never skied before, stayed on the nursery slope.',
-      'Euan, who had never skied before stayed on the nursery slope.',
-      'Euan who had never skied before stayed on the nursery slope.',
+      'Finlay, who had never skied before, stayed on the nursery slope.',
+      'Finlay who had never skied before, stayed on the nursery slope.',
+      'Finlay, who had never skied before stayed on the nursery slope.',
+      'Finlay who had never skied before stayed on the nursery slope.',
     ],
-    a: 'Euan, who had never skied before, stayed on the nursery slope.',
+    a: 'Finlay, who had never skied before, stayed on the nursery slope.',
     hint: 'Extra information needs fencing off on both sides.',
-    ex: 'The clause is extra information about Euan, so a pair of commas holds it like brackets.',
+    ex: 'The clause is extra information about Finlay, so a pair of commas holds it like brackets.',
   },
   {
     id: 'pu120',
@@ -275,12 +275,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      'Freya shouted, "Watch out for the ice!"',
-      'Freya shouted "Watch out for the ice!"',
-      'Freya shouted, "watch out for the ice!"',
-      'Freya shouted, "Watch out for the ice"!',
+      'Mei shouted, "Watch out for the ice!"',
+      'Mei shouted "Watch out for the ice!"',
+      'Mei shouted, "watch out for the ice!"',
+      'Mei shouted, "Watch out for the ice"!',
     ],
-    a: 'Freya shouted, "Watch out for the ice!"',
+    a: 'Mei shouted, "Watch out for the ice!"',
     hint: 'When the reporting clause comes first, something separates it from the speech.',
     ex: 'A comma follows the reporting clause, the speech opens with a capital, and the exclamation mark stays inside.',
   },
@@ -289,12 +289,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      '"Are we nearly there?" asked Rory.',
-      '"Are we nearly there"? asked Rory.',
-      '"Are we nearly there?", asked Rory.',
-      '"Are we nearly there," asked Rory?',
+      '"Are we nearly there?" asked Lewis.',
+      '"Are we nearly there"? asked Lewis.',
+      '"Are we nearly there?", asked Lewis.',
+      '"Are we nearly there," asked Lewis?',
     ],
-    a: '"Are we nearly there?" asked Rory.',
+    a: '"Are we nearly there?" asked Lewis.',
     hint: 'The question belongs to the speaker, not to the whole sentence.',
     ex: 'The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.',
   },
@@ -331,7 +331,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `What is missing from this sentence?
 
-"Aisha whispered I think the bus has already gone."`,
+"Isla whispered I think the bus has already gone."`,
     opts: [
       'inverted commas around the spoken words, and a comma after "whispered"',
       'a question mark at the end',
@@ -361,7 +361,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `Which punctuation mark best fits the gap?
 
-"Callum knew exactly why the team had lost ___ they had barely trained all month."`,
+"Tomasz knew exactly why the team had lost ___ they had barely trained all month."`,
     opts: ['a colon', 'a comma', 'a question mark', 'an apostrophe'],
     a: 'a colon',
     hint: 'The second part explains the first part.',
@@ -489,7 +489,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `What job is the semicolon doing?
 
-"Aisha loves hillwalking; her brother prefers cycling."`,
+"Eilidh loves hillwalking; her brother prefers cycling."`,
     opts: [
       'It joins two closely linked main clauses.',
       'It introduces a list of items.',
@@ -505,14 +505,14 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which sentence uses a pair of dashes correctly?',
     opts: [
-      'Callum — who had never been abroad — could not stop grinning.',
-      'Callum — who had never been abroad could not stop grinning.',
-      'Callum who had never been abroad — could not stop grinning.',
-      'Callum — who — had never been abroad could not stop grinning.',
+      'Jamal — who had never been abroad — could not stop grinning.',
+      'Jamal — who had never been abroad could not stop grinning.',
+      'Jamal who had never been abroad — could not stop grinning.',
+      'Jamal — who — had never been abroad could not stop grinning.',
     ],
-    a: 'Callum — who had never been abroad — could not stop grinning.',
+    a: 'Jamal — who had never been abroad — could not stop grinning.',
     hint: 'Dashes used for extra information work in pairs, like brackets.',
-    ex: 'A dash at each end fences off the extra detail, leaving "Callum could not stop grinning" intact.',
+    ex: 'A dash at each end fences off the extra detail, leaving "Jamal could not stop grinning" intact.',
   },
   {
     id: 'pu139',
@@ -571,7 +571,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: `Choose the best connective:
 
-"___ she had trained hard all season, Freya finished last."`,
+"___ she had trained hard all season, Priya finished last."`,
     opts: ['Although', 'Because', 'Since', 'So'],
     a: 'Although',
     hint: 'The result is the opposite of what the first idea would lead you to expect.',
@@ -615,7 +615,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: `Choose the best connective:
 
-"Euan missed the bus ___ his alarm had not gone off."`,
+"Ciaran missed the bus ___ his alarm had not gone off."`,
     opts: ['because', 'although', 'whereas', 'despite'],
     a: 'because',
     hint: 'The second part gives the reason for the first.',
@@ -827,12 +827,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: 'Which version avoids clumsy repetition best?',
     opts: [
-      'Rory loves Skye. He visits the island every summer.',
-      'Rory loves Skye. Rory visits Skye every summer.',
-      'Rory loves Skye. Rory visits Skye every summer, Rory says.',
-      'Rory loves Skye. Skye is loved by Rory every summer.',
+      'Ciaran loves Skye. He visits the island every summer.',
+      'Ciaran loves Skye. Ciaran visits Skye every summer.',
+      'Ciaran loves Skye. Ciaran visits Skye every summer, Ciaran says.',
+      'Ciaran loves Skye. Skye is loved by Ciaran every summer.',
     ],
-    a: 'Rory loves Skye. He visits the island every summer.',
+    a: 'Ciaran loves Skye. He visits the island every summer.',
     hint: 'Pronouns and alternative nouns can stand in for names already used.',
     ex: 'Using "He" and "the island" refers back clearly without repeating the same two names.',
   },
@@ -901,7 +901,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: `What is missing from this sentence?
 
-"My brothers scooter has a flat tyre." (Aisha has one brother)`,
+"My brothers scooter has a flat tyre." (Niamh has one brother)`,
     opts: [
       'an apostrophe before the s in "brothers"',
       'an apostrophe after the s in "brothers"',
@@ -1013,18 +1013,18 @@ export const PUNCTUATION_COHESION = [
   {
     id: 'pu155',
     topic: 'punctuation',
-    q: `What is missing from this sentence?
+    q: `A writer wants to add one comma to make this sentence easier to read. Where should it go?
 
 "Early the next morning the campers packed up."`,
     opts: [
       'a comma after "morning"',
       'a comma after "campers"',
       'a comma after "Early"',
-      'a semicolon after "morning"',
+      'a comma after "packed"',
     ],
     a: 'a comma after "morning"',
     hint: 'Find where the opening time phrase ends and the main clause begins.',
-    ex: 'The fronted adverbial "Early the next morning" needs a comma before the main clause starts.',
+    ex: 'A comma after the fronted adverbial "Early the next morning" marks where the main clause starts. After a short opening phrase some writers leave it out, but adding it is never wrong.',
   },
   {
     id: 'pu156',
@@ -1077,12 +1077,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      '"I can see the summit," said Aisha.',
-      '"I can see the summit", said Aisha.',
-      '"I can see the summit." said Aisha.',
-      '"I can see the summit" said Aisha.',
+      '"I can see the summit," said Zara.',
+      '"I can see the summit", said Zara.',
+      '"I can see the summit." said Zara.',
+      '"I can see the summit" said Zara.',
     ],
-    a: '"I can see the summit," said Aisha.',
+    a: '"I can see the summit," said Zara.',
     hint: 'The mark that ends the speech belongs inside the inverted commas.',
     ex: 'A comma closes the speech and sits inside the inverted commas before the reporting clause.',
   },
@@ -1091,12 +1091,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      'Callum asked, "Which way is the station?"',
-      'Callum asked "Which way is the station?"',
-      'Callum asked, "which way is the station?"',
-      'Callum asked, "Which way is the station"?',
+      'Mateo asked, "Which way is the station?"',
+      'Mateo asked "Which way is the station?"',
+      'Mateo asked, "which way is the station?"',
+      'Mateo asked, "Which way is the station"?',
     ],
-    a: 'Callum asked, "Which way is the station?"',
+    a: 'Mateo asked, "Which way is the station?"',
     hint: 'When the reporting clause comes first, a comma separates it from the speech.',
     ex: 'A comma follows "asked", the speech opens with a capital, and the question mark stays inside.',
   },
@@ -1135,12 +1135,12 @@ export const PUNCTUATION_COHESION = [
     topic: 'punctuation',
     q: 'Which is punctuated correctly?',
     opts: [
-      '"Is the ferry still running?" asked Euan.',
-      '"Is the ferry still running"? asked Euan.',
-      '"Is the ferry still running?", asked Euan.',
-      '"Is the ferry still running," asked Euan?',
+      '"Is the ferry still running?" asked Mateo.',
+      '"Is the ferry still running"? asked Mateo.',
+      '"Is the ferry still running?", asked Mateo.',
+      '"Is the ferry still running," asked Mateo?',
     ],
-    a: '"Is the ferry still running?" asked Euan.',
+    a: '"Is the ferry still running?" asked Mateo.',
     hint: 'The question belongs to the speaker, not to the whole sentence.',
     ex: 'The question mark ends the spoken words, so it sits inside the inverted commas and no comma is added.',
   },
@@ -1395,7 +1395,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: `Choose the best connective:
 
-"Aisha likes spicy food, ___ her brother cannot stand it."`,
+"Amira likes spicy food, ___ her brother cannot stand it."`,
     opts: ['whereas', 'because', 'so that', 'therefore'],
     a: 'whereas',
     hint: 'Two people are being set against each other.',
@@ -1450,7 +1450,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: `Choose the best connective:
 
-"Freya trained every day ___ she wanted to make the team."`,
+"Niamh trained every day ___ she wanted to make the team."`,
     opts: ['because', 'although', 'whereas', 'despite'],
     a: 'because',
     hint: 'The second part gives the reason for the first.',
@@ -1481,11 +1481,11 @@ export const PUNCTUATION_COHESION = [
   {
     id: 'co135',
     topic: 'cohesion',
-    q: 'Which connective signals a RESULT?',
-    opts: ['Consequently', 'Furthermore', 'Meanwhile', 'Similarly'],
-    a: 'Consequently',
-    hint: 'Three of these add, compare or mark time instead.',
-    ex: '"Consequently" tells the reader that what follows was caused by what came before.',
+    q: 'Which connective signals a CONTRAST?',
+    opts: ['Nevertheless', 'Therefore', 'Additionally', 'Firstly'],
+    a: 'Nevertheless',
+    hint: 'Which word tells the reader that something unexpected is coming?',
+    ex: '"Nevertheless" introduces a point that goes against what came before, e.g. "It was raining. Nevertheless, we went out."',
   },
   {
     id: 'co136',
@@ -1512,11 +1512,11 @@ export const PUNCTUATION_COHESION = [
   {
     id: 'co138',
     topic: 'cohesion',
-    q: 'Which phrase tells the reader that the writer is ADDING another point?',
-    opts: ['In addition', 'On the other hand', 'As a result', 'Even so'],
-    a: 'In addition',
-    hint: 'Two of the others signal contrast and one signals a consequence.',
-    ex: '"In addition" introduces extra supporting information rather than a contrast or a result.',
+    q: 'Which phrase tells the reader that the writer is giving an EXAMPLE?',
+    opts: ['For instance', 'In contrast', 'As a result', 'Finally'],
+    a: 'For instance',
+    hint: 'Which phrase could come just before a specific case?',
+    ex: '"For instance" introduces an example of the point just made, e.g. "Some birds migrate. For instance, swallows fly to Africa."',
   },
   {
     id: 'co139',
@@ -1651,7 +1651,7 @@ export const PUNCTUATION_COHESION = [
     topic: 'cohesion',
     q: `Choose the correct word:
 
-"Aisha lifted the lid of the box. ___ was full of old photographs."`,
+"Kirsty lifted the lid of the box. ___ was full of old photographs."`,
     opts: ['It', 'He', 'She', 'They'],
     a: 'It',
     hint: 'Work out which noun in the first sentence the pronoun replaces.',

@@ -11,7 +11,14 @@ import { makeRng } from '../../src/engine/rng.js';
 import { mathsSubject } from '../../src/curriculum/maths.js';
 import { ratioTopic, fractionsTopic } from '../../src/curriculum/topics-varied.js';
 import { challengesTopic } from '../../src/curriculum/challenges.js';
-import { placeValueSvg } from '../../src/curriculum/visual.js';
+import { placeValueSvg, rectSvg, cuboidSvg, coordSvg } from '../../src/curriculum/visual.js';
+import {
+  AREA_PERIMETER_X,
+  VOLUME_X,
+  MONEY_X,
+  COORDINATES_X,
+} from '../../src/curriculum/items/maths-expanded-extra.js';
+import { COORDINATES } from '../../src/curriculum/items/maths-expanded.js';
 
 const kindOf = (v) => (v && (v.match(/data-kind="(\w+)"/) || [])[1]) || null;
 const SEEDS = Array.from({ length: 60 }, (_, i) => i * 401 + 11);
@@ -156,14 +163,57 @@ describe('challenges: party-packs bar model no longer pre-computes the hint\'s f
  * per-point showCoords flag, and me2-9's bar model still labels each share —
  * so the original regression tests are kept as todos until the fixes are redone.
  */
-describe('second audit pass (fixes missing from the recovered build)', () => {
-  it.todo('rectSvg(unknown) prints "?" for that side and the real number for the other');
-  it.todo('cuboidSvg(unknown) hides only the requested dimension');
-  it.todo('me4-11 ("what is its length?") no longer prints the length on the rectangle');
-  it.todo('me5-14 ("what is its height?") no longer prints the height on the cuboid');
-  it.todo('me2-9: sharing a bill equally no longer labels each share with the answer');
-  it.todo("coordSvg showCoords=false suppresses just that point's coordinate label");
-  it.todo('me7-8 ("what are its coordinates?") no longer prints them next to the dot');
-  it.todo('me7-2 (reflect and find new coordinates) only plots the given point, not the answer');
-  it.todo('me7-3 (rotate and find new coordinates) only plots the given point, not the answer');
+describe('rectSvg / cuboidSvg: the unknown dimension can be hidden from the diagram', () => {
+  it('rectSvg(unknown) prints "?" for that side and the real number for the other', () => {
+    const svg = rectSvg(6, 4, 'cm', { unknown: 'l' });
+    expect(svg).not.toMatch(/>\s*6 cm\s*</);
+    expect(svg).toMatch(/>\s*4 cm\s*</);
+  });
+
+  it('cuboidSvg(unknown) hides only the requested dimension', () => {
+    const svg = cuboidSvg(5, 3, 4, 'cm', { unknown: 'h' });
+    expect(svg).not.toMatch(/>\s*4 cm\s*</);
+    expect(svg).toMatch(/>\s*5 cm\s*</);
+    expect(svg).toMatch(/>\s*3 cm\s*</);
+  });
+
+  it('me4-11 ("what is its length?") no longer prints the length on the rectangle', () => {
+    const q = AREA_PERIMETER_X.find((x) => x.id === 'me4-11');
+    expect(q.visual, q.prompt).not.toMatch(/>\s*6 cm\s*</);
+  });
+
+  it('me5-14 ("what is its height?") no longer prints the height on the cuboid', () => {
+    const q = VOLUME_X.find((x) => x.id === 'me5-14');
+    expect(q.visual, q.prompt).not.toMatch(/>\s*4 cm\s*</);
+  });
+});
+
+describe('me2-9: sharing a bill equally no longer labels each share with the answer', () => {
+  it('the bar model segments carry no per-share text', () => {
+    const q = MONEY_X.find((x) => x.id === 'me2-9');
+    expect(q.visual, q.prompt).not.toMatch(/>\s*9\s*</);
+  });
+});
+
+describe('coordSvg: the answer point is never plotted with its own coordinates shown', () => {
+  it('showCoords=false suppresses just that point\'s coordinate label', () => {
+    const svg = coordSvg([[3, 4, 'P', false]], { min: 0, max: 6 });
+    expect(svg).not.toMatch(/>\(3,4\)</);
+    expect(svg).toMatch(/>P</);
+  });
+
+  it('me7-8 ("what are its coordinates?") no longer prints them next to the dot', () => {
+    const q = COORDINATES_X.find((x) => x.id === 'me7-8');
+    expect(q.visual, q.prompt).not.toMatch(/>\(3,4\)</);
+  });
+
+  it('me7-2 (reflect and find new coordinates) only plots the given point, not the answer', () => {
+    const q = COORDINATES.find((x) => x.id === 'me7-2');
+    expect(q.visual, q.prompt).not.toMatch(/>\(-4,3\)</);
+  });
+
+  it('me7-3 (rotate and find new coordinates) only plots the given point, not the answer', () => {
+    const q = COORDINATES.find((x) => x.id === 'me7-3');
+    expect(q.visual, q.prompt).not.toMatch(/>\(-3,2\)</);
+  });
 });

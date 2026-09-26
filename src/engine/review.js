@@ -26,6 +26,26 @@ export function startOfDay(timestamp = Date.now()) {
   return date.getTime();
 }
 
+/**
+ * Local midnight `days` calendar days after `timestamp`'s day. Uses setDate
+ * rather than adding DAY_MS multiples: across a DST change a calendar day is
+ * 23 or 25 hours, and fixed-length arithmetic would land at 23:00 the day
+ * before (making an item due a day early) or 01:00.
+ */
+export function addDays(timestamp, days) {
+  const date = new Date(startOfDay(timestamp));
+  date.setDate(date.getDate() + days);
+  return date.getTime();
+}
+
+/**
+ * Whole calendar days from `from`'s day to `to`'s day. Rounding absorbs the
+ * one-hour DST wobble in the millisecond difference between two midnights.
+ */
+export function daysBetween(from, to) {
+  return Math.round((startOfDay(to) - startOfDay(from)) / DAY_MS);
+}
+
 export function emptyRecord(key) {
   return {
     key,
@@ -38,13 +58,25 @@ export function emptyRecord(key) {
   };
 }
 
-/** Return a copy of `record` updated for one answer. */
+/**
+ * Return a copy of `record` updated for one answer.
+ *
+ * Only a *due* item (or one still in box 0) moves up a box. Without this, a
+ * child who met the same item several times in one sitting — a review, then
+ * again in a fresh round — would climb several boxes in a day and "master"
+ * it without any actual spacing, which defeats the point of spaced review.
+ * Early correct answers still count as seen/correct for the statistics.
+ * A wrong answer always sends the item back to box 0: forgetting is evidence
+ * whenever it happens.
+ */
 export function grade(record, wasCorrect, now = Date.now()) {
   const next = { ...record };
   next.seen += 1;
   next.lastSeen = now;
   if (wasCorrect) {
     next.correct += 1;
+    const isDue = record.box === 0 || record.due <= startOfDay(now);
+    if (!isDue) return next;
     next.box = Math.min(next.box + 1, MASTERED_BOX);
   } else {
     // A lapse is forgetting something that had been learned; missing an item
@@ -52,7 +84,7 @@ export function grade(record, wasCorrect, now = Date.now()) {
     if (next.box > 0) next.lapses += 1;
     next.box = 0;
   }
-  next.due = startOfDay(now) + BOX_INTERVALS[next.box] * DAY_MS;
+  next.due = addDays(now, BOX_INTERVALS[next.box]);
   return next;
 }
 

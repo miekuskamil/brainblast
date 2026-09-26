@@ -43,7 +43,7 @@ Which spelling is correct?`,
 Which spelling is correct?`,
     opts: ['stationary', 'stationery', 'stationry', 'stationory'],
     a: 'stationary',
-    hint: '"stationary" (standing still) rhymes with "Mary" who stands still; "stationery" contains "pen".',
+    hint: 'Standing still has an a, like a pArked cAr. Paper and pens has an e, like Envelope.',
     ex: '"Stationary" = not moving. "Stationery" = pens and paper. Remember: stationEry has an E for Envelope.',
   },
   {
@@ -66,7 +66,7 @@ Which spelling is correct?`,
     opts: ['legible', 'legable', 'legibal', 'legibble'],
     a: 'legible',
     hint: 'The root "leg-" is not a complete English word → use -ible.',
-    ex: 'Latin root "leg" (to read) + -ible. When the root is not a stand-alone word, choose -ible.',
+    ex: 'Latin root "leg" (to read) + -ible. When the root is not a stand-alone word, choose -ible. (A few words break the rule, e.g. sensible and flexible.)',
   },
   {
     id: 'sm11',
@@ -192,7 +192,7 @@ Which spelling is correct?`,
   {
     id: 'sm41',
     topic: 'roots',
-    q: `The head teacher gave a speech about our school's ___.
+    q: `In ___ we learned how rivers shape the land.
 
 Which spelling is correct?`,
     opts: ['geography', 'geograhpy', 'geogrophy', 'jeography'],
@@ -214,13 +214,13 @@ Which spelling is correct?`,
   {
     id: 'sm50',
     topic: 'tricky',
-    q: `She was not sure ___ she had locked the door.
+    q: `Please ___ the glass from the plastic for recycling.
 
 Which spelling is correct?`,
-    opts: ['whether', 'weather', 'wether', 'wheather'],
-    a: 'whether',
-    hint: '"Whether" is about choices or conditions — not the climate.',
-    ex: '"Whether" = if/choice. Spot "whether" inside "whether or not".',
+    opts: ['separate', 'seperate', 'separete', 'seprate'],
+    a: 'separate',
+    hint: 'There is "a rat" hiding in the middle of the word.',
+    ex: '"Separate" = sep-A-RAT-e. Remembering "a rat" stops you writing "seperate".',
   },
   {
     id: 'sm51',
@@ -231,7 +231,7 @@ Which spelling is correct?`,
     opts: ['genuinely', 'genuinley', 'genuinly', 'genuenly'],
     a: 'genuinely',
     hint: 'The base word is "genuine" — add -ly without dropping anything.',
-    ex: '"Genuine" + -ly = "genuinely". No letters are dropped because the word ends in "e" + a consonant.',
+    ex: '"Genuine" + -ly = "genuinely". Keep the final e because -ly starts with a consonant (compare "lovely", "safely").',
   },
   {
     id: 'sm52',
@@ -239,10 +239,10 @@ Which spelling is correct?`,
     q: `We had a ___ trip to the Highlands last summer.
 
 Which spelling is correct?`,
-    opts: ['marvellous', 'marvelous', 'marvellus', 'marvelos'],
+    opts: ['marvellous', 'marvilous', 'marvellus', 'marvelos'],
     a: 'marvellous',
-    hint: 'UK spelling doubles the "l" before a suffix: marvel + lous.',
-    ex: '"Marvel" + "-lous" = "marvellous" in UK English. US uses "marvelous" with one l.',
+    hint: 'UK spelling doubles the final "l" of "marvel" before the suffix -ous.',
+    ex: '"Marvel" + l + "-ous" = "marvellous" in UK English (American English uses one l).',
   },
   {
     id: 'sm53',
@@ -263,7 +263,7 @@ Which spelling is correct?`,
 Which spelling is correct?`,
     opts: ['certificate', 'certifacate', 'certifcate', 'certifikate'],
     a: 'certificate',
-    hint: 'Three syllables: cer-TIF-i-cate. Each has a vowel sound.',
+    hint: 'Four syllables: cer-TIF-i-cate. Each has a vowel sound.',
     ex: '"Certificate" = cer-tif-i-cate. All four syllables need to be spelled out.',
   },
 ];

@@ -33,6 +33,8 @@ function buildVocabQuestion(item, rng) {
     reviewKey: `vocab:${item.id}`,
     prompt: item.q,
     answer: item.a,
+    // Items may list other correct typed forms (e.g. "im", "im-", "impatient").
+    accept: item.accept ?? [],
     options: isMultipleChoice ? (rng ? rng.shuffle(item.opts) : item.opts) : null,
     type: isMultipleChoice ? 'mc' : 'input',
     hint: hintWithoutAnswer(item.hint ?? '', item.a),

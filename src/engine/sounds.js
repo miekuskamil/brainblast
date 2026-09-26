@@ -12,15 +12,29 @@ let masterGain = null;
 const VOLUME_KEY = 'bb:volume';
 const DEFAULT_VOLUME = 0.5;
 
+/**
+ * The shared audio graph, or null when Web Audio is unavailable (old
+ * browsers, some privacy modes, or too many contexts already open). Sound is
+ * a nicety: its absence must never crash an answer submission.
+ */
 function getAudio() {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = getVolume();
-    masterGain.connect(audioCtx.destination);
+    const AudioContextCtor =
+      typeof window !== 'undefined' ? window.AudioContext || window.webkitAudioContext : null;
+    if (!AudioContextCtor) return null;
+    try {
+      audioCtx = new AudioContextCtor();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = getVolume();
+      masterGain.connect(audioCtx.destination);
+    } catch {
+      audioCtx = null;
+      masterGain = null;
+      return null;
+    }
   }
   // Some browsers start (or re-suspend) the context until a gesture resumes it.
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx.state === 'suspended') audioCtx.resume?.()?.catch?.(() => {});
   return { ctx: audioCtx, master: masterGain };
 }
 
@@ -28,7 +42,9 @@ function getAudio() {
 export function getVolume() {
   try {
     const stored = localStorage.getItem(VOLUME_KEY);
-    return stored === null ? DEFAULT_VOLUME : parseFloat(stored);
+    const volume = stored === null ? NaN : parseFloat(stored);
+    // A corrupt stored value must not become a NaN gain (which silences or throws).
+    return Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : DEFAULT_VOLUME;
   } catch {
     return DEFAULT_VOLUME;
   }
@@ -52,7 +68,9 @@ export function setVolume(volume) {
  * @param {number} duration seconds
  */
 function tone(frequency, delay, duration, waveform = 'sine', peak = 0.3) {
-  const { ctx, master } = getAudio();
+  const audio = getAudio();
+  if (!audio) return;
+  const { ctx, master } = audio;
   const oscillator = ctx.createOscillator();
   const envelope = ctx.createGain();
   oscillator.type = waveform;
@@ -94,7 +112,9 @@ export function playFanfare() {
 
 /** A short upward pitch sweep. */
 export function playJump() {
-  const { ctx, master } = getAudio();
+  const audio = getAudio();
+  if (!audio) return;
+  const { ctx, master } = audio;
   const oscillator = ctx.createOscillator();
   const envelope = ctx.createGain();
   oscillator.type = 'sine';

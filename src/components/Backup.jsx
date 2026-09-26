@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { validateSave } from '../engine/storage.js';
+import { ConfirmDialog } from './common.jsx';
 
 async function copyText(text, textarea) {
   try {
@@ -41,6 +43,7 @@ export function Backup({ getSave, onRestore, name }) {
   const [saveCode, setSaveCode] = useState('');
   const [pasted, setPasted] = useState('');
   const [notice, setNotice] = useState(null);
+  const [pending, setPending] = useState(null);
   const exportBoxRef = useRef(null);
   const fileInputRef = useRef(null);
   function startExport() {
@@ -77,29 +80,33 @@ export function Backup({ getSave, onRestore, name }) {
           },
     );
   }
+  // Restore is two steps: validate (with the storage layer's friendly reason
+  // on failure), then confirm naming whose progress will be replaced — the
+  // active profile might be a brother's or sister's.
   function restoreFromText(raw) {
     const trimmed = String(raw || '').trim();
     if (!trimmed) {
       setNotice({ ok: false, text: 'Paste your save code first.' });
       return;
     }
-    let save;
-    try {
-      save = JSON.parse(trimmed);
-    } catch {
+    const result = validateSave(trimmed);
+    if (!result.ok) {
       setNotice({
         ok: false,
-        text: 'That does not look like a save code. Copy the whole thing, including the { and }.',
+        text: `${result.reason} Copy the whole save code, including the { and }.`,
       });
       return;
     }
-    if (!save || typeof save != 'object' || !save.name) {
-      setNotice({ ok: false, text: 'That is valid text but not a Brain Blast save.' });
-      return;
-    }
-    onRestore(save);
-    setNotice({ ok: true, text: `Restored "${save.name}".` });
+    setNotice(null);
+    setPending(result.state);
+  }
+  function confirmRestore() {
+    const restored = pending;
+    setPending(null);
+    onRestore(restored);
+    setNotice({ ok: true, text: `Restored ${restored.name}’s progress.` });
     setPasted('');
+    setMode(null);
   }
   function restoreFromFile(file) {
     const reader = new FileReader();
@@ -187,6 +194,19 @@ export function Backup({ getSave, onRestore, name }) {
           {notice.text}
         </p>
       )}
+      <ConfirmDialog
+        open={!!pending}
+        title={name ? `Replace ${name}’s progress?` : 'Replace this profile’s progress?'}
+        message={
+          pending
+            ? `${name || 'This profile'}’s coins, progress and garden will be swapped for the backup of ${pending.name}${pending.name === name ? '' : ' (the name changes too)'}. This can’t be undone — back up first if you’re not sure.`
+            : ''
+        }
+        confirmLabel="Replace"
+        cancelLabel="Keep it"
+        onConfirm={confirmRestore}
+        onCancel={() => setPending(null)}
+      />
       <p className="tiny muted mt">
         The save code carries your coins, streak and progress. It works even where file downloads
         are blocked.

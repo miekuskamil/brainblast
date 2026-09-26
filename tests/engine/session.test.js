@@ -5,11 +5,12 @@ import {
   buildDailyChallenge,
   buildExam,
   buildRound,
+  pruneOrphanReviews,
   shuffleKeepingClustersTogether,
 } from '../../src/engine/session.js';
 import { makeRng } from '../../src/engine/rng.js';
 import { emptyRecord } from '../../src/engine/review.js';
-import { generate, topicsFor } from '../../src/curriculum/index.js';
+import { generate, pickPassageCluster, regenerateByKey, topicsFor } from '../../src/curriculum/index.js';
 
 const NOW = new Date('2026-03-10T09:00:00Z').getTime();
 const SUBJECTS = ['maths', 'spelling', 'grammar', 'vocab'];
@@ -202,5 +203,163 @@ describe('buildDailyChallenge', () => {
     const questions = buildDailyChallenge({ rng: makeRng(3), now: NOW });
     expect(questions).toHaveLength(5);
     expect(new Set(questions.map((q) => q.subject)).size).toBe(4);
+  });
+});
+
+/** A due review record for `key`. */
+const due = (key, box = 1) => ({ ...emptyRecord(key), box, due: 0 });
+
+describe('buildRound — review selection', () => {
+  it('skips orphan keys before applying the review cap', () => {
+    // Orphans sort first (box 0) so, sliced before resolving, they would use up every slot.
+    const orphans = Object.fromEntries(
+      ['a', 'b', 'c', 'd', 'e'].map((id) => [`grammar:gone-${id}`, due(`grammar:gone-${id}`, 0)]),
+    );
+    const reviewState = { ...orphans, ...dueReviews('grammar', 6) };
+    const { questions, reviewCount } = buildRound({ subject: 'grammar', reviewState, rng: makeRng(2), now: NOW });
+    expect(reviewCount).toBe(MAX_REVIEW_PER_ROUND);
+    expect(questions.slice(0, reviewCount).every((q) => q.isReview && q.subject === 'grammar')).toBe(true);
+  });
+
+  it('only takes reviews whose question is from the pinned topic', () => {
+    const reviewState = dueReviews('grammar', 30, 7);
+    const topics = new Set(Object.keys(reviewState).map((key) => regenerateByKey(key, makeRng(1)).topic));
+    expect(topics.size).toBeGreaterThan(1);
+    for (const topic of topicsFor('grammar').map((t) => t.id)) {
+      const { questions, reviewCount } = buildRound({ subject: 'grammar', topic, reviewState, rng: makeRng(3), now: NOW });
+      const reviews = questions.filter((q) => q.isReview);
+      expect(reviews).toHaveLength(reviewCount);
+      expect(reviews.every((q) => q.topic === topic)).toBe(true);
+    }
+  });
+
+  it('does not let maths:me1 pull in maths:me10 reviews', () => {
+    const reviewState = { 'maths:me10': due('maths:me10'), 'maths:me1': due('maths:me1', 2) };
+    const { questions } = buildRound({ subject: 'maths', topic: 'me1', reviewState, rng: makeRng(1), now: NOW });
+    const reviews = questions.filter((q) => q.isReview);
+    expect(reviews).toHaveLength(1);
+    expect(reviews[0].topic).toBe('me1');
+  });
+
+  it('resolves custom-word and spot-the-spelling review keys', () => {
+    const spot = generate({ subject: 'spelling', topic: 'spot-spelling', rng: makeRng(4) });
+    const reviewState = {
+      'spelling:custom:loch': due('spelling:custom:loch'),
+      [spot.reviewKey]: due(spot.reviewKey),
+    };
+    const { questions, reviewCount } = buildRound({
+      subject: 'spelling',
+      reviewState,
+      rng: makeRng(1),
+      now: NOW,
+      customWords: ['Loch'],
+    });
+    expect(reviewCount).toBe(2);
+    const keys = questions.filter((q) => q.isReview).map((q) => q.reviewKey);
+    expect(keys.sort()).toEqual(['spelling:custom:loch', spot.reviewKey].sort());
+    expect(questions.find((q) => q.reviewKey === 'spelling:custom:loch').answer).toBe('Loch');
+  });
+
+  it('does not add a passage cluster whose question is already in the round as a review', () => {
+    let checked = 0;
+    for (let seed = 0; seed < 40; seed++) {
+      const cluster = pickPassageCluster('grammar', makeRng(seed));
+      if (!cluster) continue;
+      const reviewState = Object.fromEntries(cluster.questions.map((q) => [q.reviewKey, due(q.reviewKey)]));
+      const { questions } = buildRound({
+        subject: 'grammar',
+        reviewState,
+        rng: makeRng(seed),
+        now: NOW,
+        includePassages: true,
+      });
+      const ids = questions.map(identity);
+      expect(new Set(ids).size).toBe(ids.length);
+      checked += 1;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+});
+
+describe('buildRound — top-up never repeats', () => {
+  it('never repeats a question in pinned-topic rounds, even large ones', () => {
+    for (const [subject, topic] of [
+      ['maths', 'fractions'],
+      ['spelling', 'homophones'],
+      ['grammar', 'contractions'],
+    ]) {
+      for (const seed of SEEDS) {
+        const { questions } = buildRound({ subject, topic, size: 20, rng: makeRng(seed), now: NOW });
+        const ids = questions.map(identity);
+        expect(new Set(ids).size).toBe(ids.length);
+      }
+    }
+  });
+
+  it('stops rather than looping forever when the pool is exhausted', () => {
+    // Far more questions than the topic has items: the top-up must give up.
+    const { questions } = buildRound({
+      subject: 'spelling',
+      topic: 'homophones',
+      size: 500,
+      rng: makeRng(1),
+      now: NOW,
+    });
+    const ids = questions.map(identity);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(questions.length).toBeLessThanOrEqual(500);
+  });
+});
+
+describe('buildDailyChallenge — coverage', () => {
+  it('covers all four subjects whatever the reviews are', () => {
+    const cases = [
+      {},
+      dueReviews('maths', 4),
+      { ...dueReviews('grammar', 1), ...dueReviews('vocab', 1) },
+      dueReviews('spelling', 5),
+    ];
+    for (const reviewState of cases) {
+      for (const seed of SEEDS) {
+        const questions = buildDailyChallenge({ reviewState, rng: makeRng(seed), now: NOW });
+        expect(questions).toHaveLength(5);
+        expect(new Set(questions.map((q) => q.subject)).size).toBe(4);
+        const ids = questions.map(identity);
+        expect(new Set(ids).size).toBe(ids.length);
+      }
+    }
+  });
+
+  it('skips orphan review keys instead of spending a review slot on them', () => {
+    const reviewState = {
+      'grammar:gone-1': due('grammar:gone-1', 0),
+      'grammar:gone-2': due('grammar:gone-2', 0),
+      ...dueReviews('vocab', 2),
+    };
+    const questions = buildDailyChallenge({ reviewState, rng: makeRng(1), now: NOW });
+    expect(questions.filter((q) => q.isReview)).toHaveLength(2);
+  });
+});
+
+describe('pruneOrphanReviews', () => {
+  it('drops keys that no longer resolve and keeps the rest', () => {
+    const live = dueReviews('grammar', 3);
+    const reviewState = { ...live, 'grammar:gone': due('grammar:gone'), 'history:1066': due('history:1066') };
+    expect(pruneOrphanReviews(reviewState)).toEqual(live);
+  });
+
+  it('returns the same object when there is nothing to prune', () => {
+    const reviewState = { ...dueReviews('maths', 2), 'spelling:custom:loch': due('spelling:custom:loch') };
+    expect(pruneOrphanReviews(reviewState)).toBe(reviewState);
+    expect(pruneOrphanReviews(reviewState, ['Loch'])).toBe(reviewState);
+  });
+
+  it('drops custom words the family removed from the list, only when the list is given', () => {
+    const reviewState = {
+      'spelling:custom:loch': due('spelling:custom:loch'),
+      'spelling:custom:glen': due('spelling:custom:glen'),
+    };
+    expect(Object.keys(pruneOrphanReviews(reviewState, [' Loch ']))).toEqual(['spelling:custom:loch']);
+    expect(pruneOrphanReviews(reviewState, null)).toBe(reviewState);
   });
 });

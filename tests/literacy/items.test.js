@@ -120,7 +120,7 @@ describe('spelling hints never contain the word being tested', () => {
   it('custom words: the hint gives the length and first letter only', () => {
     const q = customSpellingQuestion(makeRng(1), ['  Necessary ']);
     expect(q.answer).toBe('Necessary');
-    expect(q.reviewKey).toBe('spelling:necessary');
+    expect(q.reviewKey).toBe('spelling:custom:necessary');
     expect(q.hint).toBe('9 letters, starts with "N"');
   });
 });
@@ -180,7 +180,6 @@ describe('regenerateByKey round-trips literacy review keys', () => {
     for (const subject of ['spelling', 'grammar', 'vocab']) {
       for (let seed = 0; seed < 40; seed++) {
         const q = generate({ subject, rng: makeRng(seed) });
-        if (q.reviewKey.startsWith('spelling:spot:')) continue; // not regenerable (see below)
         const again = regenerateByKey(q.reviewKey, makeRng(seed + 1));
         expect(again?.answer, q.reviewKey).toBe(q.answer);
       }
@@ -193,9 +192,10 @@ describe('regenerateByKey round-trips literacy review keys', () => {
     expect(regenerateByKey('vocab:nope')).toBeNull();
   });
 
-  // Documents current behaviour: spot-the-spelling keys ("spelling:spot:<id>")
-  // are looked up as a bank word and so cannot be rebuilt for review.
-  it('spot-the-spelling keys currently do not regenerate', () => {
-    expect(regenerateByKey(`spelling:spot:${SPELLING_MC_ITEMS[0].id}`)).toBeNull();
+  it('spot-the-spelling keys rebuild the same item', () => {
+    for (const item of SPELLING_MC_ITEMS) {
+      const q = regenerateByKey(`spelling:spot:${item.id}`);
+      expect(q?.answer, item.id).toBe(item.a);
+    }
   });
 });

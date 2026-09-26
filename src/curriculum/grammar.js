@@ -128,14 +128,14 @@ const ITEMS = [
     topic: 'voice',
     q: 'Which sentence is in the ACTIVE voice?',
     opts: [
-      'Freya scored the winning goal.',
-      'The winning goal was scored by Freya.',
+      'Mei scored the winning goal.',
+      'The winning goal was scored by Mei.',
       'The goal had been scored.',
       'A goal was being scored.',
     ],
-    a: 'Freya scored the winning goal.',
+    a: 'Mei scored the winning goal.',
     hint: 'Active = the doer comes first.',
-    ex: 'Freya (doer) → scored (action) → the goal (receiver).',
+    ex: 'Mei (doer) → scored (action) → the goal (receiver).',
   },
   {
     id: 'pu1',
@@ -345,10 +345,10 @@ const ITEMS = [
 
 She said, "I am tired."
 → She said that she ___`,
-    opts: ['was tired.', 'is tired.', 'were tired.', 'has been tired.'],
+    opts: ['was tired.', 'are tired.', 'were tired.', 'has being tired.'],
     a: 'was tired.',
-    hint: 'Reported speech shifts the tense back one step.',
-    ex: 'Present "am" → past "was" in reported speech.',
+    hint: 'Reported speech usually shifts the tense back one step — and the verb must agree with "she".',
+    ex: 'Present "am" → past "was" in reported speech. ("She said that she is tired" is also possible if she is still tired now, but "was" is the usual choice.)',
   },
   {
     id: 'tn3',
@@ -369,8 +369,8 @@ She said, "I am tired."
 "The team ___ playing well this season."`,
     opts: ['is', 'are being', 'have', 'has been being'],
     a: 'is',
-    hint: 'A team acting as one unit takes a singular verb.',
-    ex: 'Collective nouns acting as a single body take a singular verb.',
+    hint: 'Only one option is a complete, grammatical verb form here.',
+    ex: '"The team is playing well" treats the team as one unit. In British English "The team are playing well" is also correct — collective nouns can take a singular or plural verb.',
   },
   {
     id: 'wc1',
@@ -444,6 +444,8 @@ function buildGrammarQuestion(item, rng) {
     reviewKey: `grammar:${item.id}`,
     prompt: item.q,
     answer: item.a,
+    // Items may list other correct typed forms (e.g. "im", "im-", "impatient").
+    accept: item.accept ?? [],
     options: isMultipleChoice ? (rng ? rng.shuffle(item.opts) : item.opts) : null,
     type: isMultipleChoice ? 'mc' : 'input',
     hint: hintWithoutAnswer(item.hint, item.a),

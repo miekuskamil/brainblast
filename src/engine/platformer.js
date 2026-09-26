@@ -36,12 +36,16 @@ export function jumpDistance(speed) {
  * @param {number} [options.speedMultiplier]
  * @param {number} [options.difficulty] starting obstacle level (1–5); it rises every two gates
  * @param {object[]} [options.questions] one per gate, in order
+ * @param {boolean} [options.calm] reduced motion: no pulsing gates, bobbing stars or screen shake
+ * @param {boolean} [options.plainFont] dyslexia mode: draw canvas text in a plainer, larger face
  */
 export function createWorld({
   gateCount = 5,
   speedMultiplier = 1,
   difficulty = 1,
   questions = [],
+  calm = false,
+  plainFont = false,
 }) {
   const gates = [];
   const holes = [];
@@ -119,6 +123,8 @@ export function createWorld({
     shake: 0,
     pendingGate: null,
     gateCount,
+    calm,
+    plainFont,
   };
 }
 
@@ -193,7 +199,8 @@ export function step(world) {
     player.vy = 0;
     player.safeX = player.x;
     world.falls += 1;
-    world.shake = 18;
+    // Screen shake is skipped in calm mode (prefers-reduced-motion).
+    world.shake = world.calm ? 0 : 18;
     world.gateCooldown = 30;
   }
 
@@ -227,6 +234,42 @@ export function passGate(world, gate) {
   world.player.safeX = world.player.x;
   world.gateCooldown = 45;
   world.paused = false;
+}
+
+/**
+ * Rounded rectangle path. Delegates to `ctx.roundRect` where it exists and
+ * otherwise traces the corners with arcTo — Safari before 16 and some
+ * school-issued tablets lack roundRect, which used to throw every frame.
+ * Adds to the current path; the caller begins and fills it.
+ */
+export function roundRect(ctx, x, y, width, height, radius) {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, width, height, radius);
+    return;
+  }
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+// The sky never changes, so build its gradient once per canvas context rather
+// than allocating a new one 60 times a second.
+const skyGradients = new WeakMap();
+
+export function skyGradient(ctx) {
+  let sky = skyGradients.get(ctx);
+  if (!sky) {
+    sky = ctx.createLinearGradient(0, 0, 0, 300);
+    sky.addColorStop(0, '#7cc4e8');
+    sky.addColorStop(0.7, '#b8e2f2');
+    sky.addColorStop(1, '#dff1f8');
+    skyGradients.set(ctx, sky);
+  }
+  return sky;
 }
 
 /** Stroke a single straight line segment. */
@@ -266,7 +309,7 @@ function drawRunner(ctx, x, feetY, frame, grounded) {
   // Body
   ctx.fillStyle = '#e91e63';
   ctx.beginPath();
-  ctx.roundRect(x - 12, feetY - 33, 24, 20, 6);
+  roundRect(ctx, x - 12, feetY - 33, 24, 20, 6);
   ctx.fill();
 
   // Arms: swinging while running, raised while jumping.
@@ -311,11 +354,7 @@ export function drawWorld(ctx, world) {
   ctx.translate(shakeX, 0);
 
   // Sky
-  const sky = ctx.createLinearGradient(0, 0, 0, 300);
-  sky.addColorStop(0, '#7cc4e8');
-  sky.addColorStop(0.7, '#b8e2f2');
-  sky.addColorStop(1, '#dff1f8');
-  ctx.fillStyle = sky;
+  ctx.fillStyle = skyGradient(ctx);
   ctx.fillRect(-10, 0, 660, 300);
 
   // Clouds and hills scroll slower than the ground for a sense of depth.
@@ -372,7 +411,7 @@ export function drawWorld(ctx, world) {
     if (star.taken) continue;
     const x = star.x - camera;
     if (x < -24 || x > 664) continue;
-    const bob = Math.sin(world.frame * 0.07 + star.x * 0.02) * 5;
+    const bob = world.calm ? 0 : Math.sin(world.frame * 0.07 + star.x * 0.02) * 5;
     ctx.fillText('⭐', x - 10, star.y + bob + 9);
   }
 
@@ -394,8 +433,8 @@ export function drawWorld(ctx, world) {
       continue;
     }
 
-    // Unanswered gates pulse between purple and violet.
-    const pulse = Math.sin(world.frame * 0.075) * 0.5 + 0.5;
+    // Unanswered gates pulse between purple and violet (held steady in calm mode).
+    const pulse = world.calm ? 0.5 : Math.sin(world.frame * 0.075) * 0.5 + 0.5;
     const red = Math.round(120 + 70 * pulse);
     const blue = Math.round(220 - 30 * pulse);
     ctx.strokeStyle = `rgba(${red},90,${blue},.95)`;
@@ -407,7 +446,7 @@ export function drawWorld(ctx, world) {
     ctx.font = 'bold 30px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('?', x, 216);
-    ctx.font = 'bold 10px sans-serif';
+    ctx.font = world.plainFont ? 'bold 11px Verdana, sans-serif' : 'bold 10px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,.9)';
     ctx.fillText(`GATE ${gate.index + 1}`, x, 178);
     ctx.textAlign = 'left';
@@ -425,9 +464,28 @@ export function drawWorld(ctx, world) {
   // HUD, drawn after restore so it does not shake.
   ctx.fillStyle = 'rgba(255,255,255,.9)';
   ctx.beginPath();
-  ctx.roundRect(10, 10, 150, 30, 9);
+  roundRect(ctx, 10, 10, world.plainFont ? 170 : 150, 30, 9);
   ctx.fill();
   ctx.fillStyle = '#1a1c2e';
-  ctx.font = 'bold 13px sans-serif';
+  ctx.font = world.plainFont ? 'bold 15px Verdana, sans-serif' : 'bold 13px sans-serif';
   ctx.fillText(`🏁 ${world.passedCount}/${world.gateCount}   ⭐ ${world.starsTaken}`, 20, 30);
+}
+
+/**
+ * Gate questions the game can actually show. The gate overlay has no room for a
+ * reading passage, so "According to the passage…" questions are swapped for a
+ * fresh question from `regenerate(question)` (tried a few times) or dropped.
+ * @param {object[]} questions
+ * @param {(question: object) => object | null} [regenerate]
+ */
+export function playableGateQuestions(questions, regenerate, maxTries = 8) {
+  const playable = [];
+  for (const question of questions) {
+    let candidate = question;
+    for (let tries = 0; candidate?.passage && regenerate && tries < maxTries; tries++) {
+      candidate = regenerate(question);
+    }
+    if (candidate && !candidate.passage) playable.push(candidate);
+  }
+  return playable;
 }

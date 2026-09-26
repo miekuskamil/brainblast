@@ -81,10 +81,44 @@ describe('regenerateByKey', () => {
     expect(q.topic).toBe(topic.id);
   });
 
+  it('routes spot-the-spelling keys to the same multiple-choice item', () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const q = generate({ subject: 'spelling', topic: 'spot-spelling', rng: makeRng(seed) });
+      expect(q.reviewKey.startsWith('spelling:spot:')).toBe(true);
+      const again = regenerateByKey(q.reviewKey, makeRng(seed + 1));
+      expect(again).toMatchObject({ reviewKey: q.reviewKey, answer: q.answer, topic: q.topic });
+    }
+    expect(regenerateByKey('spelling:spot:no-such-item')).toBe(null);
+  });
+
+  it('rebuilds custom words, preferring the spelling the family typed', () => {
+    const q = regenerateByKey('spelling:custom:edinburgh', makeRng(1), ['loch', ' Edinburgh ']);
+    expect(q).toMatchObject({ reviewKey: 'spelling:custom:edinburgh', answer: 'Edinburgh', topic: 'custom' });
+    // Still resolves after the word has left the list (or with no list at all).
+    for (const words of [null, [], ['loch']]) {
+      const fallback = regenerateByKey('spelling:custom:tomorrow', makeRng(1), words);
+      expect(fallback.answer).toBe('tomorrow');
+      expect(fallback.reviewKey).toBe('spelling:custom:tomorrow');
+    }
+    expect(regenerateByKey('spelling:custom:', makeRng(1))).toBe(null);
+  });
+
+  it('every key a topic emits resolves again (no orphans)', () => {
+    const failures = [];
+    for (const topic of ALL_TOPICS) {
+      for (let seed = 0; seed < 15; seed++) {
+        const q = generate({ subject: topic.subject, topic: topic.id, rng: makeRng(seed * 101 + 7) });
+        if (!regenerateByKey(q.reviewKey, makeRng(seed))) failures.push(`${topic.subject}/${topic.id}: ${q.reviewKey}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
   it('returns null for unknown keys', () => {
     expect(regenerateByKey('maths:nope')).toBe(null);
     expect(regenerateByKey('history:1066')).toBe(null);
     expect(regenerateByKey('spelling:zzqqxx')).toBe(null);
+    expect(regenerateByKey(undefined)).toBe(null);
   });
 });
 

@@ -120,6 +120,29 @@ export function fractionBarSvg(shaded, parts) {
 </svg>`;
 }
 
+/** Decimal places needed to write multiples of `step` exactly (0.25 → 2). */
+function decimalPlaces(step) {
+  for (let places = 0; places < 6; places++) {
+    if (Math.abs(Math.round(step * 10 ** places) - step * 10 ** places) < 1e-9) return places;
+  }
+  return 6;
+}
+
+/**
+ * The gap between ticks on a number line: 1 for short whole-number lines (a
+ * child counts along them), otherwise a "round" step — 1, 2, 2.5 or 5 times a
+ * power of ten — giving about ten ticks, so 0–4000 is marked in 500s rather
+ * than 4000 ticks labelled 0, 334, 668…
+ */
+function numberLineStep(min, max) {
+  const range = max - min;
+  if (range <= 20 && Number.isInteger(min) && Number.isInteger(max)) return 1;
+  const rough = range / 10;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const multiplier = [1, 2, 2.5, 5, 10].find((candidate) => candidate * power >= rough - 1e-12);
+  return multiplier * power;
+}
+
 /**
  * A horizontal number line from `min` to `max` with integer ticks.
  * @param {number} min
@@ -131,26 +154,38 @@ export function fractionBarSvg(shaded, parts) {
 export function numberLineSvg(min, max, mark = null, markLabel = '', subdivisions = 0) {
   const range = max - min;
   const xOf = (value) => 24 + ((value - min) / range) * 252;
+  const step = numberLineStep(min, max);
+  const decimals = decimalPlaces(step);
+  const ticks = [];
+  for (let index = Math.ceil(min / step - 1e-9); index * step <= max + 1e-9; index++) {
+    ticks.push(Number((index * step).toFixed(decimals)));
+  }
+  // Label every tick when the labels fit, otherwise every other one (always
+  // including both ends) so the numbers never collide.
+  const labelWidth = Math.max(...ticks.map((value) => String(value).length)) * 6.5 + 4;
+  const spacing = 252 / Math.max(ticks.length - 1, 1);
+  const labelEvery = Math.max(1, Math.ceil(labelWidth / spacing));
+  const lastIndex = ticks.length - 1;
+  const lastRegularLabel = Math.floor(lastIndex / labelEvery) * labelEvery;
+  const labelLast = (lastIndex - lastRegularLabel) * spacing >= labelWidth || lastIndex === lastRegularLabel;
   const parts = [];
-  // Label at most ~12 ticks so the numbers don't collide.
-  const labelEvery = Math.max(1, Math.ceil((range + 1) / 12));
-  let tickIndex = 0;
-  for (let value = min; value <= max; value++, tickIndex++) {
+  ticks.forEach((value, tickIndex) => {
     const x = xOf(value);
-    const major = Number.isInteger(value) && (tickIndex % labelEvery === 0 || value === max);
+    const major =
+      tickIndex === lastIndex ? labelLast : tickIndex % labelEvery === 0;
     parts.push(
       `<line x1="${x.toFixed(1)}" y1="${36 - (major ? 7 : 4)}" x2="${x.toFixed(1)}" y2="${36 + (major ? 7 : 4)}" stroke="${INK}" stroke-width="${major ? 1.8 : 1}"/>`,
     );
     if (major) parts.push(svgText(x, 56, String(value), { size: 11, fill: MUTED }));
     if (subdivisions > 1 && value < max) {
-      for (let step = 1; step < subdivisions; step++) {
-        const minorX = xOf(value + step / subdivisions);
+      for (let minor = 1; minor < subdivisions; minor++) {
+        const minorX = xOf(value + (minor * step) / subdivisions);
         parts.push(
           `<line x1="${minorX.toFixed(1)}" y1="33" x2="${minorX.toFixed(1)}" y2="39" stroke="${MUTED}" stroke-width="1"/>`,
         );
       }
     }
-  }
+  });
   const marker =
     mark === null
       ? ''
@@ -166,8 +201,9 @@ export function numberLineSvg(min, max, mark = null, markLabel = '', subdivision
 
 /**
  * A square coordinate grid with axes, plotting labelled points.
- * Each point is drawn with its "(x,y)" coordinates printed beside it.
- * @param {Array<[number, number, string?]>} [points] `[x, y, label?]`
+ * Each point is drawn with its "(x,y)" coordinates printed beside it, unless
+ * its fourth element is false (for the point whose coordinates are the answer).
+ * @param {Array<[number, number, string?, boolean?]>} [points] `[x, y, label?, showCoords?]`
  * @param {{min?: number, max?: number}} [range] axis range (same for x and y)
  */
 export function coordSvg(points = [], { min = -5, max = 5 } = {}) {
@@ -202,12 +238,12 @@ export function coordSvg(points = [], { min = -5, max = 5 } = {}) {
     ${svgText(206, axisY + 13, 'x', { size: 10, fill: INK })}
     ${svgText(axisX + 11, 34, 'y', { size: 10, fill: INK })}`;
   const plotted = points
-    .map(([x, y, label]) => {
+    .map(([x, y, label, showCoords = true]) => {
       const px = toX(x);
       const py = toY(y);
       return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="5" fill="${BRAND}" stroke="white" stroke-width="1.5"/>
     ${label ? svgText(px + 9, py - 7, label, { size: 10, bold: true }) : ''}
-    ${svgText(px + 9, py + 6, `(${x},${y})`, { size: 9, fill: MUTED })}`;
+    ${showCoords ? svgText(px + 9, py + 6, `(${x},${y})`, { size: 9, fill: MUTED }) : ''}`;
     })
     .join('');
   return `<svg data-kind="coord" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" style="max-width:240px;display:block;margin:auto">
@@ -224,9 +260,10 @@ export function coordSvg(points = [], { min = -5, max = 5 } = {}) {
  * @param {number} length
  * @param {number} width
  * @param {string} [unit]
- * @param {{label?: string, fillArea?: boolean}} [options] caption; tint the area
+ * @param {{label?: string, fillArea?: boolean, unknown?: ''|'l'|'w'}} [options] caption;
+ *   tint the area; `unknown` prints "?" for the side the question asks for
  */
-export function rectSvg(length, width, unit = 'cm', { label = '', fillArea = false } = {}) {
+export function rectSvg(length, width, unit = 'cm', { label = '', fillArea = false, unknown = '' } = {}) {
   const aspect = Math.max(0.25, Math.min(4, (length || 1) / (width || 1)));
   let drawWidth = 170;
   let drawHeight = 170 / aspect;
@@ -239,8 +276,8 @@ export function rectSvg(length, width, unit = 'cm', { label = '', fillArea = fal
   return `<svg data-kind="rect" viewBox="0 0 280 170" xmlns="http://www.w3.org/2000/svg" style="max-width:280px;display:block;margin:auto">
   <rect width="280" height="170" fill="${PAPER}" rx="8"/>
   <rect x="${x}" y="${y}" width="${drawWidth}" height="${drawHeight}" fill="${fillArea ? `${BRAND}22` : 'white'}" stroke="${INK}" stroke-width="2"/>
-  ${svgText(x + drawWidth / 2, y - 13, `${length} ${unit}`, { size: 13, bold: true })}
-  ${svgText(x - 10, y + drawHeight / 2, `${width} ${unit}`, { size: 13, bold: true, anchor: 'end' })}
+  ${svgText(x + drawWidth / 2, y - 13, unknown === 'l' ? '?' : `${length} ${unit}`, { size: 13, bold: true, fill: unknown === 'l' ? CORAL : INK })}
+  ${svgText(x - 10, y + drawHeight / 2, unknown === 'w' ? '?' : `${width} ${unit}`, { size: 13, bold: true, anchor: 'end', fill: unknown === 'w' ? CORAL : INK })}
   ${label ? svgText(140, 159, label, { size: 11, fill: MUTED }) : ''}
 </svg>`;
 }
@@ -363,16 +400,18 @@ export function barChartSvg(values, labels, yLabel = '') {
  * @param {number} depth receding edge (labelled top right)
  * @param {number} height front left edge
  * @param {string} [unit]
+ * @param {{unknown?: ''|'l'|'d'|'h'}} [options] print "?" for the edge the question asks for
  */
-export function cuboidSvg(length, depth, height, unit = 'cm') {
+export function cuboidSvg(length, depth, height, unit = 'cm', { unknown = '' } = {}) {
+  const edge = (key, value) => (unknown === key ? '?' : `${value} ${unit}`);
   return `<svg data-kind="cuboid" viewBox="0 0 270 192" xmlns="http://www.w3.org/2000/svg" style="max-width:260px;display:block;margin:auto">
   <rect width="270" height="192" fill="${PAPER}" rx="8"/>
   <polygon points="60,90 95,60 205,60 170,90" fill="${BRAND}33" stroke="${INK}" stroke-width="1.8"/>
   <polygon points="170,90 205,60 205,130 170,160" fill="${BRAND}55" stroke="${INK}" stroke-width="1.8"/>
   <rect x="60" y="90" width="110" height="70" fill="${BRAND}22" stroke="${INK}" stroke-width="1.8"/>
-  ${svgText(115, 174, `${length} ${unit}`, { size: 12, bold: true })}
-  ${svgText(46, 125, `${height} ${unit}`, { size: 12, bold: true, anchor: 'end' })}
-  ${svgText(219, 79, `${depth} ${unit}`, { size: 12, bold: true, anchor: 'start' })}
+  ${svgText(115, 174, edge('l', length), { size: 12, bold: true })}
+  ${svgText(46, 125, edge('h', height), { size: 12, bold: true, anchor: 'end' })}
+  ${svgText(219, 79, edge('d', depth), { size: 12, bold: true, anchor: 'start' })}
 </svg>`;
 }
 
@@ -638,28 +677,37 @@ export function balanceSvg(coefficient, constant, total, variable = 'x') {
 }
 
 /**
- * A journey line with hourly ticks (up to 6), showing speed above and total
- * distance below. Pass null for the unknown to print "?".
- * @param {number|null} distance
+ * A journey line drawn to the scale of the trip: hour ticks every hour for up
+ * to 6 hours, every 2 (or more) hours for longer trips, always ending on the
+ * real total. Speed is shown above and total distance below.
+ * @param {number|null} distance null prints "total ?"
  * @param {number} hours
- * @param {number|null} speed
- * @param {string} [unit]
+ * @param {number|string|null} speed a number, a ready-made label (e.g. two
+ *   stages' speeds), '' for no speed label, or null for "? speed"
+ * @param {string} [unit] 'km' gives km/h; 'miles' gives mph
  */
 export function journeySvg(distance, hours, speed, unit = 'km') {
-  const tickCount = Math.min(hours, 6);
-  const tickGap = 240 / tickCount;
-  const ticks = Array.from({ length: tickCount + 1 }, (_, index) => {
-    const x = 30 + index * tickGap;
-    return `<line x1="${x.toFixed(1)}" y1="44" x2="${x.toFixed(1)}" y2="60" stroke="${INK}" stroke-width="1.6"/>
-      ${svgText(x, 74, `${index}h`, { size: 10, fill: MUTED })}`;
-  }).join('');
+  const hourStep = Math.max(1, Math.ceil(hours / 6));
+  const tickHours = [];
+  for (let hour = 0; hour < hours; hour += hourStep) tickHours.push(hour);
+  tickHours.push(hours);
+  const ticks = tickHours
+    .map((hour) => {
+      const x = 30 + (hour / hours) * 240;
+      return `<line x1="${x.toFixed(1)}" y1="44" x2="${x.toFixed(1)}" y2="60" stroke="${INK}" stroke-width="1.6"/>
+      ${svgText(x, 74, `${hour}h`, { size: 10, fill: MUTED })}`;
+    })
+    .join('');
+  const speedUnit = unit === 'miles' ? 'mph' : `${unit}/h`;
+  let speedText = typeof speed === 'string' ? speed : `${speed} ${speedUnit}`;
+  if (speed === null) speedText = '? speed';
   return `<svg data-kind="journey" viewBox="0 0 300 108" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;display:block;margin:auto">
   <rect width="300" height="108" fill="${PAPER}" rx="8"/>
   <line x1="30" y1="52" x2="270" y2="52" stroke="${INK}" stroke-width="2.5"/>
   ${ticks}
   <circle cx="30" cy="52" r="7" fill="${MINT}"/>
   <circle cx="270" cy="52" r="7" fill="${CORAL}"/>
-  ${svgText(150, 30, speed === null ? '? speed' : `${speed} ${unit}/h`, { size: 12, bold: true, fill: BRAND })}
+  ${speedText ? svgText(150, 30, speedText, { size: 12, bold: true, fill: BRAND }) : ''}
   ${svgText(150, 98, distance === null ? `total ? ${unit}` : `total ${distance} ${unit}`, { size: 11, fill: MUTED })}
 </svg>`;
 }
@@ -770,6 +818,9 @@ export function priceTagSvg(price, percentOff) {
 </svg>`;
 }
 
+/** "£5" for whole pounds, "£4.50" otherwise — never "£4.5". */
+const money = (amount) => (Number.isInteger(amount) ? `£${amount}` : `£${amount.toFixed(2)}`);
+
 /**
  * A money bar: the cost as a filled block and the change as a dashed "?" block,
  * together making up the amount paid.
@@ -780,9 +831,9 @@ export function changeSvg(paid, cost) {
   const costWidth = Math.max(20, Math.min(242, (cost / paid) * 272));
   return `<svg data-kind="change" viewBox="0 0 300 92" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;display:block;margin:auto">
   <rect width="300" height="92" fill="${PAPER}" rx="8"/>
-  ${svgText(150, 14, `paid £${paid}`, { size: 11, fill: MUTED })}
+  ${svgText(150, 14, `paid ${money(paid)}`, { size: 11, fill: MUTED })}
   <rect x="14" y="30" width="${costWidth.toFixed(1)}" height="34" rx="5" fill="${CORAL}"/>
-  ${svgText(14 + costWidth / 2, 47, `£${cost}`, { size: 12, bold: true, fill: '#ffffff' })}
+  ${svgText(14 + costWidth / 2, 47, money(cost), { size: 12, bold: true, fill: '#ffffff' })}
   <rect x="${(14 + costWidth + 2).toFixed(1)}" y="30" width="${(272 - costWidth - 2).toFixed(1)}" height="34" rx="5" fill="#ffffff" stroke="${BRAND}" stroke-width="2" stroke-dasharray="5 3"/>
   ${svgText(14 + costWidth + (272 - costWidth) / 2, 47, '?', { size: 15, bold: true, fill: BRAND })}
   ${svgText(150, 82, 'cost + change = amount paid', { size: 10, fill: MUTED })}
@@ -864,35 +915,127 @@ export function triangleAngleSvg(leftAngle, rightAngle) {
 </svg>`;
 }
 
-/** A fixed quadrilateral with three angles labelled and the fourth marked "?". */
+/**
+ * Corner positions (maths axes, y up) of a quadrilateral with the given four
+ * interior angles, walked anticlockwise. Two side lengths are tried from a
+ * small set and the other two solved so the shape closes; the most evenly
+ * proportioned result wins. Null when no sensible shape exists.
+ */
+function quadrilateralFromAngles(angles) {
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+  const headings = [0];
+  for (let corner = 1; corner < 3; corner++) headings.push(headings[corner - 1] + 180 - angles[corner]);
+  headings.push(headings[2] + 180 - angles[3]);
+  const unit = headings.map((heading) => [Math.cos(toRadians(heading)), Math.sin(toRadians(heading))]);
+  let best = null;
+  for (const first of [1, 0.8, 1.25, 0.6, 1.6]) {
+    for (const second of [1, 0.8, 1.25, 0.6, 1.6]) {
+      // Solve third·u2 + fourth·u3 = −(first·u0 + second·u1).
+      const rx = -(first * unit[0][0] + second * unit[1][0]);
+      const ry = -(first * unit[0][1] + second * unit[1][1]);
+      const det = unit[2][0] * unit[3][1] - unit[3][0] * unit[2][1];
+      if (Math.abs(det) < 1e-9) continue;
+      const third = (rx * unit[3][1] - unit[3][0] * ry) / det;
+      const fourth = (unit[2][0] * ry - rx * unit[2][1]) / det;
+      const sides = [first, second, third, fourth];
+      if (Math.min(...sides) <= 0.2) continue;
+      const spread = Math.max(...sides) / Math.min(...sides);
+      if (!best || spread < best.spread) best = { spread, sides };
+    }
+  }
+  if (!best || best.spread > 4) return null;
+  const corners = [[0, 0]];
+  for (let side = 0; side < 3; side++) {
+    const [x, y] = corners[side];
+    corners.push([x + best.sides[side] * unit[side][0], y + best.sides[side] * unit[side][1]]);
+  }
+  return corners;
+}
+
+/**
+ * A quadrilateral with three angles labelled and the fourth marked "?". The
+ * shape is drawn from the angles themselves, so a 150° corner looks obtuse;
+ * if no sensible shape exists it falls back to a plain outline marked "not
+ * to scale" rather than a picture that contradicts the numbers.
+ */
 export function quadAngleSvg(angleA, angleB, angleC) {
-  const corners = [
+  const angles = [angleA, angleB, angleC, 360 - angleA - angleB - angleC];
+  const shape = quadrilateralFromAngles(angles);
+  const fallback = [
     [52, 34],
     [200, 22],
     [214, 128],
     [36, 136],
   ];
-  const points = corners.map((corner) => corner.join(',')).join(' ');
-  const angles = [angleA, angleB, angleC, '?'];
-  const labelOffsets = [
-    [16, 16],
-    [-18, 18],
-    [-16, -12],
-    [16, -12],
+  let corners = fallback;
+  if (shape) {
+    const xs = shape.map(([x]) => x);
+    const ys = shape.map(([, y]) => y);
+    const scale = Math.min(170 / (Math.max(...xs) - Math.min(...xs)), 108 / (Math.max(...ys) - Math.min(...ys)));
+    const offsetX = 125 - ((Math.max(...xs) + Math.min(...xs)) / 2) * scale;
+    const offsetY = 80 + ((Math.max(...ys) + Math.min(...ys)) / 2) * scale;
+    corners = shape.map(([x, y]) => [offsetX + x * scale, offsetY - y * scale]);
+  }
+  const centre = [
+    corners.reduce((sum, [x]) => sum + x, 0) / 4,
+    corners.reduce((sum, [, y]) => sum + y, 0) / 4,
   ];
+  const points = corners.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
   const labels = corners
-    .map((corner, index) =>
-      svgText(
-        corner[0] + labelOffsets[index][0],
-        corner[1] + labelOffsets[index][1],
-        index === 3 ? '?' : `${angles[index]}°`,
-        { size: index === 3 ? 16 : 12, bold: true, fill: index === 3 ? CORAL : INK },
-      ),
-    )
+    .map(([x, y], index) => {
+      // Nudge each label from its corner towards the middle of the shape.
+      const dx = centre[0] - x;
+      const dy = centre[1] - y;
+      const length = Math.hypot(dx, dy) || 1;
+      const unknown = index === 3;
+      return svgText(x + (dx / length) * 24, y + (dy / length) * 20, unknown ? '?' : `${angles[index]}°`, {
+        size: unknown ? 16 : 12,
+        bold: true,
+        fill: unknown ? CORAL : INK,
+      });
+    })
     .join('');
   return `<svg data-kind="quadAngle" viewBox="0 0 250 160" xmlns="http://www.w3.org/2000/svg" style="max-width:250px;display:block;margin:auto">
   <rect width="250" height="160" fill="${PAPER}" rx="8"/>
   <polygon points="${points}" fill="${BRAND}" opacity="0.16" stroke="${BRAND}" stroke-width="2.2"/>${labels}
+  ${shape ? '' : svgText(125, 152, 'not to scale', { size: 9, fill: MUTED })}
+</svg>`;
+}
+
+/**
+ * Angles around a point: rays from a centre with each known angle labelled
+ * and the missing one marked "?". The rays are drawn at the true angles.
+ * @param {number[]} known angles in degrees (their sum must be under 360)
+ */
+export function pointAnglesSvg(known) {
+  const toRadians = (degrees) => (degrees * Math.PI) / 180;
+  const angles = [...known, 360 - known.reduce((sum, angle) => sum + angle, 0)];
+  const centre = [110, 80];
+  let heading = 90;
+  const parts = [];
+  angles.forEach((angle, index) => {
+    const [endX, endY] = [
+      centre[0] + 62 * Math.cos(toRadians(heading)),
+      centre[1] - 62 * Math.sin(toRadians(heading)),
+    ];
+    parts.push(
+      `<line x1="${centre[0]}" y1="${centre[1]}" x2="${endX.toFixed(1)}" y2="${endY.toFixed(1)}" stroke="${INK}" stroke-width="2.5"/>`,
+    );
+    const middle = toRadians(heading + angle / 2);
+    const unknown = index === angles.length - 1;
+    parts.push(
+      svgText(centre[0] + 34 * Math.cos(middle), centre[1] - 30 * Math.sin(middle), unknown ? '?' : `${angle}°`, {
+        size: unknown ? 16 : 12,
+        bold: true,
+        fill: unknown ? CORAL : INK,
+      }),
+    );
+    heading += angle;
+  });
+  return `<svg data-kind="pointAngles" viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg" style="max-width:220px;display:block;margin:auto">
+  <rect width="220" height="160" fill="${PAPER}" rx="8"/>
+  ${parts.join('')}
+  <circle cx="${centre[0]}" cy="${centre[1]}" r="3.5" fill="${INK}"/>
 </svg>`;
 }
 
@@ -963,56 +1106,87 @@ export function countersSvg(groups, caption = '') {
 </svg>`;
 }
 
+/** Round gridline steps for charts, smallest first. */
+const GRID_STEPS = [1, 2, 4, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
 /**
- * A line graph of `[label, value]` points with gridlines at 0, half and max
- * (max = 115% of the largest value).
- * @param {Array<[string|number, number]>} points
- * @param {{xLabel?: string, yLabel?: string, title?: string}} [options]
+ * Gridlines for a chart whose values run from 0 to `maxValue`. Prefers a
+ * round step that every value sits on exactly (so each point can be read off
+ * a gridline), with at most 10 lines; otherwise the smallest round step that
+ * gives at most 6 lines. Returns the step, the top of the axis and whether
+ * every value is on a gridline.
  */
-export function lineGraphSvg(points, { xLabel = '', yLabel = '', title = '' } = {}) {
-  const top = title ? 22 : 12;
-  const height = top + 104 + 30;
+export function chartGrid(values) {
+  const maxValue = Math.max(...values, 1);
+  const linesFor = (step) => Math.ceil(maxValue / step);
+  const onGrid = (step) => values.every((value) => Number.isInteger(value / step));
+  // Of the exact steps, the largest that still gives at least 4 lines reads
+  // best (0, 4, 8, 12, 16 rather than every 2); failing that, the finest.
+  const exactSteps = GRID_STEPS.filter((step) => linesFor(step) <= 10 && onGrid(step));
+  const exact = exactSteps.filter((step) => linesFor(step) >= 4).at(-1) ?? exactSteps[0];
+  const step = exact ?? GRID_STEPS.find((step) => linesFor(step) <= 6) ?? GRID_STEPS.at(-1);
+  return { step, top: linesFor(step) * step, valuesOnGrid: onGrid(step) };
+}
+
+/**
+ * A line graph of `[label, value]` points. Gridlines sit at round values (see
+ * `chartGrid`). When a value falls between gridlines its point is labelled
+ * with the number, so a question never asks for an exact reading the picture
+ * can't give; pass `pointLabels: false` when reading the scale is the skill
+ * being practised and the values are known to sit on gridlines.
+ * @param {Array<[string|number, number]>} points
+ * @param {{xLabel?: string, yLabel?: string, title?: string, pointLabels?: boolean|'auto'}} [options]
+ */
+export function lineGraphSvg(points, { xLabel = '', yLabel = '', title = '', pointLabels = 'auto' } = {}) {
   const values = points.map((point) => point[1]);
-  const yMax = Math.max(...values) * 1.15 || 1;
+  const grid = chartGrid(values);
+  const labelPoints = pointLabels === 'auto' ? !grid.valuesOnGrid : pointLabels;
+  // Point labels sit above the dots, so leave room for them under the title.
+  const top = (title ? 22 : 12) + (labelPoints ? 10 : 0);
+  const plotHeight = 104;
+  const height = top + plotHeight + 30;
   const xOf = (index) => 34 + (index / Math.max(points.length - 1, 1)) * 254;
-  const yOf = (value) => top + 104 - (value / yMax) * 104;
+  const yOf = (value) => top + plotHeight - (value / grid.top) * plotHeight;
   const path = points
     .map(
       (point, index) => `${index ? 'L' : 'M'}${xOf(index).toFixed(1)},${yOf(point[1]).toFixed(1)}`,
     )
     .join(' ');
-  const gridlines = [0, 0.5, 1]
-    .map((fraction) => {
-      const y = top + 104 - fraction * 104;
-      return `<line x1="34" y1="${y}" x2="288" y2="${y}" stroke="${LINE}" stroke-width="1"/>
-      ${svgText(29, y, String(Math.round(yMax * fraction)), { size: 9, anchor: 'end', fill: MUTED })}`;
-    })
-    .join('');
+  const gridlines = Array.from({ length: grid.top / grid.step + 1 }, (_, index) => {
+    const value = index * grid.step;
+    const y = yOf(value).toFixed(1);
+    return `<line x1="34" y1="${y}" x2="288" y2="${y}" stroke="${LINE}" stroke-width="1"/>
+      ${svgText(29, y, String(value), { size: 9, anchor: 'end', fill: MUTED })}`;
+  }).join('');
   const dots = points
     .map(
       (
         point,
         index,
       ) => `<circle cx="${xOf(index).toFixed(1)}" cy="${yOf(point[1]).toFixed(1)}" r="4" fill="${BRAND}" stroke="#fff" stroke-width="1.5"/>
-     ${svgText(xOf(index), top + 104 + 13, String(point[0]), { size: 9, fill: MUTED })}`,
+     ${labelPoints ? svgText(xOf(index), yOf(point[1]) - 10, String(point[1]), { size: 9, bold: true, fill: INK }) : ''}
+     ${svgText(xOf(index), top + plotHeight + 13, String(point[0]), { size: 9, fill: MUTED })}`,
     )
     .join('');
   return `<svg data-kind="lineGraph" viewBox="0 0 300 ${height}" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;display:block;margin:auto">
   <rect width="300" height="${height}" fill="${PAPER}" rx="8"/>
   ${title ? svgText(150, 12, title, { size: 10, fill: MUTED }) : ''}
   ${gridlines}
-  <line x1="34" y1="${top}" x2="34" y2="${top + 104}" stroke="${MUTED}" stroke-width="1.5"/>
-  <line x1="34" y1="${top + 104}" x2="288" y2="${top + 104}" stroke="${MUTED}" stroke-width="1.5"/>
+  <line x1="34" y1="${top}" x2="34" y2="${top + plotHeight}" stroke="${MUTED}" stroke-width="1.5"/>
+  <line x1="34" y1="${top + plotHeight}" x2="288" y2="${top + plotHeight}" stroke="${MUTED}" stroke-width="1.5"/>
   <path d="${path}" fill="none" stroke="${BRAND}" stroke-width="2.4" stroke-linejoin="round"/>
   ${dots}
   ${xLabel ? svgText(150, height - 6, xLabel, { size: 9, fill: MUTED }) : ''}
-  ${yLabel ? `<text x="10" y="${top + 52}" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle" fill="${MUTED}" transform="rotate(-90 10 ${top + 52})">${yLabel}</text>` : ''}
+  ${yLabel ? `<text x="10" y="${top + plotHeight / 2}" font-size="9" font-family="system-ui,sans-serif" text-anchor="middle" fill="${MUTED}" transform="rotate(-90 10 ${top + plotHeight / 2})">${yLabel}</text>` : ''}
 </svg>`;
 }
 
 /**
  * A pictogram: one row of icons per category, each icon worth `each`.
- * A remainder of at least half an icon is drawn as a faded icon.
+ * A remainder of at least half an icon is drawn as the left half of an icon
+ * (a faded whole icon read as a whole one). The clip path is relative to the
+ * icon's own box, so one definition serves every half icon, and repeating the
+ * same id in several diagrams on a page is harmless.
  * @param {Array<{label: string, value: number}>} rows
  * @param {{icon?: string, each?: number, title?: string}} [options]
  */
@@ -1029,12 +1203,13 @@ export function pictogramSvg(rows, { icon = '●', each = 1, title = '' } = {}) 
           svgText(68 + index * 19 + 8, y, icon, { size: 15, fill: BRAND }),
         ).join('') +
         (hasHalf
-          ? `<g opacity="0.45">${svgText(68 + whole * 19 + 8, y, icon, { size: 15, fill: BRAND })}</g>`
+          ? `<g clip-path="url(#pictogram-half)">${svgText(68 + whole * 19 + 8, y, icon, { size: 15, fill: BRAND })}</g>`
           : '');
       return `${svgText(60, y, row.label, { size: 10, anchor: 'end', fill: INK })}${icons}`;
     })
     .join('');
   return `<svg data-kind="pictogram" viewBox="0 0 300 ${height}" xmlns="http://www.w3.org/2000/svg" style="max-width:300px;display:block;margin:auto">
+  <defs><clipPath id="pictogram-half" clipPathUnits="objectBoundingBox"><rect x="0" y="0" width="0.5" height="1"/></clipPath></defs>
   <rect width="300" height="${height}" fill="${PAPER}" rx="8"/>
   ${title ? svgText(150, 12, title, { size: 10, fill: MUTED }) : ''}
   ${rowsMarkup}
@@ -1173,6 +1348,7 @@ const VISUAL_LABELS = {
   triangle: 'Triangle',
   triangleAngle: 'Triangle with angles',
   quadAngle: 'Quadrilateral with angles',
+  pointAngles: 'Angles around a point',
   angle: 'Angle',
   straightLine: 'Angles on a straight line',
   cuboid: 'Cuboid',

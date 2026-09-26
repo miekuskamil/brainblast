@@ -135,7 +135,9 @@ export const FRACTIONS_DECIMALS_PERCENT = [
     prompt: 'What is 10% of £6.50?',
     answer: '65p',
     hint: '10% is a tenth. Divide £6.50 by 10.',
-    options: ['£0.65', '65p', '£6.50', '6.5p'],
+    // Each distractor is a real slip (decimal point in the wrong place, or
+    // ×10 instead of ÷10), never 65p written another way.
+    options: ['6.5p', '65p', '£65', '650p'],
     explain: '10% is a tenth: £6.50 ÷ 10 = 65p.',
   },
   {
@@ -146,7 +148,7 @@ export const FRACTIONS_DECIMALS_PERCENT = [
     prompt: 'What is 1% of £1?',
     answer: '1p',
     hint: '1% is a hundredth. £1 is 100p.',
-    options: ['10p', '1p', '£0.10', '£1'],
+    options: ['10p', '1p', '0.1p', '£1'],
     explain: '1% of £1 = £1 ÷ 100 = £0.01 = 1p.',
   },
   {
@@ -170,7 +172,19 @@ export const FRACTIONS_DECIMALS_PERCENT = [
     hint: 'Add the two percentages, then take the total away from 100%.',
     options: ['35%', '45%', '25%', '65%'],
     explain: '38 + 27 = 65. 100 − 65 = 35%.',
-    visual: ratioBarSvg([38, 27, 35], ['Bus 38%', 'Snacks 27%', 'Left ?']),
+    visual: barModelSvg(
+      [
+        {
+          label: '100% of her pocket money',
+          segments: [
+            { span: 38, text: 'bus 38%', colour: '#7c6cff' },
+            { span: 27, text: 'snacks 27%', colour: '#ff8c6b' },
+            { span: 35, text: '?', colour: '#ffffff' },
+          ],
+        },
+      ],
+      'what is left?',
+    ),
   },
   {
     id: 'me1-14',
@@ -204,12 +218,14 @@ export const MONEY = [
         { count: 2, colour: '#7c6cff', label: '20p' },
         { count: 2, colour: '#4cceac', label: '5p' },
       ],
-      'the coins she starts with',
+      'the coins Freya starts with',
     ),
     prompt:
       'Freya has three 50p coins, two 20p coins and two 5p coins. She spends £1.17. How much has she left?',
     answer: '83p',
-    options: ['£0.93', '£1.03', '£1.13', '83p'],
+    // All in pence so the format doesn't give the answer away. Distractors:
+    // forgetting the 5p coins (73p), counting one 5p (78p), a subtraction slip (93p).
+    options: ['73p', '78p', '83p', '93p'],
     explain: '3×50p + 2×20p + 2×5p = 150+40+10 = 200p = £2.00. £2.00 − £1.17 = 83p.',
     hint: 'Add up all the coins first.',
   },
@@ -361,11 +377,11 @@ export const UNIT_CONVERSIONS = [
     id: 'me3-3',
     subject: 'maths',
     topic: 'me3',
-    prompt: 'A person is about 6 feet tall. What is the closest metric measurement?',
+    prompt: 'A classroom door is 200 cm tall. How tall is that in metres?',
     answer: '2 m',
-    hint: 'A foot is roughly 30 cm. Work in centimetres, then convert.',
-    options: ['20 m', '2000 cm', '200 m', '2 m'],
-    explain: '1 foot ≈ 30 cm. 6 × 30 = 180 cm ≈ 2 m.',
+    hint: '100 cm = 1 m.',
+    options: ['20 m', '0.2 m', '200 m', '2 m'],
+    explain: '200 cm ÷ 100 = 2 m.',
   },
   {
     id: 'me3-4',
@@ -397,7 +413,7 @@ export const UNIT_CONVERSIONS = [
     hint: 'Put both into the same unit before you compare.',
     options: ['<', '>', '=', 'cannot compare different units'],
     explain: '0.8 m = 80 cm. 80 cm > 75 cm.',
-    visual: numberLineSvg(70, 90, 80, '0.8 m = 80 cm'),
+    visual: numberLineSvg(70, 90, 75, '75 cm'),
   },
   {
     id: 'me3-7',
@@ -446,11 +462,11 @@ export const UNIT_CONVERSIONS = [
     id: 'me3-10',
     subject: 'maths',
     topic: 'me3',
-    prompt: 'Write 50,000 = 500 × __',
-    answer: '100',
-    hint: 'Think 50,000 ÷ 500, and cancel matching zeros.',
-    options: ['10', '100', '1000', '5'],
-    explain: '50000 ÷ 500 = 100.',
+    prompt: 'A jug holds 1.5 litres of water. How many millilitres is that?',
+    answer: '1500 ml',
+    hint: '1 litre = 1000 ml.',
+    options: ['150 ml', '1500 ml', '15 ml', '15000 ml'],
+    explain: '1.5 × 1000 = 1500 ml.',
   },
 ];
 
@@ -494,12 +510,11 @@ export const AREA_PERIMETER = [
     subject: 'maths',
     topic: 'me4',
     prompt:
-      'A rectangular table-top has surface area 3200 cm². Its length is double its width. What is the length?',
+      'A rectangular table-top has a perimeter of 240 cm. Its length is double its width. What is the length?',
     answer: '80 cm',
-    hint: 'If the width is w, the length is 2w. So the area is 2 × w × w.',
-    options: ['40 cm', '80 cm', '160 cm', '32 cm'],
-    explain:
-      'If width = w, length = 2w. Area = 2w × w = 2w² = 3200, so w² = 1600, w = 40, length = 80 cm.',
+    hint: 'Going all the way round passes the width 2 times and the length (2 widths) 2 times: 6 widths in all.',
+    options: ['40 cm', '80 cm', '120 cm', '60 cm'],
+    explain: 'The perimeter is 6 widths: 240 ÷ 6 = 40 cm wide, so the length is 2 × 40 = 80 cm.',
   },
   {
     id: 'me4-5',
@@ -682,7 +697,7 @@ export const ANGLES = [
     answer: '120°',
     hint: 'A hexagon splits into 4 triangles, and each triangle holds 180°.',
     options: ['60°', '90°', '120°', '135°'],
-    explain: 'Sum of interior angles of a hexagon = (6−2) × 180 = 720°. 720 ÷ 6 = 120°.',
+    explain: 'Sum of interior angles of a hexagon = (6 − 2) × 180 = 720°. 720 ÷ 6 = 120°.',
   },
 ];
 
@@ -706,7 +721,7 @@ export const COORDINATES = [
 What are the coordinates of corner D?`,
     answer: '(1, 1)',
     options: ['(1, 1)', '(1, 5)', '(4, 1)', '(5, 5)'],
-    hint: 'D shares its x-value with A and its y-value with C.',
+    hint: 'The sides of a rectangle run straight across and straight up. Which corner is D directly below, and which is it level with?',
     explain: 'A is (1, 4) and C is (5, 1), so D must be (1, 1).',
   },
   {
@@ -740,7 +755,7 @@ How many units apart are they?`,
     answer: '4',
     options: ['2', '3', '4', '5'],
     hint: 'They sit on the same horizontal line — count the squares between them.',
-    explain: 'A is at x = −3 and B is at x = 1. From −3 to 1 is 4 units.',
+    explain: 'A is at x = -3 and B is at x = 1. From -3 to 1 is 4 units.',
   },
   {
     id: 'me7-1',
@@ -772,10 +787,7 @@ What are the coordinates of the fourth corner?`,
     options: ['(4, -3)', '(-4, 3)', '(-4, -3)', '(3, 4)'],
     explain: 'Reflecting in the y-axis changes the sign of the x-coordinate.',
     visual: coordSvg(
-      [
-        [4, 3, 'P'],
-        [-4, 3, "P'"],
-      ],
+      [[4, 3, 'P']],
       { min: -5, max: 5 },
     ),
   },
@@ -790,10 +802,7 @@ What are the coordinates of the fourth corner?`,
     options: ['(2, -3)', '(-3, 2)', '(3, -2)', '(-2, 3)'],
     explain: '90° clockwise: (x, y) → (y, -x). So (-2, -3) → (-3, 2).',
     visual: coordSvg(
-      [
-        [-2, -3, 'P'],
-        [-3, 2, "P'"],
-      ],
+      [[-2, -3, 'P']],
       { min: -5, max: 5 },
     ),
   },
@@ -826,10 +835,20 @@ export const MEAN_MEDIAN_RANGE = [
     id: 'me8-2',
     subject: 'maths',
     topic: 'me8',
-    visual: sequenceSvg([4236, 4285, 5800, 5080, 54300]),
-    prompt: 'Five lengths in km: 4236, 4285, 5800, 5080, 54300. What is the median?',
-    answer: '5080 km',
-    options: ['4285 km', '5080 km', '5800 km', '4236 km'],
+    visual: tableSvg(
+      ['Place', 'People'],
+      [
+        ['Village A', '4236'],
+        ['Village B', '4285'],
+        ['Village C', '5800'],
+        ['Village D', '5080'],
+        ['Town', '54300'],
+      ],
+      { title: 'Population' },
+    ),
+    prompt: 'Five places have these populations: 4236, 4285, 5800, 5080, 54300. What is the median?',
+    answer: '5080',
+    options: ['4285', '5080', '5800', '4236'],
     explain: 'Sorted: 4236, 4285, 5080, 5800, 54300. Middle value (3rd) = 5080.',
     hint: 'Median = the middle value when sorted.',
   },
@@ -837,11 +856,10 @@ export const MEAN_MEDIAN_RANGE = [
     id: 'me8-3',
     subject: 'maths',
     topic: 'me8',
-    visual: sequenceSvg([4236, 4285, 5800, 5080, 54300]),
-    prompt: 'Five lengths in km: 4236, 4285, 5800, 5080, 54300. What is the range?',
-    answer: '50064 km',
+    prompt: 'Five places have these populations: 4236, 4285, 5800, 5080, 54300. What is the range?',
+    answer: '50064',
     hint: 'Range = largest value − smallest value.',
-    options: ['50064 km', '50000 km', '49000 km', '54300 km'],
+    options: ['50064', '50000', '49000', '54300'],
     explain: 'Range = largest − smallest = 54300 − 4236 = 50064.',
   },
   {
@@ -860,7 +878,7 @@ export const MEAN_MEDIAN_RANGE = [
     subject: 'maths',
     topic: 'me8',
     prompt:
-      'A pie chart shows 5 players scored 90 goals between them. Evie scored 72°, Ajay 120°. How many goals did Evie score?',
+      "A pie chart shows the 90 goals scored by 5 players. Evie's sector is 72° and Ajay's is 120°. How many goals did Evie score?",
     answer: '18',
     options: ['12', '18', '20', '24'],
     explain: "Evie's share = 72/360 = 1/5. 1/5 × 90 = 18 goals.",
@@ -943,7 +961,6 @@ export const MULTIPLES_FACTORS = [
     id: 'me10-1',
     subject: 'maths',
     topic: 'me10',
-    visual: sequenceSvg([8, 16, 24, 32, 40, 48]),
     prompt: `Which of these are multiples of 8?
 36, 48, 60, 72`,
     answer: '48 and 72',
@@ -1128,6 +1145,6 @@ export const ROUNDING_ESTIMATION = [
     hint: 'Round each distance to the nearest whole km before adding.',
     options: ['8 km', '9 km', '10 km', '11 km'],
     explain: '4 + 6 = 10 km. (4.285 rounds to 4, 5.800 rounds to 6.)',
-    visual: numberLineSvg(8, 11, 10.085, '≈ 10 km'),
+    visual: numberLineSvg(4, 5, 4.285, '4.285 km'),
   },
 ];

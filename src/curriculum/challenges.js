@@ -12,8 +12,8 @@
 import { barModelSvg, journeySvg, rectSvg, tableSvg } from './visual.js';
 import { TIER, byTier } from '../engine/difficulty.js';
 import { makeTopic } from './topic.js';
-
-const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
+import { NAMES, cap, pickPerson, verb } from './names.js';
+import { durationText, hoursText, payWithNotes } from './topics-varied.js';
 
 const PLACES = [
   'Stirling Castle',
@@ -100,20 +100,22 @@ How much does each pupil have to pay?`,
       const spent = boxes * boxPrice;
       const profit = takings - spent;
       if (Math.abs(profit * 100 - Math.round(profit * 100)) > 1e-6 || profit <= 0) return null;
+      const person = pickPerson(rng);
+      const They = cap(person.they);
       return {
         longForm: true,
-        prompt: `${rng.pick(NAMES)} runs the school tuck shop.
+        prompt: `${person.name} runs the school tuck shop.
 
-She buys ${boxes} boxes of cereal bars.
+${They} ${verb(person, 'buys', 'buy')} ${boxes} boxes of cereal bars.
 Each box costs ${pounds(boxPrice)} and holds ${barsPerBox} bars.
 
-She sells the bars at ${barPricePence}p each.
+${They} ${verb(person, 'sells', 'sell')} the bars at ${barPricePence}p each.
 By the end of the week ${unsold} bars are left unsold.
 
-How much profit does she make?
+How much profit ${verb(person, 'does', 'do')} ${person.they} make?
 (Give your answer in pounds, like 12.50)`,
         answer: profit.toFixed(2),
-        hint: `First work out how many bars she bought altogether: ${boxes} × ${barsPerBox}.`,
+        hint: `First work out how many bars were bought altogether: ${boxes} × ${barsPerBox}.`,
         visual: tableSvg(
           ['', 'Amount'],
           [
@@ -124,7 +126,7 @@ How much profit does she make?
           ],
           { title: 'Tuck shop' },
         ),
-        explain: `She bought ${boxes} × ${barsPerBox} = ${totalBars} bars, and sold ${totalBars} − ${unsold} = ${totalBars - unsold}. Money in: ${totalBars - unsold} × ${barPricePence}p = £${takings.toFixed(2)}. Money out: ${boxes} × ${pounds(boxPrice)} = ${pounds(spent)}. Profit = £${takings.toFixed(2)} − ${pounds(spent)} = £${profit.toFixed(2)}.`,
+        explain: `${They} bought ${boxes} × ${barsPerBox} = ${totalBars} bars, and sold ${totalBars} − ${unsold} = ${totalBars - unsold}. Money in: ${totalBars - unsold} × ${barPricePence}p = £${takings.toFixed(2)}. Money out: ${boxes} × ${pounds(boxPrice)} = ${pounds(spent)}. Profit = £${takings.toFixed(2)} − ${pounds(spent)} = £${profit.toFixed(2)}.`,
       };
     },
   },
@@ -146,16 +148,17 @@ How much profit does she make?
       const [minTinPrice, maxTinPrice] = byTier(tier, [5, 9], [7, 14], [10, 18]);
       const tinPrice = rng.int(minTinPrice, maxTinPrice);
       const tins = Math.ceil(wallArea / coverage);
+      const person = pickPerson(rng);
       return {
         longForm: true,
-        prompt: `${rng.pick(NAMES)} is painting the walls of a hall.
+        prompt: `${person.name} is painting the walls of a hall.
 
 The hall is ${length} m long, ${width} m wide and 3 m high.
-He paints all four walls, but not the ceiling or the floor.
-The door and windows take up ${gaps} m² which he does not paint.
+${cap(person.they)} ${verb(person, 'paints', 'paint')} all four walls, but not the ceiling or the floor.
+The door and windows take up ${gaps} m² which ${person.they} ${verb(person, 'does', 'do')} not paint.
 
 One tin of paint covers ${coverage} m².
-Tins cost ${pounds(tinPrice)} each and he can only buy whole tins.
+Tins cost ${pounds(tinPrice)} each and ${person.they} can only buy whole tins.
 
 How much does the paint cost?`,
         answer: tins * tinPrice,
@@ -177,7 +180,14 @@ How much does the paint cost?`,
       const lapLength = rng.pick(lapLengthPool);
       const km = (laps * lapLength) / 1000;
       if (!Number.isInteger(km * 2)) return null;
-      const sponsors = rng.sample(NAMES, 3);
+      const walker = pickPerson(rng);
+      // Nobody sponsors themselves: sponsors come from everyone but the walker.
+      const sponsors = rng
+        .sample(
+          NAMES.filter((person) => person !== walker),
+          3,
+        )
+        .map((person) => person.name);
       const [minRate1, maxRate1] = byTier(tier, [1, 3], [2, 5], [4, 8]);
       const [minRate2, maxRate2] = byTier(tier, [1, 2], [1, 3], [2, 5]);
       const [minRate3, maxRate3] = byTier(tier, [2, 4], [3, 6], [5, 9]);
@@ -191,16 +201,16 @@ How much does the paint cost?`,
       if (Math.abs(raised * 100 - Math.round(raised * 100)) > 1e-6) return null;
       return {
         longForm: true,
-        prompt: `${rng.pick(NAMES)} is doing a sponsored walk round the school field.
+        prompt: `${walker.name} is doing a sponsored walk round the school field.
 
-She walks ${laps} laps, and one lap is ${lapLength} m.
+${cap(walker.they)} ${verb(walker, 'walks', 'walk')} ${laps} laps, and one lap is ${lapLength} m.
 
-Three people sponsor her. The table shows what each of them pays her for every kilometre she walks.
+Three people sponsor ${walker.them}. The table shows what each of them pays for every kilometre ${walker.they} ${verb(walker, 'walks', 'walk')}.
 
-How much money does she raise altogether?
+How much money ${verb(walker, 'does', 'do')} ${walker.they} raise altogether?
 (Give your answer in pounds)`,
         answer: Number.isInteger(raised) ? String(raised) : raised.toFixed(2),
-        hint: 'First find how far she walked in kilometres. Remember 1000 m = 1 km.',
+        hint: 'First find the distance walked in kilometres. Remember 1000 m = 1 km.',
         visual: tableSvg(
           ['Sponsor', 'Pays per km'],
           sponsors.map((sponsor, i) => [sponsor, pounds(rates[i])]),
@@ -230,16 +240,17 @@ How much money does she raise altogether?
       const saving = Math.abs(streamlyTotal - playtimeTotal);
       if (saving === 0 || saving > 400) return null;
       const cheaper = streamlyTotal < playtimeTotal ? 'Streamly' : 'Playtime';
+      const person = pickPerson(rng);
       return {
         longForm: true,
-        prompt: `${rng.pick(NAMES)} is choosing between two music apps.
+        prompt: `${person.name} is choosing between two music apps.
 
 Streamly charges ${pounds(streamlyFee)} a month, plus ${pounds(perGb)} for every GB of data used.
 Playtime charges ${pounds(playtimeFee)} a month with all the data included.
 
-She uses ${gbPerMonth} GB every month, and wants to know the cost over ${months} months.
+${cap(person.they)} ${verb(person, 'uses', 'use')} ${gbPerMonth} GB every month, and ${verb(person, 'wants', 'want')} to know the cost over ${months} months.
 
-How much would she save by choosing the cheaper one?`,
+How much would ${person.they} save by choosing the cheaper one?`,
         answer: saving,
         hint: `Work out one month of Streamly first: the ${pounds(streamlyFee)} fee plus ${gbPerMonth} GB of data.`,
         visual: tableSvg(
@@ -272,23 +283,24 @@ How much would she save by choosing the cheaper one?`,
       const barsNeeded = guests * barsPerBag;
       const packs = Math.ceil(barsNeeded / packSize);
       const cost = packs * packPrice;
-      // Pay with the next multiple of £5 at least £3 above the cost.
-      const paid = Math.ceil((cost + rng.int(3, 12)) / 5) * 5;
+      const { amount: paid, words: notes } = payWithNotes(cost);
       const bought = packs * packSize;
+      const person = pickPerson(rng);
+      const They = cap(person.they);
       return {
         longForm: true,
-        prompt: `${rng.pick(NAMES)} is making party bags for his birthday.
+        prompt: `${person.name} is making party bags for ${person.their} birthday.
 
 ${guests} people are coming, and each bag needs ${barsPerBag} chocolate bars.
 
 Chocolate bars come in packs of ${packSize}, and a pack costs ${pounds(packPrice)}.
-He can only buy whole packs.
+${They} can only buy whole packs.
 
-He pays with ${pounds(paid)}.
+${They} ${verb(person, 'pays', 'pay')} with ${notes}.
 
-How much change does he get?`,
+How much change ${verb(person, 'does', 'do')} ${person.they} get?`,
         answer: paid - cost,
-        hint: `First work out how many bars he needs altogether: ${guests} × ${barsPerBag}.`,
+        hint: `First work out how many bars are needed altogether: ${guests} × ${barsPerBag}.`,
         visual: barModelSvg(
           [
             {
@@ -309,15 +321,16 @@ How much change does he get?`,
     },
   },
 
-  // Arrival time from driving and break durations. The speeds are a
-  // deliberate red herring: spotting unneeded information is the skill.
+  // Arrival time from driving and break durations. The speeds (in mph, as on
+  // UK roads) are a deliberate red herring: spotting unneeded information is
+  // the skill.
   {
     id: 'journey-legs',
     build(rng, tier = TIER.STANDARD) {
-      const firstSpeedPool = byTier(tier, [30, 40, 50], [40, 50, 60], [50, 60, 70, 80]);
+      const firstSpeedPool = byTier(tier, [30, 40], [30, 40, 50], [40, 45, 50]);
       const firstHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
       const breakPool = byTier(tier, [15, 20, 30], [20, 30, 45], [30, 45, 60]);
-      const secondSpeedPool = byTier(tier, [50, 60, 70], [60, 80, 90], [80, 90, 100, 110]);
+      const secondSpeedPool = byTier(tier, [50, 60], [50, 55, 60], [55, 60, 65]);
       const secondHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
       const firstSpeed = rng.pick(firstSpeedPool);
       const firstHours = rng.pick(firstHoursPool);
@@ -337,9 +350,9 @@ How much change does he get?`,
 
 It leaves at ${departs}.
 
-First it drives for ${firstHours} hour${firstHours > 1 ? 's' : ''} at ${firstSpeed} km/h.
+First it drives for ${hoursText(firstHours)} at ${firstSpeed} mph.
 Then it stops for a ${breakMinutes} minute break.
-Then it drives for ${secondHours} hour${secondHours > 1 ? 's' : ''} at ${secondSpeed} km/h.
+Then it drives for ${hoursText(secondHours)} at ${secondSpeed} mph.
 
 What time does it arrive?
 (24-hour clock, like 14:35)`,
@@ -348,25 +361,27 @@ What time does it arrive?
         visual: tableSvg(
           ['Stage', 'Time'],
           [
-            ['Driving', `${firstHours} h at ${firstSpeed} km/h`],
+            ['Driving', `${firstHours} h at ${firstSpeed} mph`],
             ['Break', `${breakMinutes} min`],
-            ['Driving', `${secondHours} h at ${secondSpeed} km/h`],
+            ['Driving', `${secondHours} h at ${secondSpeed} mph`],
           ],
           { title: `Departs ${departs}` },
         ),
-        explain: `Total time: ${firstHours} h + ${breakMinutes} min + ${secondHours} h = ${Math.floor(journeyMinutes / 60)} h ${journeyMinutes % 60} min. ${departs} plus that gives ${arrives}. The speeds were extra information you did not need.`,
+        explain: `Total time: ${firstHours} h + ${breakMinutes} min + ${secondHours} h = ${durationText(journeyMinutes)}. ${departs} plus that gives ${arrives}. The speeds were extra information you did not need.`,
       };
     },
   },
 
   // Distance = speed × time for two stages, then add. The journey diagram
-  // shows only the total time so neither stage's distance is given away.
+  // shows the total time and both speeds (both given in the text) but no
+  // stage's distance. Lorries are limited to 50 mph on country roads and
+  // 60 mph on motorways.
   {
     id: 'journey-distance',
     build(rng, tier = TIER.STANDARD) {
-      const roadSpeedPool = byTier(tier, [30, 40, 50], [40, 50, 60, 70], [60, 70, 80, 90]);
+      const roadSpeedPool = byTier(tier, [30, 40], [30, 40, 45, 50], [35, 40, 45, 50]);
       const roadHoursPool = byTier(tier, [1, 2], [2, 3], [3, 4]);
-      const motorwaySpeedPool = byTier(tier, [60, 70, 80], [80, 90, 100], [100, 110, 120]);
+      const motorwaySpeedPool = byTier(tier, [50, 60], [50, 55, 60], [52, 55, 58, 60]);
       const motorwayHoursPool = byTier(tier, [1], [1, 2], [2, 3]);
       const roadSpeed = rng.pick(roadSpeedPool);
       const roadHours = rng.pick(roadHoursPool);
@@ -377,14 +392,19 @@ What time does it arrive?
         longForm: true,
         prompt: `A lorry makes a delivery in two stages.
 
-For the first ${roadHours} hours it drives on country roads at ${roadSpeed} km/h.
-For the next ${motorwayHours} hour${motorwayHours > 1 ? 's' : ''} it drives on the motorway at ${motorwaySpeed} km/h.
+For the first ${roadHours === 1 ? 'hour' : hoursText(roadHours)} it drives on country roads at ${roadSpeed} mph.
+For the next ${motorwayHours === 1 ? 'hour' : hoursText(motorwayHours)} it drives on the motorway at ${motorwaySpeed} mph.
 
-How far does the lorry travel altogether?`,
+How many miles does the lorry travel altogether?`,
         answer: distance,
         hint: 'Work out each stage separately with distance = speed × time, then add them.',
-        visual: journeySvg(null, roadHours + motorwayHours, null),
-        explain: `Stage 1: ${roadSpeed} × ${roadHours} = ${roadSpeed * roadHours} km. Stage 2: ${motorwaySpeed} × ${motorwayHours} = ${motorwaySpeed * motorwayHours} km. Altogether: ${roadSpeed * roadHours} + ${motorwaySpeed * motorwayHours} = ${distance} km.`,
+        visual: journeySvg(
+          null,
+          roadHours + motorwayHours,
+          `${roadSpeed} mph, then ${motorwaySpeed} mph`,
+          'miles',
+        ),
+        explain: `Stage 1: ${roadSpeed} × ${roadHours} = ${roadSpeed * roadHours} miles. Stage 2: ${motorwaySpeed} × ${motorwayHours} = ${motorwaySpeed * motorwayHours} miles. Altogether: ${roadSpeed * roadHours} + ${motorwaySpeed * motorwayHours} = ${distance} miles.`,
       };
     },
   },

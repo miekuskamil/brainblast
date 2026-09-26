@@ -9,7 +9,7 @@ export const GRAMMAR_SATS = [
     id: 'gs501',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "is writing" in the simple past tense.
 
 "She is writing a letter to her gran."
 
@@ -27,7 +27,7 @@ Type only the verb.`,
     id: 'gs502',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "runs" in the simple past tense.
 
 "The dog runs around the garden every morning."
 
@@ -45,7 +45,7 @@ Type only the verb.`,
     id: 'gs503',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the past progressive tense.
+    q: `Rewrite the verb "eat" in the past progressive tense.
 
 "They eat lunch at the park."
 
@@ -59,7 +59,7 @@ Type the verb phrase (two words).`,
     id: 'gs504',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the present perfect tense.
+    q: `Rewrite the verb "finishes" in the present perfect tense.
 
 "She finishes her homework."
 
@@ -254,14 +254,14 @@ Type only the verb.`,
     type: 'mc',
     q: 'Which sentence uses "I" correctly?',
     opts: [
-      'Euan and I stayed late to help.',
-      'Me and Euan stayed late to help.',
-      'Euan and me stayed late to help.',
-      'Me stayed late to help Euan.',
+      'Ruaridh and I stayed late to help.',
+      'Me and Ruaridh stayed late to help.',
+      'Ruaridh and me stayed late to help.',
+      'Me stayed late to help Ruaridh.',
     ],
-    a: 'Euan and I stayed late to help.',
+    a: 'Ruaridh and I stayed late to help.',
     hint: "Remove the other person's name and see which pronoun sounds right alone.",
-    ex: '"I stayed late" sounds right; "Me stayed late" does not — so "Euan and I" is correct.',
+    ex: '"I stayed late" sounds right; "Me stayed late" does not — so "Ruaridh and I" is correct.',
   },
   {
     id: 'gs530',
@@ -269,12 +269,12 @@ Type only the verb.`,
     type: 'mc',
     q: `Which word is the determiner in this sentence?
 
-"Those three dogs chased the postman."`,
-    opts: ['Those', 'three', 'dogs', 'chased'],
+"Those dogs chased the postman."`,
+    opts: ['Those', 'dogs', 'chased', 'postman'],
     a: 'Those',
     hint: 'A determiner comes before a noun and tells you which or how many.',
     ex: '"Those" is a demonstrative determiner — it tells you which specific dogs are meant.',
-    visual: wordInContextSvg('Those three dogs chased the postman.', 'Those', 'which word class?'),
+    visual: wordInContextSvg('Those dogs chased the postman.', 'Those', 'which word class?'),
   },
   {
     id: 'gs531',
@@ -334,15 +334,15 @@ Type only the verb.`,
     id: 'gs540',
     topic: 'adverbials',
     type: 'mc',
-    q: `Which underlined group of words is an adverbial of time?
+    q: `Which group of words is an adverbial of time?
 
-"On Tuesday, Freya ran three miles before breakfast."`,
-    opts: ['On Tuesday', 'three miles', 'before breakfast', 'ran'],
+"On Tuesday, Ava ran three miles along the canal."`,
+    opts: ['On Tuesday', 'three miles', 'along the canal', 'ran'],
     a: 'On Tuesday',
     hint: 'Adverbials of time answer the question "When?"',
     ex: '"On Tuesday" tells us when the running happened — that is an adverbial of time.',
     visual: wordInContextSvg(
-      'On Tuesday, Freya ran three miles before breakfast.',
+      'On Tuesday, Ava ran three miles along the canal.',
       'On Tuesday',
       'adverbial of time?',
     ),
@@ -439,7 +439,7 @@ The verb is "explain".
 The noun is ___.`,
     a: 'explanation',
     hint: 'A suffix is added but the root spelling shifts slightly.',
-    ex: '"explain" → "explanation". The -in drops and -ation is added.',
+    ex: '"explain" → "explanation". The i drops out ("explan-") and -ation is added.',
   },
   {
     id: 'gs554',
@@ -455,6 +455,7 @@ The noun is ___.`,
     id: 'gs555',
     topic: 'word-family',
     type: 'input',
+    accept: ['im-', 'impatient'],
     q: `Add the correct prefix to make the antonym (opposite).
 
 The opposite of "patient" is ___patient.`,
@@ -466,6 +467,7 @@ The opposite of "patient" is ___patient.`,
     id: 'gs556',
     topic: 'word-family',
     type: 'input',
+    accept: ['il-', 'illegible'],
     q: `Add the correct prefix to make the antonym.
 
 The opposite of "legible" is ___legible.`,
@@ -560,11 +562,11 @@ might — will — should`,
     type: 'mc',
     q: `What does the pronoun "she" refer to in this passage?
 
-"Aisha lent Freya her book. She had already read it twice."`,
-    opts: ['Aisha', 'Freya', 'the book', 'she refers to no one clearly'],
+"Aisha lent Omar her book because she had already read it twice."`,
+    opts: ['Aisha', 'Omar', 'the book', 'she refers to no one clearly'],
     a: 'Aisha',
-    hint: 'A pronoun normally refers to the last matching noun — but consider who makes more sense.',
-    ex: 'Aisha lent the book, implying she had already read it, so "she" most logically refers to Aisha.',
+    hint: 'Only one of the people could be called "she".',
+    ex: 'Omar is a boy, so "she" can only mean Aisha — the person who had read the book and could lend it.',
   },
   {
     id: 'gs571',
@@ -572,17 +574,17 @@ might — will — should`,
     type: 'mc',
     q: `What does "it" refer to in this sentence?
 
-"The volcano erupted at dawn. It lasted three days."`,
-    opts: ['The eruption', 'The volcano', 'The dawn', 'Three days'],
+"The eruption began at dawn. It lasted three days and covered the village in ash."`,
+    opts: ['The eruption', 'The village', 'The dawn', 'Three days'],
     a: 'The eruption',
     hint: 'Think about what could logically last three days.',
-    ex: '"It lasted three days" refers to the eruption — the event, not the volcano itself.',
+    ex: '"It" points back to "the eruption" — the event that lasted three days.',
   },
   {
     id: 'gs572',
     topic: 'pronoun-ref',
     type: 'mc',
-    q: `Which pronoun correctly replaces the underlined words?
+    q: `Which pronoun could replace "Callum and Euan" in this sentence?
 
 "Callum and Euan practise every morning."`,
     opts: ['They', 'He', 'We', 'Them'],
@@ -615,13 +617,13 @@ She said, "I am scared of spiders."
 → She said that she ___`,
     opts: [
       'was scared of spiders.',
-      'is scared of spiders.',
+      'are scared of spiders.',
       'were scared of spiders.',
-      'has been scared of spiders.',
+      'be scared of spiders.',
     ],
     a: 'was scared of spiders.',
     hint: 'In reported speech, the tense shifts one step back into the past.',
-    ex: 'Present "am" → past "was" in reported speech. The pronoun also shifts from "I" to "she".',
+    ex: 'Present "am" → past "was" in reported speech, and "I" becomes "she". ("She said that she is scared" is also fine if it is still true now.)',
   },
   {
     id: 'gs581',
@@ -629,13 +631,13 @@ She said, "I am scared of spiders."
     type: 'mc',
     q: `Convert to reported speech:
 
-Rory said, "I will tidy my room."
-→ Rory said that he ___`,
+Arjun said, "I will tidy my room."
+→ Arjun said that he ___`,
     opts: [
       'would tidy his room.',
-      'will tidy his room.',
       'would tidy my room.',
-      'tidied his room.',
+      'would tidies his room.',
+      'I would tidy his room.',
     ],
     a: 'would tidy his room.',
     hint: '"Will" shifts back to "would" in reported speech, and pronouns change.',
@@ -651,12 +653,12 @@ Aisha said that she had lost her key.`,
     opts: [
       '"I have lost my key," said Aisha.',
       '"She has lost her key," said Aisha.',
-      '"I lost my key," said Aisha.',
+      '"I have lost your key," said Aisha.',
       '"I will lose my key," said Aisha.',
     ],
     a: '"I have lost my key," said Aisha.',
     hint: 'Shift the tense forward one step and change the pronouns back.',
-    ex: 'Past perfect "had lost" → present perfect "have lost". "She/her" → "I/my".',
+    ex: 'Past perfect "had lost" → present perfect "have lost". "She/her" → "I/my". ("I lost my key" would also be reported as "had lost".)',
   },
   {
     id: 'gs583',
@@ -692,12 +694,12 @@ Aisha said that she had lost her key.`,
     type: 'mc',
     q: `What word class is "light" in this sentence?
 
-"She chose a light blue cardigan."`,
+"She packed a light rucksack for the walk."`,
     opts: ['Adjective', 'Noun', 'Verb', 'Adverb'],
     a: 'Adjective',
-    hint: 'It comes before the colour — what job does a word do when it modifies another adjective?',
-    ex: '"Light" modifies "blue", so in this position it acts as an adjective describing shade.',
-    visual: wordInContextSvg('She chose a light blue cardigan.', 'light', 'what word class here?'),
+    hint: 'It describes a noun — what is the rucksack like?',
+    ex: '"Light" describes the noun "rucksack" (it is not heavy), so here it is an adjective.',
+    visual: wordInContextSvg('She packed a light rucksack for the walk.', 'light', 'what word class here?'),
   },
   {
     id: 'gs592',
@@ -729,7 +731,7 @@ Aisha said that she had lost her key.`,
     id: 'gs594',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "brings" in the simple past tense.
 
 "She brings her lunch to school."
 
@@ -743,7 +745,7 @@ Type only the verb.`,
     id: 'gs595',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "catches" in the simple past tense.
 
 "The keeper catches the ball easily."
 
@@ -761,7 +763,7 @@ Type only the verb.`,
     id: 'gs596',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the past progressive tense.
+    q: `Rewrite the verb "sings" in the past progressive tense.
 
 "He sings in the school choir."
 
@@ -775,7 +777,7 @@ Type the verb phrase (two words).`,
     id: 'gs597',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the present perfect tense.
+    q: `Rewrite the verb "arrive" in the present perfect tense.
 
 "They arrive at the station."
 
@@ -789,7 +791,7 @@ Type the verb phrase.`,
     id: 'gs598',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "teaches" in the simple past tense.
 
 "Mr Grant teaches us maths."
 
@@ -818,7 +820,7 @@ Type only the verb.`,
     id: 'gs600',
     topic: 'verb-transform',
     type: 'input',
-    q: `Rewrite the underlined verb in the simple past tense.
+    q: `Rewrite the verb "buy" in the simple past tense.
 
 "They buy fresh rolls every morning."
 
@@ -967,14 +969,14 @@ Type only the verb.`,
     type: 'mc',
     q: 'Which sentence uses the pronouns correctly?',
     opts: [
-      'She gave the tickets to Rory and me.',
-      'She gave the tickets to Rory and I.',
-      'She gave the tickets to I and Rory.',
+      'She gave the tickets to Arjun and me.',
+      'She gave the tickets to Arjun and I.',
+      'She gave the tickets to I and Arjun.',
       'She gave the tickets to me and I.',
     ],
-    a: 'She gave the tickets to Rory and me.',
+    a: 'She gave the tickets to Arjun and me.',
     hint: 'Remove the other name: "She gave the tickets to me" sounds right.',
-    ex: 'After a preposition like "to", use "me", so "Rory and me" is correct.',
+    ex: 'After a preposition like "to", use "me", so "Arjun and me" is correct.',
   },
   {
     id: 'gs612',
@@ -1039,7 +1041,7 @@ Type only the verb.`,
     id: 'gs616',
     topic: 'adverbials',
     type: 'mc',
-    q: `Which underlined group of words is an adverbial of place?
+    q: `Which group of words is an adverbial of place?
 
 "Beside the harbour, the gulls squabbled over scraps."`,
     opts: ['Beside the harbour', 'the gulls', 'over scraps', 'squabbled'],
@@ -1160,6 +1162,7 @@ The noun is ___.`,
     id: 'gs625',
     topic: 'word-family',
     type: 'input',
+    accept: ['ir-', 'irresponsible'],
     q: `Add the correct prefix to make the antonym (opposite).
 
 The opposite of "responsible" is ___responsible.`,
@@ -1171,6 +1174,7 @@ The opposite of "responsible" is ___responsible.`,
     id: 'gs626',
     topic: 'word-family',
     type: 'input',
+    accept: ['im-', 'immature'],
     q: `Add the correct prefix to make the antonym.
 
 The opposite of "mature" is ___mature.`,
@@ -1216,13 +1220,13 @@ The opposite of "mature" is ___mature.`,
     type: 'mc',
     q: `What does the modal "can" express in this sentence?
 
-"Aisha can play three instruments."`,
+"Hana can play three instruments."`,
     opts: ['Ability', 'Obligation', 'Future certainty', 'Permission'],
     a: 'Ability',
     hint: '"Can" here is about a skill she has.',
-    ex: '"Can" expresses ability — Aisha has the skill to play the instruments.',
+    ex: '"Can" expresses ability — Hana has the skill to play the instruments.',
     visual: wordInContextSvg(
-      'Aisha can play three instruments.',
+      'Hana can play three instruments.',
       'can',
       'what does this modal express?',
     ),
@@ -1246,18 +1250,16 @@ The opposite of "mature" is ___mature.`,
     id: 'gs631',
     topic: 'modal-meaning',
     type: 'mc',
-    q: `Arrange these modals from MOST to LEAST certain:
-
-could — must — will`,
+    q: `Which sentence shows that something is REQUIRED (an obligation)?`,
     opts: [
-      'must → will → could',
-      'could → will → must',
-      'will → could → must',
-      'could → must → will',
+      'You must wear a helmet on the zip wire.',
+      'You could wear a helmet on the zip wire.',
+      'You might wear a helmet on the zip wire.',
+      'You may wear a helmet on the zip wire.',
     ],
-    a: 'must → will → could',
-    hint: '"Must" and "will" are strong; "could" is only a possibility.',
-    ex: '"Must" (required) and "will" (certain) outrank "could" (merely possible).',
+    a: 'You must wear a helmet on the zip wire.',
+    hint: 'Which modal verb leaves you no choice?',
+    ex: '"Must" shows obligation — it is required. "Could", "might" and "may" only show possibility or permission.',
   },
   {
     id: 'gs632',
@@ -1275,7 +1277,7 @@ could — must — will`,
     id: 'gs633',
     topic: 'pronoun-ref',
     type: 'mc',
-    q: `What do the pronoun "they" refer to?
+    q: `What does the pronoun "they" refer to?
 
 "The hikers reached the bothy at dusk. They lit a small fire."`,
     opts: ['The hikers', 'The bothy', 'dusk', 'a fire'],
@@ -1287,7 +1289,7 @@ could — must — will`,
     id: 'gs634',
     topic: 'pronoun-ref',
     type: 'mc',
-    q: `Which pronoun correctly replaces the underlined words?
+    q: `Which pronoun could replace "Freya and I" in this sentence?
 
 "Freya and I painted the mural together."`,
     opts: ['We', 'They', 'Us', 'She'],
@@ -1318,7 +1320,7 @@ could — must — will`,
 
 He said, "I like this song."
 → He said that he ___`,
-    opts: ['liked that song.', 'likes this song.', 'like that song.', 'has liked this song.'],
+    opts: ['liked that song.', 'liked my song.', 'like that song.', 'I liked that song.'],
     a: 'liked that song.',
     hint: 'The present tense shifts one step back, and "this" often becomes "that".',
     ex: 'Present "like" → past "liked", and "this" shifts to "that" in reported speech.',
@@ -1329,13 +1331,13 @@ He said, "I like this song."
     type: 'mc',
     q: `Convert to reported speech:
 
-Freya said, "I can swim a length."
-→ Freya said that she ___`,
+Leah said, "I can swim a length."
+→ Leah said that she ___`,
     opts: [
       'could swim a length.',
-      'can swim a length.',
+      'could swam a length.',
       'could swims a length.',
-      'will swim a length.',
+      'I could swim a length.',
     ],
     a: 'could swim a length.',
     hint: '"Can" shifts back to "could" in reported speech.',
@@ -1351,7 +1353,7 @@ Callum said that he was tired.`,
     opts: [
       '"I am tired," said Callum.',
       '"He is tired," said Callum.',
-      '"I was tired," said Callum.',
+      '"You are tired," said Callum.',
       '"I will be tired," said Callum.',
     ],
     a: '"I am tired," said Callum.',
@@ -1430,13 +1432,13 @@ Callum said that he was tired.`,
     type: 'mc',
     q: `What word class is "watch" in this sentence?
 
-"Rory forgot his watch at the pool."`,
+"Finlay forgot his watch at the pool."`,
     opts: ['Noun', 'Verb', 'Adjective', 'Adverb'],
     a: 'Noun',
     hint: 'Look at what "his" is pointing to.',
     ex: '"His watch" — "his" is a determiner before a noun, so "watch" here is a noun.',
     visual: wordInContextSvg(
-      'Rory forgot his watch at the pool.',
+      'Finlay forgot his watch at the pool.',
       'watch',
       'what word class here?',
     ),

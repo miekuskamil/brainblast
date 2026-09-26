@@ -1,21 +1,48 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { reviewSummary } from '../engine/review.js';
 import { STATUS, STATUS_META, accuracy, masteryOverview, statusOf } from '../engine/mastery.js';
 import { TIER, TIER_META } from '../engine/difficulty.js';
 import { ALL_TOPICS, SUBJECTS } from '../curriculum/index.js';
 import { STAGES, canWater, daysSinceWatered, stageFor } from '../engine/garden.js';
-import { Coins, ProgressBar, SUBJECT_THEME, Segmented, Toggle, TopBar } from './common.jsx';
+import {
+  Coins,
+  ConfirmDialog,
+  ProgressBar,
+  SUBJECT_THEME,
+  Segmented,
+  Toggle,
+  TopBar,
+} from './common.jsx';
+import {
+  accuracyText,
+  dueTopicIds,
+  recentActivity,
+  strugglingLabels,
+} from '../app/progress.js';
+import { parseWordList } from '../app/forms.js';
 import { getVolume, setVolume } from '../engine/sounds.js';
 import { Backup } from './Backup.jsx';
 
-export function Welcome({ onStart }) {
+// First screen for a new profile. `onBack` (when other profiles exist) returns
+// to the profile picker, so choosing "New profile" by mistake isn't a trap.
+export function Welcome({ onStart, onBack }) {
   const [name, setName] = useState('');
+  const trimmed = name.trim();
   return (
     <div className="card rise">
+      {onBack && (
+        <div className="bar">
+          <button className="icon-btn" onClick={onBack} aria-label="Back to profiles">
+            ←
+          </button>
+        </div>
+      )}
       <div className="center">
-        <div style={{ fontSize: '2.6rem' }}>🧠</div>
+        <div style={{ fontSize: '2.6rem' }} aria-hidden="true">
+          🧠
+        </div>
         <div className="wordmark mt">Brain Blast</div>
-        <p className="small muted mt">Maths · Spelling · Grammar — P7 and S1</p>
+        <p className="small muted mt">Maths · Spelling · Grammar · Vocabulary — P7 and S1</p>
       </div>
       <div className="divider" />
       <label className="small strong" htmlFor="nm">
@@ -26,23 +53,21 @@ export function Welcome({ onStart }) {
         className="field mt"
         value={name}
         placeholder="Your name"
+        maxLength={24}
         autoFocus
         onChange={(event) => setName(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && name.trim()) {
-            onStart(name.trim());
+          if (event.key === 'Enter' && trimmed) {
+            onStart(trimmed);
           }
         }}
       />
-      <button
-        className="btn btn-primary mt"
-        disabled={!name.trim()}
-        onClick={() => onStart(name.trim())}
-      >
+      <button className="btn btn-primary mt" disabled={!trimmed} onClick={() => onStart(trimmed)}>
         Start
       </button>
       <p className="tiny muted center mt">
-        You start with 50 coins. Hints cost a few — spend them wisely.
+        You start with 50 coins. Your first hint in each round is free — after that, hints cost a
+        few coins.
       </p>
     </div>
   );
@@ -69,13 +94,12 @@ function Stars({ count, accent }) {
 
 const LEVEL_LABELS = { 1: 'Warm-up', 2: 'Core', 3: 'Building up', 4: 'Challenge', 5: 'Stretch' };
 
-export function TopicPicker({ subjectId, mastery, review, onPick, onBack }) {
+export function TopicPicker({ subjectId, mastery, review, customWords, onPick, onBack }) {
   const subject = SUBJECTS.find((s) => s.id === subjectId);
   const theme = SUBJECT_THEME[subjectId] ?? SUBJECT_THEME.maths;
-  const dueKeys = new Set(
-    Object.values(review ?? {})
-      .filter((item) => item.box < 5 && item.due <= Date.now())
-      .map((item) => item.key),
+  const dueTopics = useMemo(
+    () => dueTopicIds(review, subjectId, customWords),
+    [review, subjectId, customWords],
   );
   const topics = subject.topics
     .map((topic, index) => ({
@@ -100,11 +124,7 @@ export function TopicPicker({ subjectId, mastery, review, onPick, onBack }) {
           const key = `${subjectId}:${topic.id}`;
           const acc = accuracy(mastery[key]);
           const stars = STATUS_STARS[status];
-          const isDue =
-            dueKeys.has(key) ||
-            [...dueKeys].some(
-              (dueKey) => dueKey.startsWith(`${subjectId}:`) && dueKey.includes(topic.id),
-            );
+          const isDue = dueTopics.has(topic.id);
           const pct = Math.round(acc * 100);
           const isNext = topic.id === nextTopicId;
           const band = LEVEL_LABELS[level] ?? `Level ${level}`;
@@ -216,12 +236,7 @@ export function GameSetup({ settings, onStart, onBack }) {
         ariaLabel="Running speed"
         value={speed}
         onChange={setSpeed}
-        options={[
-          { value: 0.65, label: '🐢 Gentle' },
-          { value: 1, label: '🚶 Normal' },
-          { value: 1.4, label: '🏃 Quick' },
-          { value: 1.9, label: '⚡ Turbo' },
-        ]}
+        options={SPEED_OPTIONS}
       />
       <p className="small strong mb mt-lg">Jumps and gaps</p>
       <Segmented
@@ -257,12 +272,16 @@ export function GameSetup({ settings, onStart, onBack }) {
   );
 }
 
+// Parent view: what's solid, what keeps tripping the learner up, and when
+// they last practised. Labels are human-readable (never raw ids like spot:sp12).
 export function Progress({ state, onBack }) {
   const overview = masteryOverview(state.mastery, ALL_TOPICS);
   const reviews = reviewSummary(state.review);
-  const accuracyPct = state.stats.answered
-    ? Math.round((state.stats.correct / state.stats.answered) * 100)
-    : 0;
+  const struggling = strugglingLabels(reviews.struggling, state.customWords);
+  const activity = recentActivity(state.review);
+  const activeDays = activity.filter((day) => day.count > 0).length;
+  const hasAnswers = state.stats.answered > 0;
+  const best = state.streak.best;
   const bySubject = SUBJECTS.map((subject) => ({
     subject,
     rows: overview.rows.filter((row) => row.subject === subject.id),
@@ -273,8 +292,8 @@ export function Progress({ state, onBack }) {
       <div className="grid-3">
         {[
           ['Answered', state.stats.answered],
-          ['Accuracy', `${accuracyPct}%`],
-          ['Best streak', `${state.streak.best}d`],
+          ['Accuracy', accuracyText(state.stats)],
+          ['Best streak', best ? `${best} ${best === 1 ? 'day' : 'days'}` : '—'],
         ].map(([label, value]) => (
           <div key={label} className="panel center">
             <div className="strong" style={{ fontSize: '1.35rem' }}>
@@ -286,16 +305,51 @@ export function Progress({ state, onBack }) {
           </div>
         ))}
       </div>
-      {reviews.struggling.length > 0 && (
+      {!hasAnswers && (
+        <p className="small muted center mt">
+          Nothing to show yet — finish a round and progress appears here.
+        </p>
+      )}
+      {activeDays > 0 && (
         <>
           <div className="divider" />
-          <h2 className="mb">Keeps catching her out</h2>
+          <h2 className="mb">The last 7 days</h2>
+          <ul className="activity">
+            {activity.map((day) => {
+              const date = new Date(day.day);
+              const practised = day.count > 0;
+              return (
+                <li
+                  key={day.day}
+                  className={`activity-day ${practised ? 'on' : ''}`}
+                  aria-label={`${date.toLocaleDateString('en-GB', { weekday: 'long' })}: ${practised ? 'practised' : 'no practice'}`}
+                >
+                  <span className="activity-dot" aria-hidden="true">
+                    {practised ? '✓' : ''}
+                  </span>
+                  <span className="tiny muted" aria-hidden="true">
+                    {date.toLocaleDateString('en-GB', { weekday: 'short' })}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="tiny muted mt">
+            Practised on {activeDays} of the last 7 days. This is worked out from when each
+            question was last answered, so an earlier day can look quieter than it really was.
+          </p>
+        </>
+      )}
+      {struggling.length > 0 && (
+        <>
+          <div className="divider" />
+          <h2 className="mb">Keeps catching {state.name || 'you'} out</h2>
           <p className="small muted mb">These come back more often until they stick.</p>
           <div className="wrap">
-            {reviews.struggling.slice(0, 8).map((item) => (
-              <span key={item.key} className="mdot learning">
-                {item.key.replace('spelling:', '').replace('grammar:', '').replace('maths:', '')}
-                {item.lapses > 0 && ` ·${item.lapses}`}
+            {struggling.map((item) => (
+              <span key={item.label} className="mdot learning">
+                {item.label}
+                {item.count > 1 && ` ×${item.count}`}
               </span>
             ))}
           </div>
@@ -325,23 +379,26 @@ export function Progress({ state, onBack }) {
           </div>
         </div>
       ))}
-      <div className="panel">
-        <p className="tiny muted">
-          <strong>{reviews.tracked}</strong> questions are in the review schedule ·{' '}
-          <strong>{reviews.mastered}</strong> have been retired as learned ·{' '}
-          <strong>{reviews.due}</strong> are due now.
-        </p>
-      </div>
+      {reviews.tracked > 0 && (
+        <div className="panel">
+          <p className="tiny muted">
+            <strong>{reviews.tracked}</strong> questions are in the review schedule ·{' '}
+            <strong>{reviews.mastered}</strong> have been retired as learned ·{' '}
+            <strong>{reviews.due}</strong> are due now.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
+// The family's own spelling list (e.g. this week's words from school).
+// Entries are tidied as you type: trimmed, duplicates dropped ignoring case,
+// and anything that isn't a single word is flagged rather than silently saved.
 export function CustomWords({ words, onSave, onBack }) {
   const [text, setText] = useState(words.join('\n'));
-  const list = text
-    .split(/[\n,]+/)
-    .map((word) => word.trim())
-    .filter(Boolean);
+  const { words: list, rejected } = parseWordList(text);
+  const countText = `${list.length} ${list.length === 1 ? 'word' : 'words'}`;
   return (
     <div className="card rise">
       <TopBar onBack={onBack} title="My word list" sub="This week’s spellings from school" />
@@ -355,25 +412,32 @@ export function CustomWords({ words, onSave, onBack }) {
         onChange={(event) => setText(event.target.value)}
         placeholder={'necessary\nrhythm\nconscience'}
         rows={9}
+        aria-label="Your spelling words"
       />
-      <div className="row-between mt">
-        <span className="tiny muted">
-          {list.length} {list.length === 1 ? 'word' : 'words'}
-        </span>
-        {list.length > 0 && (
-          <span className="tiny muted">
-            Longest:{' '}
-            {list.reduce((longest, word) => (word.length > longest.length ? word : longest), '')}
-          </span>
-        )}
-      </div>
+      <p className="tiny muted mt">{countText}</p>
+      {rejected.length > 0 && (
+        <p className="small bad-note mt" role="status">
+          ⚠ Left out: {rejected.map((entry) => `“${entry.text}” (${entry.reason})`).join(', ')}.
+        </p>
+      )}
       <button className="btn btn-primary mt" onClick={() => onSave(list)}>
-        Save list
+        {list.length ? `Save ${countText}` : 'Save an empty list'}
       </button>
     </div>
   );
 }
 
+// Running-speed choices, labelled in words as well as emoji so a screen
+// reader says "Gentle", not "turtle".
+export const SPEED_OPTIONS = [
+  { value: 0.65, label: '🐢 Gentle' },
+  { value: 1, label: '🚶 Normal' },
+  { value: 1.4, label: '🏃 Quick' },
+  { value: 1.9, label: '⚡ Turbo' },
+];
+
+// Grown-ups only: App shows the parent gate before this screen opens, which
+// also covers Restore and Erase inside it.
 export function Settings({
   settings,
   onChange,
@@ -393,7 +457,7 @@ export function Settings({
   }
   return (
     <div className="card rise">
-      <TopBar onBack={onBack} title="Settings" />
+      <TopBar onBack={onBack} title="Settings" sub={profileName ? `For ${profileName}` : undefined} />
       <Toggle
         label="Countdown timer"
         note="Off is calmer — good for tricky topics and word problems"
@@ -402,7 +466,7 @@ export function Settings({
       />
       <Toggle
         label="Dyslexia-friendly mode"
-        note="Wider spacing and a rounder font to make reading easier"
+        note="Wider spacing and a clearer font (uses Atkinson Hyperlegible or OpenDyslexic if installed on this device)"
         checked={!!settings.dyslexia}
         onChange={(dyslexia) => onChange({ ...settings, dyslexia })}
       />
@@ -423,22 +487,17 @@ export function Settings({
         <span>🔊 Full</span>
       </div>
       <div className="divider" />
-      <p className="small strong mb">Default running speed</p>
+      <p className="small strong mb">Default running speed (Run & Learn)</p>
       <Segmented
         ariaLabel="Default running speed"
         value={settings.speed}
         onChange={(speed) => onChange({ ...settings, speed })}
-        options={[
-          { value: 0.65, label: '🐢' },
-          { value: 1, label: '🚶' },
-          { value: 1.4, label: '🏃' },
-          { value: 1.9, label: '⚡' },
-        ]}
+        options={SPEED_OPTIONS}
       />
       <div className="divider" />
       <p className="small strong mb">Questions per practice round</p>
       <p className="tiny muted mb">
-        Practise and Daily challenge are separate — this only changes Practise.
+        Only changes Practise rounds — the Daily challenge keeps its own length.
       </p>
       <Segmented
         ariaLabel="Questions per practice round"
@@ -466,18 +525,10 @@ export function Settings({
         }
         options={[
           { value: 'auto', label: 'Automatic' },
-          {
-            value: TIER.EASY,
-            label: `${TIER_META[TIER.EASY].emoji} ${TIER_META[TIER.EASY].short}`,
-          },
-          {
-            value: TIER.STANDARD,
-            label: `${TIER_META[TIER.STANDARD].emoji} ${TIER_META[TIER.STANDARD].short}`,
-          },
-          {
-            value: TIER.HARD,
-            label: `${TIER_META[TIER.HARD].emoji} ${TIER_META[TIER.HARD].short}`,
-          },
+          ...[TIER.EASY, TIER.STANDARD, TIER.HARD].map((tier) => ({
+            value: tier,
+            label: `${TIER_META[tier].emoji} ${TIER_META[tier].short}`,
+          })),
         ]}
       />
       <div className="divider" />
@@ -487,112 +538,85 @@ export function Settings({
         Switch profile
       </button>
       <div className="divider" />
-      {confirmReset ? (
-        <div className="panel">
-          <p className="small strong mb">Erase everything?</p>
-          <p className="tiny muted mb">Coins, progress, review schedule and the garden all go.</p>
-          <div className="btn-row">
-            <button className="btn btn-ghost" onClick={() => setConfirmReset(false)}>
-              Keep it
-            </button>
-            <button
-              className="btn"
-              style={{ background: 'var(--bad)', color: '#fff' }}
-              onClick={onReset}
-            >
-              Erase
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button className="btn btn-ghost" onClick={() => setConfirmReset(true)}>
-          Start over
-        </button>
-      )}
+      <button className="btn btn-ghost btn-danger-text" onClick={() => setConfirmReset(true)}>
+        Erase {profileName ? `${profileName}’s` : 'this'} profile…
+      </button>
+      <ConfirmDialog
+        open={confirmReset}
+        title={`Erase ${profileName || 'this profile'}?`}
+        message="Coins, progress, review schedule and the garden all go, and this can’t be undone. Use “Back up progress” above first if you might want them again."
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        onConfirm={() => {
+          setConfirmReset(false);
+          onReset();
+        }}
+        onCancel={() => setConfirmReset(false)}
+      />
     </div>
   );
 }
 
 const AVATARS = ['🦊', '🐼', '🐸', '🦄'];
 
+// Deleting goes through App (grown-up check, then a confirm that suggests a
+// backup first), so this screen just reports which profile was chosen.
 export function ProfilePicker({ profiles, activeSlot, onSelect, onNew, onDelete }) {
-  const [confirmDelete, setConfirmDelete] = useState(null);
+  const full = profiles.every(Boolean);
   return (
     <div className="card rise">
       <div className="center mb">
-        <div style={{ fontSize: '2.6rem' }}>⚡</div>
+        <div style={{ fontSize: '2.6rem' }} aria-hidden="true">
+          ⚡
+        </div>
         <div className="wordmark mt">Brain Blast</div>
         <p className="small muted mt">Who is playing?</p>
       </div>
       <div className="stack-sm">
         {profiles.map((profile, slot) =>
           profile ? (
-            confirmDelete === slot ? (
-              <div key={slot} className="panel">
-                <p className="small strong mb">Delete {profile.name}?</p>
-                <p className="tiny muted mb">All progress, coins and the garden will be gone.</p>
-                <div className="btn-row">
-                  <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>
-                    Keep
-                  </button>
-                  <button
-                    className="btn"
-                    style={{ background: 'var(--bad)', color: '#fff' }}
-                    onClick={() => {
-                      onDelete(slot);
-                      setConfirmDelete(null);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div key={slot} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  className="tile"
-                  style={{
-                    '--accent': 'var(--brand)',
-                    '--accent-soft': 'var(--brand-soft)',
-                    flex: 1,
-                    borderColor: activeSlot === slot ? 'var(--brand)' : undefined,
-                    background: activeSlot === slot ? 'var(--brand-soft)' : undefined,
-                  }}
-                  onClick={() => onSelect(slot)}
-                >
-                  <span className="tile-ico">{AVATARS[slot]}</span>
-                  <span className="tile-body">
-                    <h3>{profile.name}</h3>
-                    <p>
-                      {profile.answered} questions answered · 🪙 {profile.coins} coins
-                    </p>
-                  </span>
-                  <span className="tile-end">{activeSlot === slot ? '●' : '›'}</span>
-                </button>
-                <button
-                  aria-label={`Delete ${profile.name}`}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '1.2rem',
-                    padding: '0 4px',
-                    opacity: 0.5,
-                  }}
-                  onClick={() => setConfirmDelete(slot)}
-                >
-                  🗑
-                </button>
-              </div>
-            )
+            <div key={slot} className="profile-row">
+              <button
+                className="tile"
+                style={{
+                  '--accent': 'var(--brand)',
+                  '--accent-soft': 'var(--brand-soft)',
+                  flex: 1,
+                  marginBottom: 0,
+                  borderColor: activeSlot === slot ? 'var(--brand)' : undefined,
+                  background: activeSlot === slot ? 'var(--brand-soft)' : undefined,
+                }}
+                onClick={() => onSelect(slot)}
+              >
+                <span className="tile-ico" aria-hidden="true">
+                  {AVATARS[slot]}
+                </span>
+                <span className="tile-body">
+                  <h3>{profile.name}</h3>
+                  <p>
+                    {profile.answered} questions answered · 🪙 {profile.coins} coins
+                  </p>
+                </span>
+                <span className="tile-end" aria-hidden="true">
+                  {activeSlot === slot ? '●' : '›'}
+                </span>
+              </button>
+              <button
+                className="btn btn-ghost profile-delete"
+                aria-label={`Delete ${profile.name}`}
+                onClick={() => onDelete(slot)}
+              >
+                Delete
+              </button>
+            </div>
           ) : (
             <button
               key={slot}
               className="tile"
-              style={{ '--accent': 'var(--ink-3)', '--accent-soft': 'var(--bg-2)' }}
+              style={{ '--accent': 'var(--ink-3)', '--accent-soft': 'var(--bg-2)', marginBottom: 0 }}
               onClick={() => onNew(slot)}
             >
-              <span className="tile-ico" style={{ opacity: 0.4 }}>
+              <span className="tile-ico" style={{ opacity: 0.4 }} aria-hidden="true">
                 ➕
               </span>
               <span className="tile-body">
@@ -602,6 +626,12 @@ export function ProfilePicker({ profiles, activeSlot, onSelect, onNew, onDelete 
           ),
         )}
       </div>
+      {full && (
+        <p className="tiny muted center mt">
+          All four profiles are in use. To add someone new, a grown-up can delete a profile first —
+          back it up in Settings if you might want it again.
+        </p>
+      )}
     </div>
   );
 }
@@ -625,31 +655,63 @@ export const SHOP_ITEMS = [
   { emoji: '🏰', name: 'Castle', cost: 80 },
 ];
 
-export function Shop({ coins, inventory, onBuy, onBack }) {
+export function Shop({ coins, inventory, onBuy, onBack, onRoom }) {
+  const owned = SHOP_ITEMS.filter((item) => inventory.includes(item.emoji));
   return (
     <div className="card rise">
       <TopBar onBack={onBack} title="Shop" right={<Coins n={coins} />} />
       <p className="small muted mb">
-        Earn coins by answering questions. Everything you buy can go in your garden.
+        Earn coins by answering questions. Everything you buy can go in your room.
       </p>
       <div className="grid-3">
         {SHOP_ITEMS.map((item) => {
-          const owned = inventory.includes(item.emoji);
-          const affordable = coins >= item.cost;
+          const isOwned = inventory.includes(item.emoji);
+          const shortBy = item.cost - coins;
           return (
             <button
               key={item.emoji}
-              className={`shop-item ${owned ? 'owned' : ''}`}
-              disabled={owned || !affordable}
+              className={`shop-item ${isOwned ? 'owned' : ''}`}
+              disabled={isOwned || shortBy > 0}
               onClick={() => onBuy(item)}
+              aria-label={
+                isOwned
+                  ? `${item.name}, owned`
+                  : shortBy > 0
+                    ? `${item.name}, ${item.cost} coins, need ${shortBy} more`
+                    : `Buy ${item.name} for ${item.cost} coins`
+              }
             >
               <div className="shop-em">{item.emoji}</div>
               <div className="shop-nm">{item.name}</div>
-              <div className="shop-px">{owned ? '✓ owned' : `🪙 ${item.cost}`}</div>
+              <div className="shop-px">{isOwned ? '✓ owned' : `🪙 ${item.cost}`}</div>
+              {!isOwned && shortBy > 0 && <div className="shop-need">need {shortBy} more</div>}
             </button>
           );
         })}
       </div>
+      <div className="divider" />
+      <h2 className="mb">Your collection</h2>
+      {owned.length ? (
+        <>
+          <div className="collection">
+            {owned.map((item) => (
+              <span key={item.emoji} className="collection-item" title={item.name}>
+                <span aria-hidden="true">{item.emoji}</span>
+                <span className="tiny">{item.name}</span>
+              </span>
+            ))}
+          </div>
+          {onRoom && (
+            <button className="btn btn-ghost mt" onClick={onRoom}>
+              Arrange them in my room
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="small muted">
+          Nothing yet — your first buy will show up here.
+        </p>
+      )}
     </div>
   );
 }
@@ -686,9 +748,9 @@ export function Room({ state, onPlace, onBack }) {
         <div className="strong mt">{stage.label}</div>
         <p className="tiny muted mt">
           {thirsty
-            ? '💧 Not watered yet today — finish any practice round to water it.'
+            ? '💧 Not watered yet today — finish any round to water it.'
             : daysDry === 0
-              ? '✓ Watered today, from your practice. Come back tomorrow.'
+              ? '✓ Watered today. Come back tomorrow.'
               : 'Watered recently.'}
         </p>
         {nextStage && (

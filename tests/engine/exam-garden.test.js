@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { EXAM_SIZES, GRADE_BANDS, SECONDS_PER_QUESTION, examDurationMs, gradeFor } from '../../src/engine/exam.js';
+import { EXAM_PRESETS, EXAM_SIZES, GRADE_BANDS, SECONDS_PER_QUESTION, examDurationMs, gradeFor } from '../../src/engine/exam.js';
 import { STAGES, canWater, daysSinceWatered, stageFor, water } from '../../src/engine/garden.js';
 import { DAY_MS } from '../../src/engine/review.js';
 
 const T0 = new Date('2026-03-10T09:00:00Z').getTime();
 
 describe('exam', () => {
+  it('offers a short 10-question paper as well as the full lengths', () => {
+    expect(EXAM_SIZES).toEqual([10, 20, 25, 30]);
+    expect(EXAM_PRESETS.map((preset) => preset.size)).toEqual(EXAM_SIZES);
+  });
+
   it('allows SECONDS_PER_QUESTION per question', () => {
     expect(examDurationMs(20)).toBe(20 * SECONDS_PER_QUESTION * 1000);
     for (const size of EXAM_SIZES) expect(examDurationMs(size)).toBeGreaterThan(0);

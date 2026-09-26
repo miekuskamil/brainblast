@@ -5,22 +5,24 @@
  * normally follows the learner's mastery of that topic, but a parent can pin
  * one from Settings, which `resolveTier` honours.
  */
-import { STATUS, statusOf } from './mastery.js';
+import { STATUS, accuracy, statusOf } from './mastery.js';
 
 export const TIER = { EASY: 1, STANDARD: 2, HARD: 3 };
 
-// Unseen topics start at STANDARD. Note that statusOf reports LEARNING for the
-// first few attempts whatever the answers, so a new topic then sits at EASY
-// until there is enough evidence to move it up.
-const TIER_FOR_STATUS = {
-  [STATUS.UNSEEN]: TIER.STANDARD,
-  [STATUS.LEARNING]: TIER.EASY,
-  [STATUS.PRACTISING]: TIER.STANDARD,
-  [STATUS.SECURE]: TIER.HARD,
-};
+// Fewer attempts than this is too little evidence to move a topic off
+// STANDARD. (Previously a brand-new topic dropped to EASY after one answer,
+// because statusOf calls every early topic "learning" — a child who got their
+// first question right was then handed easier numbers.)
+export const MIN_ATTEMPTS_FOR_TIER = 4;
+// Below this recent accuracy (with enough evidence) the numbers get easier.
+const EASY_BELOW_ACCURACY = 0.6;
 
 export function tierFromMastery(masteryRecord) {
-  return TIER_FOR_STATUS[statusOf(masteryRecord)] ?? TIER.STANDARD;
+  const hasEvidence =
+    masteryRecord?.attempts >= MIN_ATTEMPTS_FOR_TIER && masteryRecord.recent?.length > 0;
+  if (!hasEvidence) return TIER.STANDARD;
+  if (accuracy(masteryRecord) < EASY_BELOW_ACCURACY) return TIER.EASY;
+  return statusOf(masteryRecord) === STATUS.SECURE ? TIER.HARD : TIER.STANDARD;
 }
 
 export const TIER_META = {

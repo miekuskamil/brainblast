@@ -30,20 +30,39 @@ describe('grade', () => {
   });
 
   it('schedules the next review from the start of the day using the box interval', () => {
+    // Each answer is given on the day the item falls due, so each one promotes.
     let record = emptyRecord('k');
+    let now = T0;
     for (let box = 1; box <= MASTERED_BOX; box++) {
-      record = grade(record, true, T0);
-      expect(record.due).toBe(startOfDay(T0) + BOX_INTERVALS[box] * DAY_MS);
+      record = grade(record, true, now);
+      expect(record.box).toBe(box);
+      expect(record.due).toBe(startOfDay(now) + BOX_INTERVALS[box] * DAY_MS);
+      now = record.due + 9 * 60 * 60 * 1000;
     }
   });
 
   it('drops straight back to box 0 on a wrong answer, due the same day', () => {
-    let record = grade(grade(emptyRecord('k'), true, T0), true, T0);
+    const later = T0 + 5 * DAY_MS;
+    let record = grade(grade(emptyRecord('k'), true, T0), true, T0 + DAY_MS);
     expect(record.box).toBe(2);
-    record = grade(record, false, T0);
+    record = grade(record, false, later);
     expect(record.box).toBe(0);
     expect(record.lapses).toBe(1);
-    expect(record.due).toBe(startOfDay(T0));
+    expect(record.due).toBe(startOfDay(later));
+  });
+
+  it('does not promote a correct answer before the item is due', () => {
+    const first = grade(emptyRecord('k'), true, T0); // box 0 → 1, due tomorrow
+    const early = grade(first, true, T0 + 60_000);
+    expect(early).toMatchObject({ box: 1, due: first.due, seen: 2, correct: 2 });
+    expect(grade(first, true, T0 + DAY_MS).box).toBe(2);
+  });
+
+  it('always promotes out of box 0, and a wrong answer resets even when not due', () => {
+    const boxZero = { ...emptyRecord('k'), due: startOfDay(T0) + 10 * DAY_MS };
+    expect(grade(boxZero, true, T0).box).toBe(1);
+    const notDue = { ...emptyRecord('k'), box: 3, due: startOfDay(T0) + 5 * DAY_MS };
+    expect(grade(notDue, false, T0)).toMatchObject({ box: 0, lapses: 1, due: startOfDay(T0) });
   });
 
   it('does not count a miss in box 0 as a lapse', () => {
@@ -52,7 +71,7 @@ describe('grade', () => {
 
   it('caps at the mastered box', () => {
     let record = emptyRecord('k');
-    for (let i = 0; i < 20; i++) record = grade(record, true, T0);
+    for (let i = 0; i < 20; i++) record = grade(record, true, T0 + i * 100 * DAY_MS);
     expect(record.box).toBe(MASTERED_BOX);
   });
 

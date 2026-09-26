@@ -8,7 +8,7 @@
 export function canSpeak() {
   return (
     typeof window !== 'undefined' &&
-    'speechSynthesis' in window &&
+    !!window.speechSynthesis &&
     typeof window.SpeechSynthesisUtterance === 'function'
   );
 }
@@ -53,9 +53,12 @@ export function speak(text, { onend, rate = 0.95 } = {}) {
 /**
  * Rewrite maths notation into words, since speech engines read symbols
  * inconsistently ("×" is often skipped, "£3.50" read as "three point five").
+ * Gap-fill blanks ("____") are read as "blank" rather than "underscore
+ * underscore…" or silence, so a listener knows where the missing word goes.
  */
-function toSpeakable(text) {
-  return String(text)
+export function toSpeakable(text) {
+  return String(text ?? '')
+    .replace(/_{2,}/g, ' blank ')
     .replace(/\n+/g, '. ')
     .replace(/×/g, ' times ')
     .replace(/÷/g, ' divided by ')

@@ -1,6 +1,8 @@
 // Small presentational building blocks shared by every screen.
 
+import { useEffect, useRef, useState } from 'react';
 import { TIER_META } from '../engine/difficulty.js';
+import { canSpeak, speak, stopSpeaking } from '../engine/speech.js';
 
 // Screen header: optional back arrow, title with optional subtitle, and a
 // right-hand slot (usually a coin chip).
@@ -136,7 +138,10 @@ export function PassagePanel({ passage, expanded, onToggle }) {
   }
   return (
     <div className="passage-panel">
-      <div className="passage-title">📖 {passage.title}</div>
+      <div className="passage-title speak-row">
+        <span>📖 {passage.title}</span>
+        <SpeakButton text={`${passage.title}. ${passage.text}`} label="Read the passage aloud" />
+      </div>
       <p className="passage-text">{passage.text}</p>
       <button type="button" className="passage-collapse" onClick={onToggle}>
         Hide passage
@@ -181,5 +186,108 @@ export function Tile({
         {end}
       </span>
     </button>
+  );
+}
+
+// Read-aloud button for any block of text (prompt, passage, hint, "Why").
+// Only one thing speaks at a time: speak() cancels the previous utterance,
+// whose onend then resets that button. Renders nothing where the device has
+// no speech synthesis; screens that depend on hearing a word show their own
+// fallback instead (see Quiz's listen card).
+// `variant="prompt"` is the tall button beside a question box; the default is
+// a small round button that sits at the end of a line of text.
+export function SpeakButton({ text, label = 'Read aloud', variant = 'inline' }) {
+  const [speaking, setSpeaking] = useState(false);
+  const speakingRef = useRef(false);
+  speakingRef.current = speaking;
+  // Stop mid-sentence reading when the block disappears (e.g. next question).
+  useEffect(
+    () => () => {
+      if (speakingRef.current) stopSpeaking();
+    },
+    [],
+  );
+  if (!text || !canSpeak()) return null;
+  function handleClick() {
+    if (speaking) {
+      stopSpeaking();
+      setSpeaking(false);
+      return;
+    }
+    setSpeaking(true);
+    speak(text, { onend: () => setSpeaking(false) });
+  }
+  return (
+    <button
+      type="button"
+      className={`${variant === 'prompt' ? 'speak-btn' : 'speak-inline'} ${speaking ? 'on' : ''}`}
+      onClick={handleClick}
+      aria-label={speaking ? 'Stop reading' : label}
+      title={speaking ? 'Stop reading' : label}
+    >
+      <span aria-hidden="true">{speaking ? '◼' : '🔊'}</span>
+    </button>
+  );
+}
+
+// Modal yes/no question, e.g. "Leave this round?". Built on <dialog> opened
+// with showModal(), which makes the rest of the page inert (so focus stays
+// inside) and turns Escape into a cancel. Focus starts on the safe choice.
+export function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel = 'Leave',
+  cancelLabel = 'Keep going',
+  onConfirm,
+  onCancel,
+}) {
+  const dialogRef = useRef(null);
+  const cancelRef = useRef(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      cancelRef.current?.focus();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  if (!open) return null;
+  return (
+    <dialog
+      ref={dialogRef}
+      className="confirm-dialog"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby={message ? 'confirm-dialog-message' : undefined}
+      onCancel={(event) => {
+        // Escape: let React own the open state rather than the browser.
+        event.preventDefault();
+        onCancel();
+      }}
+      onClick={(event) => {
+        // A tap on the backdrop (the dialog element itself) cancels.
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <div className="confirm-body">
+        <h2 id="confirm-dialog-title">{title}</h2>
+        {message && (
+          <p id="confirm-dialog-message" className="small muted mt">
+            {message}
+          </p>
+        )}
+        <div className="btn-row mt-lg">
+          <button ref={cancelRef} type="button" className="btn btn-primary" onClick={onCancel}>
+            {cancelLabel}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }

@@ -3,7 +3,7 @@
  * Watering is limited to once per calendar day so it rewards coming back,
  * not grinding.
  */
-import { DAY_MS, startOfDay } from './review.js';
+import { daysBetween, startOfDay } from './review.js';
 
 /** Growth stages; `at` is the number of waterings needed to reach each one. */
 export const STAGES = [
@@ -36,5 +36,6 @@ export function water(garden, now = Date.now()) {
 /** Whole calendar days since the last watering, or null if never watered. */
 export function daysSinceWatered(garden, now = Date.now()) {
   if (!garden.lastWatered) return null;
-  return Math.floor((startOfDay(now) - startOfDay(garden.lastWatered)) / DAY_MS);
+  // Calendar days, DST-safe (a 23-hour day would otherwise floor to 0).
+  return daysBetween(garden.lastWatered, now);
 }

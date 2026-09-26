@@ -76,6 +76,8 @@ import {
   timeSpeedTopic,
 } from './topics-varied.js';
 import { challengesTopic } from './challenges.js';
+import { NAMES } from './names.js';
+import { buildUsable, misconceptionOptions } from './topic.js';
 
 /**
  * A topic that serves hand-authored items at random. Items carry their own
@@ -107,13 +109,17 @@ function itemBankTopic(id, label, level, items) {
   };
 }
 
-/** Mark a hand-written generator as tier-aware and stamp the tier onto each question. */
+/**
+ * Mark a hand-written generator as tier-aware and stamp the tier onto each
+ * question. Like `makeTopic`, it re-rolls a question whose options include
+ * two that are worth the same (e.g. 1/2 and 5/10).
+ */
 function tierAware(topic) {
   return {
     ...topic,
     tierAware: true,
     generate(rng, styleId = null, tier = TIER.STANDARD) {
-      const question = topic.generate(rng, styleId, tier);
+      const question = buildUsable(() => topic.generate(rng, styleId, tier));
       return question && { ...question, tier };
     },
   };
@@ -124,7 +130,6 @@ const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 /** Round to 2 d.p., cleaning up floating-point noise such as 1.2300000000000002. */
 const round2 = (value) => Math.round(value * 100) / 100;
 
-const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
 
 /**
  * Place value & rounding. The hand-written topics below ignore `styleId` and
@@ -138,11 +143,12 @@ const placeValueTopic = {
     const style = rng.int(0, 3);
 
     // Round a whole number to the nearest 10 / 100 / 1000 / 10 000. Easy tier
-    // only rounds to tens and hundreds. Highlighting the column being rounded
-    // to is fair scaffolding: the answer is the whole rounded number, not the
+    // only rounds to tens and hundreds, and no tier goes past 7 digits (the
+    // limit of Second level). Highlighting the column being rounded to is
+    // fair scaffolding: the answer is the whole rounded number, not the
     // highlighted digit.
     if (style === 0) {
-      const [min, max] = byTier(tier, [1000, 90000], [100000, 9999999], [1000000, 99999999]);
+      const [min, max] = byTier(tier, [1000, 90000], [10000, 999999], [100000, 9999999]);
       const number = rng.int(min, max);
       const places = [
         { name: 'ten', unit: 10 },
@@ -168,12 +174,14 @@ const placeValueTopic = {
 
     // Which digit sits in a given column of a 7-digit number? The place-value
     // chart deliberately highlights nothing — colouring the asked-about column
-    // would hand over the answer. Easy tier only asks about the lower two
-    // columns. Multiple choice only when the first four digits are distinct.
+    // would hand over the answer. Easy tier asks about the two leftmost
+    // columns (the easiest to name); hard tier the middle ones, which take
+    // counting in threes. Multiple choice only when the first four digits
+    // are distinct.
     if (style === 1) {
       const number = rng.int(1000000, 9999999);
       const digits = String(number).split('');
-      const [minColumn, maxColumn] = byTier(tier, [2, 3], [0, 3], [0, 3]);
+      const [minColumn, maxColumn] = byTier(tier, [0, 1], [0, 3], [1, 3]);
       const column = rng.int(minColumn, maxColumn);
       const columnNames = ['millions', 'hundred thousands', 'ten thousands', 'thousands'];
       const leadingDigits = [digits[0], digits[1], digits[2], digits[3]];
@@ -224,13 +232,19 @@ const placeValueTopic = {
     const roundedA = Math.round(a / 100) * 100;
     const roundedB = Math.round(b / 100) * 100;
     const estimate = roundedA * roundedB;
+    // Distractors: a zero lost or gained, and one factor rounded the wrong way.
+    const wrongWayA = roundedA + (roundedA > a ? -100 : 100);
     return makeQuestion({
       subject: 'maths',
       topic: 'place-value',
       reviewKey: 'maths:place-value',
       prompt: `Estimate ${a} × ${b} by rounding each number to the nearest hundred.`,
       answer: estimate,
-      options: numericOptions(rng, estimate),
+      options: misconceptionOptions(rng, estimate, [
+        estimate / 10,
+        estimate * 10,
+        wrongWayA * roundedB,
+      ]),
       hint: `${a} rounds to ${roundedA}, ${b} rounds to ${roundedB}.`,
       explain: `${roundedA} × ${roundedB} = ${formatNumber(estimate)}`,
     });
@@ -322,14 +336,23 @@ const factorsTopic = {
       );
       const a = rng.pick(firstPool);
       const b = rng.pick(secondPool);
+      // The HCF of a number and itself is a trick question, not practice.
+      if (a === b) return factorsTopic.generate(rng, styleId, tier);
       const hcf = gcd(a, b);
+      const lcmOfPair = (a * b) / hcf;
       return makeQuestion({
         subject: 'maths',
         topic: 'factors',
         reviewKey: 'maths:factors',
         prompt: `What is the highest common factor (HCF) of ${a} and ${b}?`,
         answer: hcf,
-        options: numericOptions(rng, hcf),
+        // Classic mix-ups: the LCM instead, the smaller number, or a common
+        // factor that isn't the highest.
+        options: misconceptionOptions(rng, hcf, [
+          lcmOfPair,
+          Math.min(a, b),
+          hcf % 2 === 0 ? hcf / 2 : 1,
+        ]),
         hint: 'List the factors of each number and find the biggest one in both lists.',
         explain: `The largest number that divides into both ${a} and ${b} is ${hcf}.`,
       });
@@ -340,6 +363,7 @@ const factorsTopic = {
     const [minB, maxB] = byTier(tier, [3, 6], [4, 12], [8, 15]);
     const a = rng.int(minA, maxA);
     const b = rng.int(minB, maxB);
+    if (a === b) return factorsTopic.generate(rng, styleId, tier);
     const lcm = (a * b) / gcd(a, b);
     return makeQuestion({
       subject: 'maths',
@@ -347,7 +371,8 @@ const factorsTopic = {
       reviewKey: 'maths:factors',
       prompt: `What is the lowest common multiple (LCM) of ${a} and ${b}?`,
       answer: lcm,
-      options: numericOptions(rng, lcm),
+      // Classic mix-ups: just multiplying, the HCF instead, or adding.
+      options: misconceptionOptions(rng, lcm, [a * b, gcd(a, b), a + b]),
       hint: 'Count up in each number until you hit the same value.',
       explain: `The first number in both times-tables is ${lcm}.`,
     });
@@ -395,7 +420,8 @@ const percentagesTopic = {
     if (style === 1) {
       const percentPool = byTier(tier, [10, 20, 25], [10, 15, 20, 25, 30, 40], [35, 45, 55, 60]);
       const percent = rng.pick(percentPool);
-      const [min, max] = byTier(tier, [2, 10], [2, 25], [25, 60]);
+      // £20–£240: what a jacket actually costs.
+      const [min, max] = byTier(tier, [1, 5], [2, 8], [3, 12]);
       const price = rng.int(min, max) * 20;
       const discount = (price * percent) / 100;
       const salePrice = price - discount;
@@ -404,37 +430,44 @@ const percentagesTopic = {
         topic: 'percentages',
         reviewKey: 'maths:percentages',
         prompt: `A jacket costs £${price}.\nIn the sale it is reduced by ${percent}%.\nWhat is the sale price?`,
-        ...numericAnswer(rng, salePrice, { prefix: '£' }),
+        answer: `£${salePrice}`,
+        // Mistakes: giving the discount itself, or taking off £percent.
+        options: misconceptionOptions(rng, salePrice, [discount, price - percent, price + discount], {
+          prefix: '£',
+        }),
         hint: `Find ${percent}% of £${price}, then take it away from £${price}.`,
         visual: priceTagSvg(price, percent),
         explain: `${percent}% of £${price} = £${discount}. £${price} − £${discount} = £${salePrice}.`,
       });
     }
 
-    // Express a test score as a percentage.
+    // Express a test score as a percentage. The total is chosen so the score
+    // is a whole number and the percentage exact — never a silently rounded
+    // answer such as 98 out of 150 = "65%".
     if (style === 2) {
       const totalPool = byTier(
         tier,
         [20, 25, 40, 50],
         [20, 25, 40, 50, 80, 200],
-        [120, 150, 250, 300, 400],
+        [60, 80, 120, 140, 160, 180, 240],
       );
+      const percentPool = byTier(tier, [10, 25, 50], [10, 20, 25, 40, 50, 60, 75], [15, 35, 45, 55, 65, 85]);
       const total = rng.pick(totalPool);
-      const fractionPool = byTier(
-        tier,
-        [0.1, 0.25, 0.5],
-        [0.1, 0.2, 0.25, 0.4, 0.5, 0.6, 0.75],
-        [0.15, 0.35, 0.45, 0.65, 0.85],
-      );
-      const score = Math.round(total * rng.pick(fractionPool));
-      const percent = Math.round((score / total) * 100);
-      const name = rng.pick(NAMES);
+      const percent = rng.pick(percentPool);
+      if ((total * percent) % 100 !== 0) return percentagesTopic.generate(rng, styleId, tier);
+      const score = (total * percent) / 100;
+      const { name } = rng.pick(NAMES);
       return makeQuestion({
         subject: 'maths',
         topic: 'percentages',
         reviewKey: 'maths:percentages',
         prompt: `${name} scored ${score} out of ${total} in a test.\nWhat percentage is that?`,
-        ...numericAnswer(rng, percent, { suffix: '%' }),
+        answer: `${percent}%`,
+        // Mistakes: the score itself as the percentage, the marks dropped, or
+        // the percentage dropped.
+        options: misconceptionOptions(rng, percent, [score, total - score, 100 - percent], {
+          suffix: '%',
+        }),
         hint: `Work out ${score} ÷ ${total}, then multiply by 100.`,
         explain: `${score} ÷ ${total} × 100 = ${percent}%`,
       });
@@ -453,7 +486,8 @@ const percentagesTopic = {
       reviewKey: 'maths:percentages',
       prompt: `A club had ${members} members.\nMembership rose by ${percent}%.\nHow many members are there now?`,
       answer: newMembers,
-      options: numericOptions(rng, newMembers),
+      // Mistakes: just the increase, or adding the percentage as a number.
+      options: misconceptionOptions(rng, newMembers, [increase, members + percent, members - increase]),
       hint: `Find ${percent}% of ${members} and add it on.`,
       visual: barModelSvg(
         [
@@ -570,7 +604,13 @@ const algebraTopic = {
         reviewKey: 'maths:algebra',
         prompt: `If ${letter} = ${value}, what is the value of  ${coefficient}${letter} + ${constant} ?`,
         answer: result,
-        options: numericOptions(rng, result),
+        // Mistakes: reading ${coefficient}${letter} as the digits side by side, forgetting
+        // the constant, or adding everything.
+        options: misconceptionOptions(rng, result, [
+          Number(`${coefficient}${value}`) + constant,
+          coefficient * value,
+          coefficient + value + constant,
+        ]),
         hint: `Replace ${letter} with ${value}: ${coefficient} × ${value} + ${constant}.`,
         explain: `${coefficient} × ${value} = ${coefficient * value}, + ${constant} = ${result}.`,
       });
@@ -617,7 +657,11 @@ const measureTopic = {
         topic: 'measure',
         reviewKey: 'maths:measure',
         prompt: `A rectangular playground is ${length} m long and ${width} m wide.\nWhat is its area?`,
-        ...numericAnswer(rng, length * width, { suffix: ' m²' }),
+        answer: `${length * width} m²`,
+        // Mixing up area and perimeter is the classic slip.
+        options: misconceptionOptions(rng, length * width, [2 * (length + width), length + width], {
+          suffix: ' m²',
+        }),
         hint: 'Area of a rectangle = length × width.',
         visual: rectSvg(length, width, 'm', { fillArea: true }),
         explain: `${length} × ${width} = ${length * width} m²`,
@@ -634,7 +678,11 @@ const measureTopic = {
         topic: 'measure',
         reviewKey: 'maths:measure',
         prompt: `A rectangular garden is ${length} m by ${width} m.\nHow much fencing is needed to go all the way round?`,
-        ...numericAnswer(rng, perimeter, { suffix: ' m' }),
+        answer: `${perimeter} m`,
+        // Mistakes: the area, only two sides, or three sides.
+        options: misconceptionOptions(rng, perimeter, [length * width, length + width, 2 * length + width], {
+          suffix: ' m',
+        }),
         hint: 'Perimeter = add all four sides, or 2 × (length + width).',
         visual: rectSvg(length, width, 'm'),
         explain: `2 × (${length} + ${width}) = ${perimeter} m`,
@@ -653,7 +701,9 @@ const measureTopic = {
         topic: 'measure',
         reviewKey: 'maths:measure',
         prompt: `A triangle has a base of ${base} cm and a height of ${height} cm.\nWhat is its area?`,
-        ...numericAnswer(rng, area, { suffix: ' cm²' }),
+        answer: `${area} cm²`,
+        // Mistakes: forgetting to halve, or adding the sides.
+        options: misconceptionOptions(rng, area, [base * height, base + height], { suffix: ' cm²' }),
         hint: 'Area of a triangle = (base × height) ÷ 2.',
         visual: triangleSvg(base, height, 'cm'),
         explain: `(${base} × ${height}) ÷ 2 = ${area} cm²`,

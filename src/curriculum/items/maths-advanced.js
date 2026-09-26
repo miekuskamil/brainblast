@@ -16,6 +16,15 @@ import {
   tableSvg,
 } from '../visual.js';
 
+/**
+ * Give each item a stable id ("me13-1", "me13-2"…) from its position, like the
+ * hand-numbered items in the other banks. Items are only ever replaced in
+ * place, never reordered, so an id always names the same slot.
+ */
+function withIds(prefix, items) {
+  return items.map((item, index) => ({ id: `${prefix}-${index + 1}`, ...item }));
+}
+
 /** barChartSvg() from a list of `{ label, value }` rows. */
 function barChartFromData(rows, yLabel = '') {
   return barChartSvg(
@@ -104,7 +113,7 @@ function formulaBoxSvg(formula, variables) {
 </svg>`;
 }
 
-export const SEQUENCES = [
+export const SEQUENCES = withIds('me13', [
   {
     prompt: `A pattern is made from tiles.
 Pattern 1 uses 3 tiles, pattern 2 uses 5, pattern 3 uses 7.
@@ -193,9 +202,7 @@ What is the next term?`,
     visual: sequenceSvg([2, 6, 18, 54, null]),
   },
   {
-    prompt: `A sequence starts at 1 and each term is the previous term squared.
-1, 1, 4, …
-Actually: the rule is add the previous two terms.
+    prompt: `In this sequence, each term is the sum of the two terms before it.
 
 1, 1, 2, 3, 5, 8, …
 
@@ -340,9 +347,9 @@ How many for shape 6?`,
     explain: '4, 7, 10, 13, 16, 19 — shape 6 uses 19.',
     visual: patternGrowthSvg([4, 7, 10], 'Shape'),
   },
-];
+]);
 
-export const PROBABILITY = [
+export const PROBABILITY = withIds('me14', [
   {
     prompt: `A bag contains 3 red counters and 7 blue counters.
 One counter is picked at random.
@@ -381,7 +388,8 @@ One ball is taken out at random.
 
 What is the probability it is NOT red?`,
     answer: '1/2',
-    options: ['1/2', '1/3', '2/5', '5/10'],
+    // 3/10 counts only the blue balls; 5/10 would just be 1/2 again.
+    options: ['1/2', '1/3', '2/5', '3/10'],
     hint: 'P(not red) = 1 − P(red). Or count the non-red balls.',
     explain: 'There are 5 red and 5 non-red (3 blue + 2 green). P(not red) = 5/10 = 1/2.',
     visual: countersSvg(
@@ -488,18 +496,18 @@ What is the probability of landing on blue?`,
     ]),
   },
   {
-    prompt: `A bag has 5 red, 3 blue and 2 green counters.
+    prompt: `A bag has 4 red, 5 blue and 3 green counters.
 
-What is the probability of NOT picking a red counter?`,
-    answer: '1/2',
-    options: ['1/2', '2/5', '1/5', '5/10'],
-    hint: 'How many counters are not red, out of the total?',
-    explain: 'Not-red = 3 + 2 = 5 out of 10 = 1/2.',
+What is the probability of NOT picking a blue counter?`,
+    answer: '7/12',
+    options: ['7/12', '5/12', '5/7', '1/2'],
+    hint: 'How many counters are not blue, out of the total?',
+    explain: 'Not blue = 4 + 3 = 7 out of 12, so the probability is 7/12.',
     visual: countersSvg(
       [
-        { count: 5, colour: CORAL },
-        { count: 3, colour: '#4f7cf0' },
-        { count: 2, colour: MINT },
+        { count: 4, colour: CORAL },
+        { count: 5, colour: '#4f7cf0' },
+        { count: 3, colour: MINT },
       ],
       'red · blue · green',
     ),
@@ -521,14 +529,21 @@ Roughly how many times would you expect red?`,
     ]),
   },
   {
-    prompt: `A drink is made with squash and water in the ratio 1 : 4.
+    prompt: `A bag has 1 red counter and 4 blue counters.
+One counter is picked without looking.
 
-What is the probability a random drop is squash?`,
+What is the probability it is red?`,
     answer: '1/5',
     options: ['1/4', '1/5', '4/5', '1/6'],
-    hint: 'There are 1 + 4 = 5 parts in total.',
-    explain: '1 part squash out of 5 parts = 1/5.',
-    visual: pieSvg(1, 5, '1 part squash, 4 parts water'),
+    hint: 'There are 1 + 4 = 5 counters in total.',
+    explain: '1 red counter out of 5 counters = 1/5.',
+    visual: countersSvg(
+      [
+        { count: 1, colour: CORAL },
+        { count: 4, colour: '#4f7cf0' },
+      ],
+      'the counters in the bag',
+    ),
   },
   {
     prompt: 'How would you describe the chance of rolling a 7 on an ordinary die?',
@@ -569,9 +584,9 @@ How many wins would you expect?`,
       { label: 'L', count: 3, color: CORAL },
     ]),
   },
-];
+]);
 
-export const GRAPHS = [
+export const GRAPHS = withIds('me15', [
   {
     prompt: `The line graph shows the temperature through one day.
 
@@ -938,21 +953,21 @@ How many medals were won in total?`,
     ),
   },
   {
-    prompt: `The table shows cinema ticket prices.
+    prompt: `The table shows swimming pool prices.
 
-How much would 2 adults and 3 children pay altogether?`,
-    answer: '£39',
-    options: ['£33', '£36', '£39', '£42'],
+How much would 3 adults and 2 children pay altogether?`,
+    answer: '£21',
+    options: ['£16', '£19', '£21', '£24'],
     hint: 'Work out the adults and the children separately, then add.',
-    explain: '2 × £9 = £18 and 3 × £7 = £21. £18 + £21 = £39.',
+    explain: '3 × £5 = £15 and 2 × £3 = £6. £15 + £6 = £21.',
     visual: tableSvg(
       ['Ticket', 'Price'],
       [
-        ['Adult', '£9'],
-        ['Child', '£7'],
-        ['Senior', '£6'],
+        ['Adult', '£5'],
+        ['Child', '£3'],
+        ['Under 5', 'free'],
       ],
-      { title: 'Cinema prices' },
+      { title: 'Swimming prices' },
     ),
   },
   {
@@ -993,9 +1008,9 @@ How many more must she swim to reach it?`,
       'lengths',
     ),
   },
-];
+]);
 
-export const FORMULAE = [
+export const FORMULAE = withIds('me16', [
   {
     prompt: `The perimeter of a rectangle is P = 2(l + w).
 
@@ -1008,14 +1023,14 @@ What is the perimeter?`,
     visual: rectSvg(14, 6, 'm'),
   },
   {
-    prompt: `Using D = S × T, a train travels at 90 km/h for 4 hours.
+    prompt: `Using D = S × T, a train travels at 90 mph for 4 hours.
 
-How far does it go?`,
+How many miles does it go?`,
     answer: '360',
     options: ['94', '180', '270', '360'],
     hint: 'Multiply the speed by the time.',
-    explain: '90 × 4 = 360 km.',
-    visual: journeySvg(null, 4, 90),
+    explain: '90 × 4 = 360 miles.',
+    visual: journeySvg(null, 4, 90, 'miles'),
   },
   {
     prompt: `The volume of a cuboid is V = l × w × h.
@@ -1050,16 +1065,16 @@ Find the area.`,
 
 D = S × T
 
-A car travels at 60 km/h for 3 hours.
-How far does it travel?`,
+A car travels at 60 mph for 3 hours.
+How many miles does it travel?`,
     answer: '180',
     options: ['63', '120', '180', '200'],
     hint: 'D = Speed × Time. Substitute S = 60 and T = 3.',
-    explain: 'D = 60 × 3 = 180 km.',
+    explain: 'D = 60 × 3 = 180 miles.',
     visual: formulaBoxSvg('D = S × T', [
-      { name: 'S', value: 60, unit: 'km/h' },
+      { name: 'S', value: 60, unit: 'mph' },
       { name: 'T', value: 3, unit: 'h' },
-      { name: 'D', value: '?', unit: 'km' },
+      { name: 'D', value: '?', unit: 'miles' },
     ]),
   },
   {
@@ -1067,7 +1082,7 @@ How far does it travel?`,
 
 S = D ÷ T
 
-A runner covers 15 km in 3 hours.
+A walker covers 15 km in 3 hours.
 What is their average speed?`,
     answer: '5',
     options: ['3', '4', '5', '6'],
@@ -1115,18 +1130,19 @@ What is the volume?`,
     ]),
   },
   {
-    prompt: `The formula to convert Celsius to Fahrenheit is:
+    prompt: `A plumber charges using the formula:
 
-F = 9/5 × C + 32
+C = 20h + 30
 
-What is 20°C in Fahrenheit?`,
-    answer: '68',
-    options: ['52', '60', '68', '72'],
-    hint: 'Substitute C = 20: F = (9/5) × 20 + 32.',
-    explain: '9/5 × 20 = 36. 36 + 32 = 68°F.',
-    visual: formulaBoxSvg('F = 9/5 × C + 32', [
-      { name: 'C', value: 20, unit: '°C' },
-      { name: 'F', value: '?', unit: '°F' },
+where C is the cost in pounds and h is the number of hours.
+What does a 3-hour job cost, in pounds?`,
+    answer: '90',
+    options: ['53', '60', '90', '150'],
+    hint: 'Substitute h = 3: work out 20 × 3 first, then add 30.',
+    explain: '20 × 3 = 60. 60 + 30 = £90.',
+    visual: formulaBoxSvg('C = 20h + 30', [
+      { name: 'h', value: 3, unit: 'hours' },
+      { name: 'C', value: '?', unit: '£' },
     ]),
   },
   {
@@ -1201,39 +1217,39 @@ What is the cost for 15 guests?`,
     ]),
   },
   {
-    prompt: `To change Celsius to Fahrenheit:  F = 9/5 × C + 32.
+    prompt: `A taxi fare in pounds is  F = 2m + 3  (£3 to start, then £2 a mile).
 
-What is 25°C in Fahrenheit?`,
-    answer: '77',
-    options: ['57', '68', '77', '82'],
-    hint: 'Work out 9/5 × 25 first, then add 32.',
-    explain: '9/5 × 25 = 45. 45 + 32 = 77°F.',
-    visual: formulaBoxSvg('F = 9/5 × C + 32', [
-      { name: 'C', value: 25, unit: '°C' },
-      { name: 'F', value: '?', unit: '°F' },
+What is the fare for a 6-mile journey, in pounds?`,
+    answer: '15',
+    options: ['11', '15', '18', '30'],
+    hint: 'Work out 2 × 6 first, then add 3.',
+    explain: '2 × 6 = 12. 12 + 3 = £15.',
+    visual: formulaBoxSvg('F = 2m + 3', [
+      { name: 'm', value: 6, unit: 'miles' },
+      { name: 'F', value: '?', unit: '£' },
     ]),
   },
   {
     prompt: `The volume of a cuboid is  V = l × w × h.
 
-A fish tank is 40 cm by 20 cm by 25 cm.
-What is the volume in litres?  (1000 cm³ = 1 litre)`,
-    answer: '20',
-    options: ['16', '20', '25', '200'],
-    hint: 'Find the volume in cm³ first, then divide by 1000.',
-    explain: '40 × 20 × 25 = 20000 cm³ = 20 litres.',
-    visual: cuboidSvg(40, 20, 25, 'cm'),
+A shoebox is 30 cm by 20 cm by 10 cm.
+What is its volume in cm³?`,
+    answer: '6000',
+    options: ['60', '600', '6000', '60000'],
+    hint: 'Multiply all three lengths: 30 × 20 first, then × 10.',
+    explain: '30 × 20 = 600, and 600 × 10 = 6000 cm³.',
+    visual: cuboidSvg(30, 20, 10, 'cm'),
   },
   {
     prompt: `Distance is  D = S × T.
 
-A train travels at 110 km/h for 3 hours.
-How far does it go?`,
-    answer: '330',
-    options: ['113', '220', '330', '360'],
+A train travels at 100 mph for 3 hours.
+How many miles does it go?`,
+    answer: '300',
+    options: ['103', '200', '300', '330'],
     hint: 'Multiply speed by time.',
-    explain: '110 × 3 = 330 km.',
-    visual: journeySvg(null, 3, 110),
+    explain: '100 × 3 = 300 miles.',
+    visual: journeySvg(null, 3, 100, 'miles'),
   },
   {
     prompt: `The area of a rectangle is  A = l × w.
@@ -1261,4 +1277,4 @@ How many legs?`,
       { name: 'L', value: '?' },
     ]),
   },
-];
+]);

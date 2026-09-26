@@ -128,11 +128,32 @@ describe('legacy save migration', () => {
     expect(JSON.parse(localStorage.getItem('bb.slot.0')).name).toBe('Legacy');
   });
 
-  it('mirrors slot 0 saves to the legacy key', () => {
+  it('never writes the legacy key (it would resurrect a deleted slot 0)', () => {
     saveSlot(0, { ...defaultState(), name: 'Zero' });
-    expect(JSON.parse(localStorage.getItem(LEGACY_KEY)).name).toBe('Zero');
-    saveSlot(1, { ...defaultState(), name: 'One' });
-    expect(JSON.parse(localStorage.getItem(LEGACY_KEY)).name).toBe('Zero');
+    expect(localStorage.getItem(LEGACY_KEY)).toBe(null);
+  });
+
+  it('removes the legacy key once migrated, and never re-reads it after', () => {
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ name: 'Legacy' }));
+    listProfiles();
+    expect(localStorage.getItem(LEGACY_KEY)).toBe(null);
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ name: 'Ghost' }));
+    expect(listProfiles()[0].name).toBe('Legacy');
+  });
+
+  it('does not overwrite an existing slot 0 with the legacy save', () => {
+    saveSlot(0, { ...defaultState(), name: 'Current' });
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ name: 'Old' }));
+    expect(listProfiles()[0].name).toBe('Current');
+  });
+
+  it('deleteSlot(0) also removes the legacy key so the profile stays deleted', () => {
+    saveSlot(0, { ...defaultState(), name: 'Zero' });
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ name: 'Phantom' }));
+    deleteSlot(0);
+    expect(localStorage.getItem(LEGACY_KEY)).toBe(null);
+    expect(listProfiles()[0]).toBe(null);
+    expect(loadSlot(0).name).toBe('');
   });
 
   it('lists only named profiles', () => {

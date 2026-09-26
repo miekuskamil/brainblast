@@ -183,8 +183,12 @@ describe('more independent checks', () => {
     for (const tier of TIERS) {
       for (const seed of SEEDS) {
         const q = timeSpeedTopic.generate(makeRng(seed), 'arrival-time', tier);
-        const [, hh, mm, h, m] = q.prompt.match(/at (\d\d):(\d\d)\.\nThe journey takes (\d+) h (\d+) min/);
-        const total = Number(hh) * 60 + Number(mm) + Number(h) * 60 + Number(m);
+        const [, hh, mm, takes] = q.prompt.match(/at (\d\d):(\d\d)\.\nThe journey takes (.+)\./);
+        // "1 h 5 min", "40 min" or "2 h" — never "0 h 40 min".
+        expect(takes, q.prompt).toMatch(/^(?:[1-9]\d* h)?(?: ?[1-9]\d* min)?$/);
+        const h = Number((takes.match(/(\d+) h/) || [0, 0])[1]);
+        const m = Number((takes.match(/(\d+) min/) || [0, 0])[1]);
+        const total = Number(hh) * 60 + Number(mm) + h * 60 + m;
         const expected = `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
         expect(q.answer, q.prompt).toBe(expected);
       }
@@ -195,8 +199,9 @@ describe('more independent checks', () => {
     for (const tier of TIERS) {
       for (const seed of SEEDS) {
         const q = challengesTopic.generate(makeRng(seed), 'journey-distance', tier);
-        const [, h1, s1] = q.prompt.match(/first (\d+) hours? .* at (\d+) km\/h/);
-        const [, h2, s2] = q.prompt.match(/next (\d+) hours? .* at (\d+) km\/h/);
+        // "the first hour" means 1 hour; otherwise "the first 3 hours".
+        const [, h1 = 1, s1] = q.prompt.match(/first (?:(\d+) )?hours? .* at (\d+) mph/);
+        const [, h2 = 1, s2] = q.prompt.match(/next (?:(\d+) )?hours? .* at (\d+) mph/);
         expect(num(q.answer), q.prompt).toBe(Number(h1) * Number(s1) + Number(h2) * Number(s2));
       }
     }

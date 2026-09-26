@@ -9,7 +9,7 @@
 import { dueItems } from './review.js';
 import { weakestTopics } from './mastery.js';
 import { resolveTier } from './difficulty.js';
-import { defaultRng } from './rng.js';
+import { defaultRng, makeRng } from './rng.js';
 import {
   customSpellingQuestion,
   generate,
@@ -41,6 +41,72 @@ const DAILY_CHALLENGE_SIZE = 5;
 const DAILY_CHALLENGE_MAX_REVIEW = 2;
 
 /**
+ * What counts as "the same question" within one round.
+ * Spelling and grammar are keyed by item — the same word twice in one round
+ * is just repetition. Maths shares one review key per *topic*, so keying on
+ * it there would allow only a single question per topic; the prompt is the
+ * right identity because the numbers differ every time.
+ */
+const identity = (question) =>
+  question.subject === 'maths' ? question.prompt : question.reviewKey;
+
+/**
+ * Rebuild up to `limit` due review items as questions, weakest box first.
+ * Keys are resolved *before* they take a slot: an orphan key (an item no
+ * longer in the bank) or one filtered out would otherwise use up the review
+ * allowance and leave the round with fewer reviews than are actually due.
+ */
+function dueReviewQuestions({
+  reviewState,
+  now,
+  rng,
+  customWords,
+  limit,
+  keyFilter = () => true,
+  questionFilter = () => true,
+}) {
+  const picked = [];
+  const seen = new Set();
+  for (const record of dueItems(reviewState, now)) {
+    if (picked.length >= limit) break;
+    if (!keyFilter(record.key)) continue;
+    const question = regenerateByKey(record.key, rng, customWords);
+    if (!question || !questionFilter(question) || seen.has(identity(question))) continue;
+    seen.add(identity(question));
+    picked.push({ ...question, isReview: true, box: record.box });
+  }
+  return picked;
+}
+
+/**
+ * Drop review records whose key no longer resolves to a question, so they
+ * stop counting as "due" on the hub forever. When the learner's word list is
+ * given, custom-word records for words the family has since removed are
+ * dropped too — a parent deleting a word means "stop practising it".
+ * Returns the same object when nothing was pruned, so callers can cheaply
+ * skip a save.
+ */
+export function pruneOrphanReviews(reviewState, customWords = null) {
+  const listed = Array.isArray(customWords)
+    ? new Set(customWords.map((word) => String(word).trim().toLowerCase()))
+    : null;
+  const isRemovedCustomWord = (key) =>
+    listed !== null &&
+    key.startsWith('spelling:custom:') &&
+    !listed.has(key.slice('spelling:custom:'.length));
+
+  let pruned = false;
+  const kept = {};
+  for (const [key, record] of Object.entries(reviewState ?? {})) {
+    const orphan =
+      isRemovedCustomWord(key) || !regenerateByKey(key, makeRng(1), customWords);
+    if (orphan) pruned = true;
+    else kept[key] = record;
+  }
+  return pruned ? kept : reviewState;
+}
+
+/**
  * @returns {{questions: Question[], reviewCount: number}}
  */
 export function buildRound({
@@ -66,33 +132,23 @@ export function buildRound({
   // curriculum/index.js.
   includePassages = false,
 }) {
-  const questions = [];
-  const usedKeys = new Set();
-
-  /**
-   * What counts as "already in this round".
-   * Spelling and grammar are keyed by item — the same word twice in one round
-   * is just repetition. Maths shares one review key per *topic*, so keying on
-   * it there would allow only a single question per topic; the prompt is the
-   * right identity because the numbers differ every time.
-   */
-  const identity = (question) =>
-    question.subject === 'maths' ? question.prompt : question.reviewKey;
-
   // 1. Due reviews for this subject, weakest box first. Skipped entirely for
-  // an exam (includeReview: false) — see the parameter note above.
-  const due = includeReview
-    ? dueItems(reviewState, now).filter((record) => record.key.startsWith(`${subject}:`))
+  // an exam (includeReview: false) — see the parameter note above. A pinned
+  // topic only takes reviews whose rebuilt question is from that topic: key
+  // prefixes can't tell us (spelling/grammar keys name the item, not the
+  // topic, and "maths:me1" is a prefix of "maths:me10").
+  const questions = includeReview
+    ? dueReviewQuestions({
+        reviewState,
+        now,
+        rng,
+        customWords,
+        limit: MAX_REVIEW_PER_ROUND,
+        keyFilter: (key) => key.startsWith(`${subject}:`),
+        questionFilter: (question) => !topic || question.topic === topic,
+      })
     : [];
-  for (const record of due.slice(0, MAX_REVIEW_PER_ROUND)) {
-    const question = regenerateByKey(record.key, rng);
-    // A null question means the key is an orphan (an item no longer in the
-    // bank); skip it silently.
-    if (question) {
-      questions.push({ ...question, isReview: true, box: record.box });
-      usedKeys.add(identity(question));
-    }
-  }
+  const usedKeys = new Set(questions.map(identity));
   const reviewCount = questions.length;
 
   // 1b. Maybe open with one whole reading-passage cluster — every linked
@@ -105,7 +161,9 @@ export function buildRound({
   if (includePassages && !topic) {
     const cluster = rng.next() < PASSAGE_CLUSTER_CHANCE ? pickPassageCluster(subject, rng) : null;
     const clusterSize = cluster?.questions.length ?? 0;
-    if (clusterSize && clusterSize <= size - questions.length) {
+    // A cluster whose item is already here as a review would ask it twice.
+    const overlapsRound = cluster?.questions.some((question) => usedKeys.has(identity(question)));
+    if (clusterSize && !overlapsRound && clusterSize <= size - questions.length) {
       cluster.questions.forEach((question, index) => {
         questions.push({
           ...question,
@@ -213,10 +271,19 @@ export function buildRound({
     questions.push({ ...candidate, isReview: false });
   }
 
-  // Last resort: top up without any spread or duplicate rules.
-  while (questions.length < size) {
-    const tierOption = tierOverride ? { tier: tierOverride } : {};
+  // Last resort: top up without the spread rules, but still never repeat a
+  // question. A tiny pool (a short custom list, a small pinned topic) can run
+  // out, so give up after enough misses and accept a slightly shorter round
+  // rather than serving the same item twice or looping forever.
+  const tierOption = tierOverride ? { tier: tierOverride } : {};
+  let misses = 0;
+  while (questions.length < size && misses < size * 4) {
     const question = generate({ subject, topic, rng, ...tierOption });
+    if (usedKeys.has(identity(question))) {
+      misses += 1;
+      continue;
+    }
+    usedKeys.add(identity(question));
     questions.push({ ...question, isReview: false });
   }
 
@@ -292,7 +359,8 @@ export function buildExam({
 
 /**
  * Five quick questions across all subjects: up to two due reviews (any
- * subject), topped up by cycling through the subjects in a random order.
+ * subject), then fresh questions — first from every subject the reviews
+ * didn't cover, so a daily challenge always touches all four subjects.
  */
 export function buildDailyChallenge({
   reviewState = {},
@@ -300,23 +368,37 @@ export function buildDailyChallenge({
   rng = defaultRng,
   now = Date.now(),
   tierOverride = null,
+  customWords = null,
 }) {
-  const subjectOrder = rng.shuffle(ALL_SUBJECT_IDS);
-  const questions = [];
+  const questions = dueReviewQuestions({
+    reviewState,
+    now,
+    rng,
+    customWords,
+    limit: DAILY_CHALLENGE_MAX_REVIEW,
+  });
+  const usedKeys = new Set(questions.map(identity));
+  const covered = new Set(questions.map((question) => question.subject));
+  const shuffled = rng.shuffle(ALL_SUBJECT_IDS);
+  // Uncovered subjects first, then keep cycling in the same order.
+  const subjectOrder = [
+    ...shuffled.filter((subject) => !covered.has(subject)),
+    ...shuffled.filter((subject) => covered.has(subject)),
+  ];
 
-  for (const record of dueItems(reviewState, now).slice(0, DAILY_CHALLENGE_MAX_REVIEW)) {
-    const question = regenerateByKey(record.key, rng);
-    if (question) questions.push({ ...question, isReview: true, box: record.box });
-  }
-
-  let subjectCursor = 0;
-  while (questions.length < DAILY_CHALLENGE_SIZE) {
-    const subject = subjectOrder[subjectCursor % subjectOrder.length];
-    subjectCursor += 1;
-    questions.push({
-      ...generate({ subject, rng, ...(tierOverride ? { tier: tierOverride } : {}) }),
-      isReview: false,
-    });
+  const tierFor = (subject, topic) =>
+    resolveTier(masteryState[`${subject}:${topic}`], tierOverride);
+  let cursor = 0;
+  let attempts = 0;
+  while (questions.length < DAILY_CHALLENGE_SIZE && attempts < DAILY_CHALLENGE_SIZE * 10) {
+    attempts += 1;
+    const subject = subjectOrder[cursor % subjectOrder.length];
+    const topic = rng.pick(topicsFor(subject)).id;
+    const question = generate({ subject, topic, rng, tier: tierFor(subject, topic) });
+    if (usedKeys.has(identity(question))) continue;
+    cursor += 1;
+    usedKeys.add(identity(question));
+    questions.push({ ...question, isReview: false });
   }
 
   return rng.shuffle(questions).slice(0, DAILY_CHALLENGE_SIZE);

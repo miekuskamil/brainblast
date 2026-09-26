@@ -36,13 +36,39 @@ import {
   thermometerSvg,
 } from './visual.js';
 import { TIER, byTier } from '../engine/difficulty.js';
-import { makeTopic } from './topic.js';
-
-const NAMES = ['Aisha', 'Callum', 'Freya', 'Jamie', 'Lena', 'Rory', 'Skye', 'Finlay', 'Nadia', 'Euan'];
+import { makeTopic, misconceptionOptions } from './topic.js';
+import { NAME_LIST, cap, pickPerson, samplePeople, verb } from './names.js';
 
 const gcd = (a, b) => (b ? gcd(b, a % b) : Math.abs(a));
 
 const pad2 = (value) => String(value).padStart(2, '0');
+
+/** "40 min", "2 h", "1 h 5 min" — never "0 h 40 min" or "2 h 0 min". */
+export function durationText(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+/** "1 hour", "3 hours". */
+export const hoursText = (hours) => `${hours} hour${hours === 1 ? '' : 's'}`;
+
+const NOTES = [5, 10, 20, 50];
+const COUNT_WORDS = ['', 'a', 'two', 'three', 'four', 'five'];
+
+/**
+ * How someone pays for `cost` pounds with real banknotes: the smallest single
+ * note that is more than the cost, otherwise enough £50 notes. Returns the
+ * amount and the words for the prompt ("a £20 note", "two £50 notes"), so no
+ * one ever "pays with £58".
+ */
+export function payWithNotes(cost) {
+  const note = NOTES.find((value) => value > cost);
+  if (note) return { amount: note, words: `a £${note} note` };
+  const count = Math.floor(cost / 50) + 1;
+  return { amount: count * 50, words: `${COUNT_WORDS[count] ?? count} £50 notes` };
+}
 
 // Bar-model colours (match the palette in visual.js).
 const BRAND = '#7c6cff';
@@ -66,7 +92,8 @@ export const bodmasTopic = makeTopic('bodmas', 'Order of operations', 2, [
       return {
         prompt: `Work out:  ${a} + ${b} × ${c}`,
         answer,
-        options: numericOptions(rng, answer),
+        // The key mistake: working left to right.
+        options: misconceptionOptions(rng, answer, [(a + b) * c, a + b + c, a * b + c]),
         hint: 'Multiplication comes before addition — even though it is written second.',
         explain: `${b} × ${c} = ${b * c}, then ${a} + ${b * c} = ${answer}.`,
       };
@@ -87,7 +114,8 @@ export const bodmasTopic = makeTopic('bodmas', 'Order of operations', 2, [
       return {
         prompt: `Work out:  (${a} + ${b}) × ${c}`,
         answer,
-        options: numericOptions(rng, answer),
+        // The key mistake: ignoring the brackets.
+        options: misconceptionOptions(rng, answer, [a + b * c, a * c + b, a + b + c]),
         hint: 'Brackets first, always.',
         explain: `(${a} + ${b}) = ${a + b}, then ${a + b} × ${c} = ${answer}.`,
       };
@@ -108,7 +136,8 @@ export const bodmasTopic = makeTopic('bodmas', 'Order of operations', 2, [
       return {
         prompt: `Work out:  ${base}² + ${b} × ${c}`,
         answer,
-        options: numericOptions(rng, answer),
+        // Mistakes: squaring as doubling, or working left to right.
+        options: misconceptionOptions(rng, answer, [base * 2 + b * c, (base * base + b) * c, base * base + b + c]),
         hint: 'Brackets, Indices, Division/Multiplication, Addition/Subtraction.',
         explain: `${base}² = ${base * base}, ${b} × ${c} = ${b * c}, so ${base * base} + ${b * c} = ${answer}.`,
       };
@@ -119,7 +148,7 @@ export const bodmasTopic = makeTopic('bodmas', 'Order of operations', 2, [
   {
     id: 'scenario-cost',
     build(rng, tier = TIER.STANDARD) {
-      const name = rng.pick(NAMES);
+      const { name } = pickPerson(rng);
       const [minTickets, maxTickets] = byTier(tier, [2, 5], [3, 8], [6, 12]);
       const [minPrice, maxPrice] = byTier(tier, [3, 8], [4, 12], [8, 18]);
       const [minFee, maxFee] = byTier(tier, [2, 5], [2, 9], [5, 14]);
@@ -236,7 +265,11 @@ export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
       const difference = warm - cold;
       return {
         prompt: `On Monday the temperature was ${cold}°C.\nOn Tuesday it was ${warm}°C.\n\nWhat is the difference between the two temperatures?`,
-        ...numericAnswer(rng, difference, { suffix: '°C' }),
+        answer: `${difference}°C`,
+        // The key mistake: ignoring the minus sign and subtracting the sizes.
+        options: misconceptionOptions(rng, difference, [Math.abs(warm + cold), difference + 1, difference - 1], {
+          suffix: '°C',
+        }),
         hint: 'Count from the lower number up to the higher one, passing through zero.',
         visual: thermometerSvg(cold, warm),
         explain: `From ${cold} up to 0 is ${Math.abs(cold)}, then 0 up to ${warm} is ${warm}. Total ${difference}°C.`,
@@ -274,10 +307,12 @@ export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
       const debt = rng.int(minDebt, maxDebt);
       const payment = rng.int(minPayment, maxPayment);
       const balance = payment - debt;
-      const name = rng.pick(NAMES);
+      const person = pickPerson(rng);
       return {
-        prompt: `${name}'s account is £${debt} overdrawn, shown as −£${debt}.\nShe pays in £${payment}.\n\nWhat is her balance now?`,
-        ...numericAnswer(rng, balance, { prefix: '£' }),
+        prompt: `${person.name}'s account is £${debt} overdrawn, shown as -£${debt}.\n${cap(person.they)} ${verb(person, 'pays', 'pay')} in £${payment}.\n\nWhat is ${person.their} balance now?`,
+        answer: `£${balance}`,
+        // Mistakes: adding the debt on, or forgetting the payment clears it first.
+        options: misconceptionOptions(rng, balance, [payment + debt, payment, balance + 10], { prefix: '£' }),
         hint: `The first £${debt} clears the overdraft. What is left after that?`,
         visual: barModelSvg(
           [
@@ -291,7 +326,7 @@ export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
           ],
           'clear the overdraft first',
         ),
-        explain: `−${debt} + ${payment} = ${balance}, so the balance is £${balance}.`,
+        explain: `-${debt} + ${payment} = ${balance}, so the balance is £${balance}.`,
       };
     },
   },
@@ -312,6 +347,9 @@ export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
         rng.int(minWarm, maxWarm),
       ]);
       const ascending = [...temperatures].sort((a, b) => a - b);
+      // Two equal temperatures make "the order" ambiguous, and a list that is
+      // already coldest-first gives the answer away: roll again.
+      if (new Set(temperatures).size < 4 || temperatures.join() === ascending.join()) return null;
       const descending = [...temperatures].sort((a, b) => b - a);
       const bySize = [...temperatures].sort((a, b) => Math.abs(a) - Math.abs(b));
       const list = (values) => values.join(', ');
@@ -326,7 +364,7 @@ export const negativesTopic = makeTopic('negatives', 'Negative numbers', 3, [
         prompt: `Put these temperatures in order, coldest first:\n\n${temperatures.join(', ')} °C`,
         answer: list(ascending),
         options,
-        hint: 'The further left on the number line, the colder. −12 is colder than −3.',
+        hint: 'The further left on the number line, the colder. -12 is colder than -3.',
         visual: numberLineSvg(Math.min(...temperatures) - 1, Math.max(...temperatures) + 1, null),
         explain: `Coldest to warmest: ${list(ascending)}.`,
       };
@@ -378,7 +416,7 @@ export const timeSpeedTopic = makeTopic('time-speed', 'Time & speed', 3, [
       const arriveHour = Math.floor(arrival / 60) % 24;
       const arriveMinute = arrival % 60;
       const departs = `${pad2(departHour)}:${pad2(departMinute)}`;
-      const takes = `${Math.floor(duration / 60)} h ${duration % 60} min`;
+      const takes = durationText(duration);
       return {
         prompt: `A train leaves Glasgow at ${departs}.\nThe journey takes ${takes}.\n\nWhat time does it arrive? (24-hour clock, like 14:35)`,
         answer: `${pad2(arriveHour)}:${pad2(arriveMinute)}`,
@@ -419,25 +457,26 @@ export const timeSpeedTopic = makeTopic('time-speed', 'Time & speed', 3, [
     },
   },
 
-  // Distance = speed × time.
+  // Distance = speed × time. UK roads use miles and mph, and a coach never
+  // goes faster than its 60-odd mph limiter.
   {
     id: 'distance',
     build(rng, tier = TIER.STANDARD) {
-      const speedPool = byTier(
-        tier,
-        [40, 50, 60],
-        [40, 50, 60, 70, 80, 90],
-        [70, 80, 90, 100, 110, 120],
-      );
-      const [minHours, maxHours] = byTier(tier, [2, 3], [2, 5], [4, 8]);
+      const speedPool = byTier(tier, [30, 40, 50], [30, 40, 45, 50, 60], [35, 45, 55, 60]);
+      const [minHours, maxHours] = byTier(tier, [2, 3], [2, 5], [3, 6]);
       const speed = rng.pick(speedPool);
       const hours = rng.int(minHours, maxHours);
+      const distance = speed * hours;
       return {
-        prompt: `A coach travels at a steady ${speed} km/h for ${hours} hours.\n\nHow far does it travel?`,
-        ...numericAnswer(rng, speed * hours, { suffix: ' km' }),
+        prompt: `A coach travels at a steady ${speed} mph for ${hours} hours.\n\nHow far does it travel, in miles?`,
+        answer: `${distance} miles`,
+        // Mistakes: adding instead of multiplying, or an hour too few or many.
+        options: misconceptionOptions(rng, distance, [speed + hours, speed * (hours - 1), speed * (hours + 1)], {
+          suffix: ' miles',
+        }),
         hint: 'Distance = speed × time.',
-        visual: journeySvg(null, hours, speed),
-        explain: `${speed} × ${hours} = ${speed * hours} km`,
+        visual: journeySvg(null, hours, speed, 'miles'),
+        explain: `${speed} × ${hours} = ${distance} miles`,
       };
     },
   },
@@ -446,13 +485,15 @@ export const timeSpeedTopic = makeTopic('time-speed', 'Time & speed', 3, [
   {
     id: 'speed',
     build(rng, tier = TIER.STANDARD) {
-      const speedPool = byTier(tier, [30, 40, 50], [30, 40, 50, 60, 80], [60, 80, 90, 100]);
-      const [minHours, maxHours] = byTier(tier, [2, 4], [2, 6], [4, 9]);
+      // Realistic cycling speeds: 10–24 km/h, for up to 6 hours.
+      const speedPool = byTier(tier, [10, 12, 15], [12, 14, 15, 16, 18], [14, 16, 18, 21, 24]);
+      const [minHours, maxHours] = byTier(tier, [2, 3], [2, 4], [3, 6]);
       const speed = rng.pick(speedPool);
       const hours = rng.int(minHours, maxHours);
       const distance = speed * hours;
+      const person = pickPerson(rng);
       return {
-        prompt: `A cyclist covers ${distance} km in ${hours} hours.\n\nWhat is her average speed in km/h?`,
+        prompt: `${person.name} cycles ${distance} km in ${hours} hours.\n\nWhat is ${person.their} average speed in km/h?`,
         ...numericAnswer(rng, speed, { suffix: ' km/h' }),
         hint: 'Speed = distance ÷ time.',
         visual: journeySvg(distance, hours, null),
@@ -504,7 +545,7 @@ export const averagesTopic = makeTopic('averages', 'Averages & data', 3, [
       const total = scores.reduce((sum, score) => sum + score, 0);
       const mean = total / count;
       return {
-        prompt: `${rng.pick(NAMES)} scored these points across ${count} games:\n\n${scores.join(', ')}\n\nWhat is the mean score?`,
+        prompt: `${pickPerson(rng).name} scored these points across ${count} games:\n\n${scores.join(', ')}\n\nWhat is the mean score?`,
         answer: mean,
         hint: `Add all ${count} numbers, then divide by ${count}.`,
         visual: dotPlotSvg(scores),
@@ -527,7 +568,8 @@ export const averagesTopic = makeTopic('averages', 'Averages & data', 3, [
 
 What is the mean number borrowed per day?`,
         answer: mean,
-        options: numericOptions(rng, mean),
+        // Mistakes: stopping at the total, or taking the middle of the range.
+        options: misconceptionOptions(rng, mean, [mean * 4, mean + 1, mean - 1]),
         hint: 'Read all four bars, add them, then divide by 4.',
         visual: barChartSvg(values, days, 'books'),
         explain: `${values.join(' + ')} = ${values.reduce((sum, value) => sum + value, 0)}. ÷ 4 = ${mean}.`,
@@ -546,9 +588,19 @@ What is the mean number borrowed per day?`,
       return {
         prompt: `Find the median of:\n\n${values.join(', ')}`,
         answer: median,
-        options: numericOptions(rng, median),
+        // Mistakes: the middle of the list as given (not sorted), or the mean.
+        options: misconceptionOptions(rng, median, [
+          values[2],
+          Math.round(values.reduce((sum, value) => sum + value, 0) / 5),
+          sorted[1],
+        ]),
         hint: 'Put them in order first, then find the middle one.',
-        visual: dotPlotSvg(values),
+        // Number cards in the order given: a dot plot would do the sorting
+        // (the skill being practised) for the child.
+        visual: countersSvg(
+          values.map((value) => ({ count: 1, colour: BRAND, label: String(value) })),
+          'put the cards in order first',
+        ),
         explain: `In order: ${sorted.join(', ')}. The middle value is ${median}.`,
       };
     },
@@ -559,7 +611,7 @@ What is the mean number borrowed per day?`,
   {
     id: 'range-table',
     build(rng, tier = TIER.STANDARD) {
-      const pupils = rng.shuffle(NAMES).slice(0, 4);
+      const pupils = rng.shuffle(NAME_LIST).slice(0, 4);
       const [min1, max1] = byTier(tier, [1, 5], [2, 8], [5, 12]);
       const [min2, max2] = byTier(tier, [6, 10], [10, 16], [14, 22]);
       const [min3, max3] = byTier(tier, [11, 17], [18, 26], [24, 34]);
@@ -576,7 +628,8 @@ What is the mean number borrowed per day?`,
 
 What is the range?`,
         answer: range,
-        options: numericOptions(rng, range),
+        // Mistakes: giving the largest value, or the smallest.
+        options: misconceptionOptions(rng, range, [Math.max(...lengths), Math.min(...lengths), range + 1]),
         hint: 'Range = largest value − smallest value.',
         visual: tableSvg(
           ['Pupil', 'Lengths'],
@@ -666,6 +719,9 @@ Which sport was the most popular?`,
       const highest = Math.max(...members);
       const peakMonth = months[members.indexOf(highest)];
       const lowest = Math.min(...members);
+      // Two months level at the top (or bottom) would make two right answers.
+      const count = (value) => members.filter((member) => member === value).length;
+      if (count(highest) > 1 || count(lowest) > 1) return null;
       const graph = () =>
         lineGraphSvg(
           months.map((month, i) => [month, members[i]]),
@@ -717,8 +773,11 @@ export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
       const partsA = rng.int(minA, maxA);
       const partsB = rng.int(minB, maxB);
       const oneShare = rng.int(minShare, maxShare);
+      // A ratio like 3 : 3 or 2 : 4 isn't in its simplest form, and 1 : 1 is
+      // just halving: roll again.
+      if (gcd(partsA, partsB) > 1 || partsA === partsB) return null;
       const total = (partsA + partsB) * oneShare;
-      const [first, second] = rng.sample(NAMES, 2);
+      const [first, second] = samplePeople(rng, 2).map((person) => person.name);
       return {
         prompt: `£${total} is shared between ${first} and ${second} in the ratio ${partsA} : ${partsB}.\n\nHow much does ${first} get?`,
         answer: partsA * oneShare,
@@ -739,6 +798,8 @@ export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
       const scale = rng.int(minScale, maxScale);
       const a = rng.int(minA, maxA);
       const b = rng.int(minB, maxB);
+      // Equal parts ("35 : 35") only ever simplify to 1 : 1.
+      if (a === b) return null;
       const divisor = gcd(a, b);
       return {
         prompt: `Simplify the ratio  ${a * scale} : ${b * scale}\n(Write it like  2:3 )`,
@@ -794,11 +855,16 @@ export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
       ];
       const row = rng.int(0, 2);
       const [ingredient, amount, unit] = ingredients[row];
-      const needed = (amount / serves) * people;
       const scaleFactor = people / serves;
+      // Multiply before dividing: (250 / 3) × 12 shows as 1000.0000000000001.
+      const needed = (amount * people) / serves;
       return {
         prompt: `This recipe serves ${serves} people.\n\nHow much ${ingredient.toLowerCase()} is needed for ${people} people?`,
-        ...numericAnswer(rng, needed, { suffix: ` ${unit}` }),
+        answer: `${needed} ${unit}`,
+        // Mistakes: adding the extra people instead of scaling, or the amount per person.
+        options: misconceptionOptions(rng, needed, [amount + (people - serves), amount + people, amount * people], {
+          suffix: ` ${unit}`,
+        }),
         hint: `${people} ÷ ${serves} = ${scaleFactor}, so multiply every amount by ${scaleFactor}.`,
         visual: tableSvg(
           ['Ingredient', `Serves ${serves}`],
@@ -818,6 +884,7 @@ export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
       const [minParts, maxParts] = byTier(tier, [1, 3], [2, 4], [3, 6]);
       const blueParts = rng.int(minParts, maxParts);
       const redParts = rng.int(minParts, maxParts);
+      if (gcd(blueParts, redParts) > 1 || blueParts === redParts) return null;
       const [minRepeats, maxRepeats] = byTier(tier, [2, 3], [2, 4], [3, 6]);
       const repeats = rng.int(minRepeats, maxRepeats);
       const red = redParts * repeats;
@@ -847,10 +914,13 @@ export const ratioTopic = makeTopic('ratio', 'Ratio & proportion', 3, [
       const [minWater, maxWater] = byTier(tier, [1, 3], [1, 5], [4, 8]);
       const squash = rng.int(minSquash, maxSquash);
       const water = rng.int(minWater, maxWater);
+      // "2 : 2" is an odd way to say half and half. Ratios such as 2 : 4 stay:
+      // simplifying the fraction they give is part of the practice.
+      if (squash === water) return null;
       const whole = squash + water;
       const divisor = gcd(squash, whole);
       return {
-        prompt: `A drink is made from squash and water in the ratio ${squash} : ${water}.\n\nWhat fraction of the drink is squash?\n(Write it like 3/4)`,
+        prompt: `A drink is made from squash and water in the ratio ${squash} : ${water}.\n\nWhat fraction of the drink is squash?\nGive it in its simplest form, like 3/4.`,
         answer: `${squash / divisor}/${whole / divisor}`,
         hint: `There are ${whole} parts altogether, and ${squash} of them are squash.`,
         visual: ratioBarSvg([squash, water], ['Squash', 'Water']),
@@ -870,11 +940,12 @@ export const fractionsTopic = makeTopic('fractions', 'Fractions', 2, [
       const denominatorPool = byTier(tier, [4, 5, 6], [4, 5, 6, 8, 10, 12], [8, 10, 12, 15, 16]);
       const denominator = rng.pick(denominatorPool);
       const numerator = rng.int(1, denominator - 1);
-      const [minMultiple, maxMultiple] = byTier(tier, [2, 8], [3, 15], [10, 30]);
-      const distance = denominator * rng.int(minMultiple, maxMultiple);
+      // Whole hundreds of metres: a charity walk is 800 m to 24 km, not 24 m.
+      const [minMultiple, maxMultiple] = byTier(tier, [2, 8], [3, 15], [5, 15]);
+      const distance = denominator * rng.int(minMultiple, maxMultiple) * 100;
       const walked = (distance / denominator) * numerator;
       return {
-        prompt: `A charity walk is ${formatNumber(distance)} m long.\n${rng.pick(NAMES)} has walked ${numerator}/${denominator} of the way.\n\nHow many metres is that?`,
+        prompt: `A charity walk is ${formatNumber(distance)} m long.\n${pickPerson(rng).name} has walked ${numerator}/${denominator} of the way.\n\nHow many metres is that?`,
         answer: walked,
         hint: `Divide ${formatNumber(distance)} by ${denominator} first, then multiply by ${numerator}.`,
         visual: barModelSvg(
@@ -988,15 +1059,28 @@ export const fractionsTopic = makeTopic('fractions', 'Fractions', 2, [
       const [minWhole, maxWhole] = byTier(tier, [1, 4], [1, 6], [4, 10]);
       const whole = rng.int(minWhole, maxWhole);
       const answer = `${whole} ${numerator}/${denominator}`;
-      return {
-        prompt: 'Which mixed number does the arrow point to?',
+      // Build the answer first, then keep only distractors worth a different
+      // amount: when numerator = denominator/2, "counting from the right"
+      // lands on the answer itself (and 1 2/4 vs 1 1/2 are the same point).
+      const options = optionsFromCandidates(
+        rng,
         answer,
-        options: rng.shuffle([
-          answer,
+        [
           `${whole + 1} ${numerator}/${denominator}`,
           `${whole} ${denominator - numerator}/${denominator}`,
           `${numerator}/${denominator}`,
-        ]),
+          `${whole} ${numerator}/${denominator + 1}`,
+          `${whole - 1 || whole + 2} ${numerator}/${denominator}`,
+        ].filter((option) => {
+          const [top, bottom] = option.split(' ').pop().split('/').map(Number);
+          const wholePart = option.includes(' ') ? Number(option.split(' ')[0]) : 0;
+          return wholePart + top / bottom !== whole + numerator / denominator;
+        }),
+      );
+      return {
+        prompt: 'Which mixed number does the arrow point to?',
+        answer,
+        options,
         hint: `The line is split into ${denominator} equal steps between each whole number.`,
         visual: numberLineSvg(whole, whole + 1, whole + numerator / denominator, '▼', denominator),
         explain: `The arrow is ${numerator} steps of 1/${denominator} past ${whole}, so it is ${answer}.`,
@@ -1042,7 +1126,7 @@ export const fractionsTopic = makeTopic('fractions', 'Fractions', 2, [
       if (topA / bottomA === topB / bottomB) return null;
       const aIsBigger = topA / bottomA > topB / bottomB;
       const larger = aIsBigger ? `${topA}/${bottomA}` : `${topB}/${bottomB}`;
-      const [nameA, nameB] = rng.sample(NAMES, 2);
+      const [nameA, nameB] = samplePeople(rng, 2).map((person) => person.name);
       return {
         prompt: `${nameA} ate ${topA}/${bottomA} of a pizza. ${nameB} ate ${topB}/${bottomB} of an identical pizza.\n\nWho ate more?`,
         answer: aIsBigger ? nameA : nameB,
@@ -1107,13 +1191,14 @@ export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
   {
     id: 'money-total',
     build(rng, tier = TIER.STANDARD) {
-      const [minBookPence, maxBookPence] = byTier(tier, [100, 900], [150, 2400], [1800, 4500]);
-      const [minPenPence, maxPenPence] = byTier(tier, [50, 700], [80, 1900], [1400, 3800]);
+      // Shop prices: a book £1–£25, a pen 50p–£6.
+      const [minBookPence, maxBookPence] = byTier(tier, [100, 900], [150, 1600], [800, 2499]);
+      const [minPenPence, maxPenPence] = byTier(tier, [50, 250], [80, 450], [150, 599]);
       const book = round2(rng.int(minBookPence, maxBookPence) / 100);
       const pen = round2(rng.int(minPenPence, maxPenPence) / 100);
       const total = round2(book + pen);
       return {
-        prompt: `${rng.pick(NAMES)} buys a book for £${book.toFixed(2)} and a pen for £${pen.toFixed(2)}.\n\nWhat is the total?`,
+        prompt: `${pickPerson(rng).name} buys a book for £${book.toFixed(2)} and a pen for £${pen.toFixed(2)}.\n\nWhat is the total?`,
         answer: total.toFixed(2),
         hint: 'Line up the decimal points before you add.',
         visual: barModelSvg(
@@ -1142,8 +1227,9 @@ export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
       const note = rng.pick(notePool);
       if (cost >= note) return null;
       const change = round2(note - cost);
+      const person = pickPerson(rng);
       return {
-        prompt: `${rng.pick(NAMES)} spends £${cost.toFixed(2)} and pays with a £${note} note.\n\nHow much change does she get?`,
+        prompt: `${person.name} spends £${cost.toFixed(2)} and pays with a £${note} note.\n\nHow much change ${verb(person, 'does', 'do')} ${person.they} get?`,
         answer: change.toFixed(2),
         hint: `Count up from £${cost.toFixed(2)} to £${note}.`,
         visual: changeSvg(note, cost),
@@ -1164,7 +1250,12 @@ export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
       return {
         prompt: `One bag of compost weighs ${weight.toFixed(1)} kg.\n\nWhat do ${bags} bags weigh?`,
         answer: String(total),
-        hint: `Work out ${weight * 10} × ${bags}, then divide by 10.`,
+        // "Work out 114 × 10, then divide by 10" would hand over the answer
+        // when there are 10 bags, so that case gets the place-value rule.
+        hint:
+          bags === 10
+            ? 'Multiplying by 10 moves every digit one place to the left.'
+            : `Work out ${Math.round(weight * 10)} × ${bags}, then divide by 10.`,
         visual: barModelSvg(
           [
             {
@@ -1211,17 +1302,21 @@ export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
     },
   },
 
-  // Best value: compare price per pot. The winning pack is priced at 78% of
-  // the base unit price; the others at 100%, 105%, 110%… so the gap is clear.
+  // Best value: compare the price per pot. Prices are worked in whole pence.
+  // Easy tier uses packs of 2, 4, 5 and 10 at whole-10p prices per pot, so
+  // every division is clean; the other tiers price the winning pack at 78% of
+  // the base price per pot and the rest at 100%, 105%, 110%… so the gap is
+  // clear.
   {
     id: 'best-value',
     build(rng, tier = TIER.STANDARD) {
-      const [minPence, maxPence] = byTier(tier, [20, 60], [30, 90], [70, 150]);
-      const basePrice = round2(rng.int(minPence, maxPence) / 100);
+      const easy = tier === TIER.EASY;
+      const [minPence, maxPence] = byTier(tier, [3, 6], [30, 90], [70, 150]);
+      const basePence = easy ? rng.int(minPence, maxPence) * 10 : rng.int(minPence, maxPence);
       const [min1, max1] = byTier(tier, [2, 2], [2, 3], [3, 4]);
-      const [min2, max2] = byTier(tier, [3, 5], [4, 6], [5, 8]);
-      const [min3, max3] = byTier(tier, [6, 8], [8, 10], [9, 13]);
-      const [min4, max4] = byTier(tier, [9, 12], [12, 16], [14, 20]);
+      const [min2, max2] = byTier(tier, [4, 4], [4, 6], [5, 8]);
+      const [min3, max3] = byTier(tier, [5, 5], [8, 10], [9, 13]);
+      const [min4, max4] = byTier(tier, [10, 10], [12, 16], [14, 20]);
       const sizes = [
         rng.int(min1, max1),
         rng.int(min2, max2),
@@ -1230,12 +1325,15 @@ export const decimalsTopic = makeTopic('decimals', 'Decimals', 2, [
       ];
       const bestIndex = rng.int(0, 3);
       const packs = sizes.map((size, i) => {
-        const perItem = round2(i === bestIndex ? basePrice * 0.78 : basePrice * (1 + i * 0.05));
-        return { size, price: round2(size * perItem), perItem };
+        let perItemPence;
+        if (easy) perItemPence = i === bestIndex ? basePence - 10 : basePence + 10 * i;
+        else perItemPence = Math.round(i === bestIndex ? basePence * 0.78 : basePence * (1 + i * 0.05));
+        return { size, pricePence: size * perItemPence, perItemPence };
       });
       const best = packs[bestIndex];
+      const penceText = (pence) => (pence < 100 ? `${pence}p` : `£${(pence / 100).toFixed(2)}`);
       return {
-        prompt: `The table shows three pack sizes of the same yoghurt.
+        prompt: `The table shows four pack sizes of the same yoghurt.
 
 Which pack is the best value per pot?`,
         answer: `${best.size} pots`,
@@ -1243,16 +1341,19 @@ Which pack is the best value per pot?`,
         hint: 'For each pack, divide the price by the number of pots.',
         visual: tableSvg(
           ['Pack', 'Price'],
-          packs.map((pack) => [`${pack.size} pots`, `£${pack.price.toFixed(2)}`]),
+          packs.map((pack) => [`${pack.size} pots`, `£${(pack.pricePence / 100).toFixed(2)}`]),
           { title: 'Yoghurt prices' },
         ),
-        explain: `${best.size} pots works out at £${best.perItem.toFixed(2)} each — the lowest price per pot.`,
+        explain: `${best.size} pots works out at ${penceText(best.perItemPence)} each — the lowest price per pot.`,
       };
     },
   },
 
-  // Order decimals with mixed numbers of decimal places. Distractors include
-  // a string sort (the "longer means bigger" misconception).
+  // Order decimals with different numbers of decimal places (3.5 next to
+  // 3.27). Always multiple choice: distractors are the classic mistakes —
+  // largest first, "more digits means bigger", and near-miss swaps. A list
+  // that happens to be in order already is rolled again, as is a draw
+  // without three different distractors.
   {
     id: 'order-decimals',
     build(rng, tier = TIER.STANDARD) {
@@ -1265,19 +1366,26 @@ Which pack is the best value per pot?`,
         round2(whole + rng.int(60, 95) / 100),
       ]);
       const sorted = [...values].sort((a, b) => a - b);
-      if (new Set(values).size < 4) return null;
-      const list = (numbers) => numbers.map((value) => value.toFixed(2)).join(', ');
+      if (new Set(values).size < 4 || values.join() === sorted.join()) return null;
+      const list = (numbers) => numbers.join(', ');
+      // "3.27 is bigger than 3.5 because 27 is bigger than 5".
+      const digitsAfterPoint = (value) => Number(String(value).split('.')[1] ?? 0);
+      const byDigits = [...sorted].sort((a, b) => digitsAfterPoint(a) - digitsAfterPoint(b));
+      const options = optionsFromCandidates(rng, list(sorted), [
+        list([...sorted].reverse()),
+        list(byDigits),
+        list([sorted[0], sorted[2], sorted[1], sorted[3]]),
+        list(values),
+        list([sorted[1], sorted[0], sorted[2], sorted[3]]),
+        list([sorted[0], sorted[1], sorted[3], sorted[2]]),
+      ]);
+      if (!options) return null;
       return {
         prompt: `Put these in order, smallest first:\n\n${list(values)}`,
         answer: list(sorted),
-        options: optionsFromCandidates(rng, list(sorted), [
-          list([...sorted].reverse()),
-          list(values),
-          list([...sorted].sort((a, b) => String(a).localeCompare(String(b)))),
-          list([sorted[1], sorted[0], sorted[2], sorted[3]]),
-        ]),
-        hint: 'Compare the tenths first. If they match, compare the hundredths.',
-        visual: numberLineSvg(whole, whole + 1, null),
+        options,
+        hint: 'Compare the tenths first. If they match, compare the hundredths. 3.5 is the same as 3.50.',
+        visual: numberLineSvg(whole, whole + 1, null, '', 10),
         explain: `Smallest to largest: ${list(sorted)}.`,
       };
     },
@@ -1291,16 +1399,15 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
   {
     id: 'change-from-note',
     build(rng, tier = TIER.STANDARD) {
-      const [minPrice, maxPrice] = byTier(tier, [2, 8], [3, 12], [10, 20]);
-      const [minTickets, maxTickets] = byTier(tier, [2, 5], [3, 9], [7, 14]);
-      const [minPaid, maxPaid] = byTier(tier, [30, 70], [50, 100], [90, 200]);
+      const [minPrice, maxPrice] = byTier(tier, [2, 8], [3, 12], [8, 15]);
+      const [minTickets, maxTickets] = byTier(tier, [2, 5], [3, 7], [4, 8]);
       const price = rng.int(minPrice, maxPrice);
       const tickets = rng.int(minTickets, maxTickets);
-      const paid = rng.int(minPaid, maxPaid);
+      const { amount: paid, words: notes } = payWithNotes(price * tickets);
       const change = paid - price * tickets;
-      if (change <= 0) return null;
+      const person = pickPerson(rng);
       return {
-        prompt: `${rng.pick(NAMES)} buys ${tickets} tickets at £${price} each.\nShe pays with £${paid}.\n\nHow much change does she get?`,
+        prompt: `${person.name} buys ${tickets} tickets at £${price} each.\n${cap(person.they)} ${verb(person, 'pays', 'pay')} with ${notes}.\n\nHow much change ${verb(person, 'does', 'do')} ${person.they} get?`,
         answer: change,
         hint: `Work out the total cost first (${tickets} × £${price}), then subtract from £${paid}.`,
         visual: barModelSvg(
@@ -1354,17 +1461,27 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
   },
 
   // Unit fraction of a group, then the complement ("how many do NOT…").
-  // Class sizes are multiples of 12 so every denominator divides them.
+  // Group sizes are real ones: a P7 class (20–33), a P7 year group (40–90)
+  // or a whole primary school (150–480), always a multiple of the denominator.
   {
     id: 'fraction-of-group',
     build(rng, tier = TIER.STANDARD) {
-      const [minDozens, maxDozens] = byTier(tier, [4, 12], [6, 20], [16, 40]);
-      const denominatorPool = byTier(tier, [3, 4], [3, 4, 6], [4, 6, 12]);
-      const pupils = rng.int(minDozens, maxDozens) * 12;
+      const [group, minPupils, maxPupils] = byTier(
+        tier,
+        ['a P7 class', 20, 33],
+        ['the P7 year group', 40, 90],
+        ['the whole school', 150, 480],
+      );
+      const denominatorPool = byTier(tier, [2, 3, 4], [3, 4, 5, 6], [4, 6, 8, 12]);
       const denominator = rng.pick(denominatorPool);
+      const sizes = [];
+      for (let size = Math.ceil(minPupils / denominator) * denominator; size <= maxPupils; size += denominator) {
+        sizes.push(size);
+      }
+      const pupils = rng.pick(sizes);
       const walkers = pupils / denominator;
       return {
-        prompt: `There are ${pupils} pupils in P7.\n1/${denominator} of them walk to school.\n\nHow many do NOT walk?`,
+        prompt: `There are ${pupils} pupils in ${group}.\n1/${denominator} of them walk to school.\n\nHow many do NOT walk?`,
         answer: pupils - walkers,
         hint: `Find 1/${denominator} of ${pupils} first, then take it away from ${pupils}.`,
         visual: pieSvg(1, denominator, `1/${denominator} walk to school`),
@@ -1393,12 +1510,12 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
       const notebookPrice = prices[0][1];
       const packPrice = prices[1][1];
       const total = notebookPrice * notebooks + packPrice * packs;
-      // Pay with the next multiple of £5 at least £2 above the total.
-      const paid = Math.ceil((total + rng.int(2, 9)) / 5) * 5;
+      const { amount: paid, words: notes } = payWithNotes(total);
+      const person = pickPerson(rng);
       return {
-        prompt: `Using the price list, ${rng.pick(NAMES)} buys ${notebooks} notebooks and ${packs} packs of pens.\nHe pays with £${paid}.\n\nHow much change does he get?`,
+        prompt: `Using the price list, ${person.name} buys ${notebooks} notebooks and ${packs} packs of pens.\n${cap(person.they)} ${verb(person, 'pays', 'pay')} with ${notes}.\n\nHow much change ${verb(person, 'does', 'do')} ${person.they} get?`,
         answer: paid - total,
-        hint: 'Work out each item, add them, then subtract from what he paid.',
+        hint: `Work out each item, add them, then subtract from the £${paid} paid.`,
         visual: tableSvg(
           ['Item', 'Price'],
           prices.map(([item, price]) => [item, `£${price}`]),
@@ -1421,11 +1538,12 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
       const swum = lengths.reduce((sum, value) => sum + value, 0);
       const remaining = target - swum;
       if (remaining <= 0) return null;
-      const name = rng.pick(NAMES);
+      const person = pickPerson(rng);
       return {
-        prompt: `The chart shows how many lengths ${name} swam over four days.\nHer target for the week is ${target} lengths.\n\nHow many more does she need?`,
+        prompt: `The chart shows how many lengths ${person.name} swam over four days.\n${cap(person.their)} target for the week is ${target} lengths.\n\nHow many more ${verb(person, 'does', 'do')} ${person.they} need?`,
         answer: remaining,
-        options: numericOptions(rng, remaining),
+        // Mistakes: giving the total swum, or subtracting only the last day.
+        options: misconceptionOptions(rng, remaining, [swum, target - lengths[3], remaining + 10]),
         hint: 'Add the four bars first, then take that away from the target.',
         visual: barChartSvg(lengths, days, 'lengths'),
         explain: `${lengths.join(' + ')} = ${swum}. ${target} − ${swum} = ${remaining}.`,
@@ -1443,8 +1561,9 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
       const boxes = rng.int(minBoxes, maxBoxes);
       const perBox = rng.int(minPerBox, maxPerBox);
       const leftOver = rng.int(minLeft, maxLeft);
+      const person = pickPerson(rng);
       return {
-        prompt: `${rng.pick(NAMES)} packs ${boxes} boxes with ${perBox} apples in each.\nShe has ${leftOver} apples left over.\n\nHow many apples did she start with?`,
+        prompt: `${person.name} packs ${boxes} boxes with ${perBox} apples in each.\n${cap(person.they)} ${verb(person, 'has', 'have')} ${leftOver} apples left over.\n\nHow many apples did ${person.they} start with?`,
         answer: boxes * perBox + leftOver,
         hint: 'Multiply first, then add the leftovers.',
         visual: barModelSvg(
@@ -1478,7 +1597,8 @@ export const problemSolvingTopic = makeTopic('problem-solving', 'Multi-step prob
       return {
         prompt: `${volunteers} volunteers each plant ${perHour} bulbs an hour.\nThey work for ${hours} hours.\n\nHow many bulbs do they plant altogether?`,
         answer: total,
-        options: numericOptions(rng, total),
+        // Mistakes: forgetting the volunteers, or forgetting the hours.
+        options: misconceptionOptions(rng, total, [perHour * hours, perHour * volunteers, perHour + hours + volunteers]),
         hint: `One volunteer plants ${perHour} × ${hours} bulbs. Then account for all ${volunteers}.`,
         explain: `${perHour} × ${hours} = ${perHour * hours} each. × ${volunteers} = ${total}.`,
       };

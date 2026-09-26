@@ -1,33 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { isCorrect } from '../curriculum/question.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { checkAnswer } from '../curriculum/question.js';
 import { visualAltText } from '../curriculum/visual.js';
 import { getTopic } from '../curriculum/index.js';
-import { Coins, PassagePanel, ProgressBar, TierBadge, TopBar } from './common.jsx';
+import { Coins, PassagePanel, ProgressBar, SpeakButton, TierBadge, TopBar } from './common.jsx';
 import { playCoin, playCorrect, playFanfare, playWrong } from '../engine/sounds.js';
 import { ScratchPad, clearOtherPads } from './ScratchPad.jsx';
 import { canSpeak, speak, stopSpeaking } from '../engine/speech.js';
-
-// Shown (randomly) after a correct answer.
-const PRAISE = [
-  'You worked that out.',
-  'That is exactly it.',
-  'Good thinking.',
-  'You got there.',
-  'Nicely reasoned.',
-  'That is right.',
-  'Strong work.',
-];
-
-// Shown (randomly) after a wrong answer; the learner then retries the same question.
-const RETRY_MESSAGES = [
-  'Not quite — have another go.',
-  'Close — give it another try.',
-  'Not this time. Have another look.',
-  'Almost — try again.',
-];
-
-// The first hint in a round is free; each later one costs HINT_COST coins.
-const HINT_COST = 3;
+import { canReveal, hintPrice, praiseFor, retryMessageFor } from '../engine/feedback.js';
 
 const QUESTION_SECONDS = 45;
 
@@ -82,10 +61,17 @@ export function AnswerInput({ question, disabled, verdict, onSubmit }) {
 }
 
 // Practice round runner (topic practice, mixed rounds, daily challenge).
-// - A wrong answer shows a retry message and the learner tries again; only the
-//   FIRST attempt is recorded in history / reported via onAnswer (mastery).
-// - With the timer on, running out submits a blank (wrong) answer. Long-form
-//   questions hide the timer bar.
+// - A wrong answer shows a kind retry message and the learner tries again;
+//   only the FIRST attempt is recorded in history / reported via onAnswer
+//   (mastery), so coins are paid only for first-try correct answers.
+// - After REVEAL_AFTER_MISSES wrong tries a typed question offers "Show me"
+//   and a multiple-choice question reveals itself, so a stuck child always has
+//   a way forward that is not the back arrow.
+// - With the timer on, running out records a miss and reveals the answer.
+//   Long-form questions are never timed.
+// - Spoken questions (`question.speak`, e.g. custom spelling words) are read
+//   out automatically, with a big replay button and a fallback when the
+//   device cannot speak.
 // - Comprehension questions share a reading passage per cluster: it starts
 //   expanded the first time a cluster appears and collapsed afterwards, unless
 //   the learner toggles it.
@@ -100,149 +86,168 @@ export function Quiz({
   onSpendCoins,
   onFinish,
   onBack,
+  onLeaveRequest,
   roundId = 'round',
 }) {
   const [index, setIndex] = useState(0);
+  // 'ask' → answering; 'shown' → answered correctly; 'revealed' → answer shown after Show me / timeout.
   const [phase, setPhase] = useState('ask');
-  const [verdict, setVerdict] = useState(null);
-  const [lastGiven, setLastGiven] = useState('');
+  const [revealReason, setRevealReason] = useState(null);
+  const [misses, setMisses] = useState(0);
   const [hintShown, setHintShown] = useState(false);
   const [freeHintUsed, setFreeHintUsed] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
   const [history, setHistory] = useState([]);
   const [secondsLeft, setSecondsLeft] = useState(QUESTION_SECONDS);
   const [feedback, setFeedback] = useState('');
-  const [wrongOption, setWrongOption] = useState(null);
-  const [showTryAgain, setShowTryAgain] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const firstAttemptRecorded = useRef(false);
-  const seenClusters = useRef(new Set());
+  const [wrongOptions, setWrongOptions] = useState([]);
   const [passageOverride, setPassageOverride] = useState(null);
+  const firstAttemptRecorded = useRef(false);
+  const question = questions[index];
+
   useEffect(() => {
     clearOtherPads(roundId);
     setFreeHintUsed(false);
   }, [roundId]);
-  useEffect(() => {
-    setSpeaking(false);
-    stopSpeaking();
-  }, [index]);
   useEffect(() => () => stopSpeaking(), []);
+
+  // Words the learner must hear (custom spelling) are read out as soon as the
+  // question appears; everything else waits for the 🔊 button.
+  const speakText = question?.speak ?? null;
   useEffect(() => {
-    firstAttemptRecorded.current = false;
-    setPassageOverride(null);
-  }, [index]);
-  const question = questions[index];
+    if (speakText && canSpeak()) speak(speakText);
+    return () => stopSpeaking();
+  }, [index, speakText]);
+
+  // A passage cluster counts as "seen" if an earlier question in the round
+  // shares it. Derived from the question list, so rendering stays pure.
   const clusterId = question?.clusterId ?? null;
-  const clusterSeen = clusterId ? seenClusters.current.has(clusterId) : false;
-  if (clusterId && !clusterSeen) seenClusters.current.add(clusterId);
+  const clusterSeen = useMemo(
+    () =>
+      clusterId !== null &&
+      questions.findIndex((candidate) => candidate.clusterId === clusterId) < index,
+    [questions, clusterId, index],
+  );
   const passageExpanded =
     !!question?.passage &&
     (passageOverride?.clusterId === clusterId ? passageOverride.expanded : !clusterSeen);
   const isLast = index >= questions.length - 1;
   const correctCount = history.filter((entry) => entry.ok).length;
-  const submitAnswer = useCallback(
-    (given) => {
-      if (phase !== 'ask') return;
-      const ok = isCorrect(given, question.answer, { exact: !!question.options });
-      if (!firstAttemptRecorded.current) {
-        firstAttemptRecorded.current = true;
-        setHistory((prev) => [
-          ...prev,
-          {
-            prompt: question.prompt,
-            given,
-            answer: question.answer,
-            explain: question.explain,
-            ok,
-            isReview: question.isReview,
-          },
-        ]);
-        onAnswer(question, ok);
-      }
-      if (!ok) {
-        playWrong();
-        setLastGiven(given);
-        setWrongOption(String(given));
-        setShowTryAgain(true);
-        setAttempt((n) => n + 1);
-        setFeedback(RETRY_MESSAGES[Math.floor(Math.random() * RETRY_MESSAGES.length)]);
+  const timerActive = !!timerOn && !!question && !question.longForm && phase === 'ask';
+
+  // Records the first attempt at the current question (later tries are practice).
+  function recordFirstAttempt(given, ok) {
+    if (firstAttemptRecorded.current) return;
+    firstAttemptRecorded.current = true;
+    setHistory((prev) => [
+      ...prev,
+      {
+        prompt: question.prompt,
+        given,
+        answer: question.answer,
+        explain: question.explain,
+        ok,
+        isReview: question.isReview,
+      },
+    ]);
+    onAnswer(question, ok, given);
+  }
+
+  function reveal(reason) {
+    setPhase('revealed');
+    setRevealReason(reason);
+  }
+
+  function submitAnswer(given) {
+    if (phase !== 'ask') return;
+    const ok = checkAnswer(given, question);
+    const firstTry = !firstAttemptRecorded.current;
+    recordFirstAttempt(given, ok);
+    if (ok) {
+      playCorrect();
+      // A coin is paid only for a first-try correct answer; no coin, no coin sound.
+      if (firstTry) playCoin();
+      setPhase('shown');
+      setFeedback(praiseFor(misses));
+      return;
+    }
+    playWrong();
+    const nextMisses = misses + 1;
+    setMisses(nextMisses);
+    if (question.options) {
+      setWrongOptions((prev) => [...prev, String(given)]);
+      // Multiple choice reveals itself rather than letting every option be tapped.
+      if (canReveal(nextMisses)) {
+        reveal('misses');
         return;
       }
-      playCorrect();
-      if (question.subject !== 'maths') playCoin();
-      setVerdict(true);
-      setLastGiven(given);
-      setWrongOption(null);
-      setShowTryAgain(false);
-      setPhase('shown');
-      setFeedback(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
-    },
-    [phase, question, onAnswer],
-  );
+    }
+    setFeedback(retryMessageFor(question.options ? 0 : nextMisses));
+  }
+
+  // The interval only counts down; the effect below decides what 0 means.
+  // Keeping side effects out of the state updater makes this StrictMode-safe.
   useEffect(() => {
-    if (!timerOn || phase !== 'ask') return;
-    setSecondsLeft(QUESTION_SECONDS);
-    const timerId = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s > 1) return s - 1;
-        clearInterval(timerId);
-        submitAnswer('');
-        return 0;
-      });
-    }, 1000);
+    if (!timerActive) return;
+    const timerId = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(timerId);
-  }, [index, phase, timerOn, submitAnswer]);
+  }, [timerActive, index]);
+  useEffect(() => {
+    if (!timerActive || secondsLeft > 0) return;
+    recordFirstAttempt('', false);
+    playWrong();
+    reveal('timeout');
+    // recordFirstAttempt/reveal are re-created each render; the guards above
+    // (timerActive, firstAttemptRecorded) make re-running harmless.
+  }, [secondsLeft, timerActive]);
+
   function handleNext() {
     if (isLast) {
       onFinish({ score: correctCount, total: questions.length, history });
       return;
     }
+    firstAttemptRecorded.current = false;
     setIndex((i) => i + 1);
     setPhase('ask');
-    setVerdict(null);
-    setLastGiven('');
+    setRevealReason(null);
+    setMisses(0);
     setHintShown(false);
     setFeedback('');
-    setWrongOption(null);
-    setShowTryAgain(false);
-    setAttempt(0);
-  }
-  function handleSpeak() {
-    if (speaking) {
-      stopSpeaking();
-      setSpeaking(false);
-      return;
-    }
-    const parts = [question.prompt];
-    if (question.options) parts.push('Options: ' + question.options.join(', '));
-    setSpeaking(true);
-    speak(parts.join('. '), { onend: () => setSpeaking(false) });
+    setWrongOptions([]);
+    setPassageOverride(null);
+    setSecondsLeft(QUESTION_SECONDS);
   }
   function handleShowHint() {
     if (hintShown) return;
-    const cost = freeHintUsed ? HINT_COST : 0;
+    const cost = hintPrice(freeHintUsed);
     if (coins < cost) return;
     if (cost > 0) onSpendCoins(cost);
     setFreeHintUsed(true);
     setHintShown(true);
   }
   if (!question) return null;
+
   const longOptions = question.options?.some((option) => String(option).length > 18);
   const topicLabel = getTopic(question.subject, question.topic)?.label ?? null;
-  const padKey = roundId;
-  const hintCost = freeHintUsed ? HINT_COST : 0;
+  const hintCost = hintPrice(freeHintUsed);
   const canAffordHint = coins >= hintCost;
+  const answered = phase !== 'ask';
+  const promptSpeech = [
+    question.prompt,
+    question.options ? `Options: ${question.options.join(', ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('. ');
   return (
     <div className="card rise">
       <TopBar
-        onBack={onBack}
+        onBack={onLeaveRequest ?? onBack}
         title={title}
         sub={`Question ${index + 1} of ${questions.length}`}
         right={<Coins n={coins} />}
       />
       <div className="stack-sm">
         <ProgressBar value={index} max={questions.length} />
-        {timerOn && !question.longForm && phase === 'ask' && (
+        {timerActive && (
           <ProgressBar
             value={secondsLeft}
             max={QUESTION_SECONDS}
@@ -277,31 +282,24 @@ export function Quiz({
         >
           {question.prompt}
         </div>
-        {canSpeak() && (
-          <button
-            className={`speak-btn ${speaking ? 'on' : ''}`}
-            onClick={handleSpeak}
-            aria-label={speaking ? 'Stop reading' : 'Read the question aloud'}
-            title={speaking ? 'Stop reading' : 'Read aloud'}
-          >
-            {speaking ? '◼' : '🔊'}
-          </button>
-        )}
+        <SpeakButton
+          text={promptSpeech}
+          label="Read the question aloud"
+          variant="prompt"
+        />
       </div>
+      {speakText && <ListenCard word={speakText} hint={question.hint} />}
       {question.options ? (
         <div className={`opts ${longOptions ? '' : 'two-up'}`}>
           {question.options.map((option, i) => {
             let optionClass = 'opt';
-            if (phase === 'shown') {
-              if (isCorrect(option, question.answer, { exact: true })) optionClass += ' correct';
-            } else if (wrongOption === String(option)) {
-              optionClass += ' wrong';
-            }
+            if (answered && checkAnswer(option, question)) optionClass += ' correct';
+            else if (wrongOptions.includes(String(option))) optionClass += ' wrong';
             return (
               <button
                 key={i}
                 className={optionClass}
-                disabled={phase !== 'ask'}
+                disabled={answered || wrongOptions.includes(String(option))}
                 onClick={() => submitAnswer(option)}
               >
                 {option}
@@ -311,22 +309,27 @@ export function Quiz({
         </div>
       ) : (
         <AnswerInput
-          key={`${index}-${attempt}`}
+          key={`${index}-${misses}`}
           question={question}
-          disabled={phase !== 'ask'}
-          verdict={phase === 'shown' || null}
+          disabled={answered}
+          verdict={phase === 'shown' ? true : null}
           onSubmit={submitAnswer}
         />
       )}
-      {phase === 'ask' && showTryAgain && (
-        <div className="try-again" role="status" aria-live="assertive">
+      {phase === 'ask' && misses > 0 && (
+        <div className="try-again" role="status" aria-live="polite">
           {feedback}
         </div>
       )}
-      {question.subject === 'maths' && (
-        <ScratchPad storageKey={padKey} defaultOpen={!!question.longForm} />
+      {phase === 'ask' && !question.options && canReveal(misses) && (
+        <button className="btn btn-ghost mt" onClick={() => reveal('misses')}>
+          👀 Show me
+        </button>
       )}
-      {phase === 'ask' && question.hint && !hintShown && (
+      {question.subject === 'maths' && (
+        <ScratchPad storageKey={roundId} defaultOpen={!!question.longForm} />
+      )}
+      {phase === 'ask' && question.hint && !hintShown && !speakText && (
         <button className="btn btn-ghost mt" onClick={handleShowHint} disabled={!canAffordHint}>
           💡{' '}
           {hintCost === 0
@@ -336,22 +339,38 @@ export function Quiz({
               : `Hint needs ${hintCost} coins`}
         </button>
       )}
-      {hintShown && question.hint && <div className="hint">💡 {question.hint}</div>}
+      {hintShown && question.hint && (
+        <div className="hint speak-row">
+          <span>💡 {question.hint}</span>
+          <SpeakButton text={question.hint} label="Read the hint aloud" />
+        </div>
+      )}
       {phase === 'shown' && (
-        <>
-          <div className="feedback ok" role="status" aria-live="assertive">
-            <div className="feedback-head">✓ {feedback}</div>
-            {question.explain && (
-              <div className="feedback-body">
-                <strong>Why: </strong>
-                {question.explain}
-              </div>
-            )}
+        <div className="feedback ok" role="status" aria-live="polite">
+          <div className="feedback-head">✓ {feedback}</div>
+          <WhyBlock explain={question.explain} />
+        </div>
+      )}
+      {phase === 'revealed' && (
+        <div className="feedback reveal" role="status" aria-live="polite">
+          <div className="feedback-head">
+            {revealReason === 'timeout'
+              ? '⏰ Time’s up — no worries.'
+              : 'That one was tricky — here’s how it works.'}
           </div>
-          <button className="btn btn-primary mt" onClick={handleNext} autoFocus>
-            {isLast ? 'See results' : 'Next question'}
-          </button>
-        </>
+          <div className="feedback-body">
+            The answer is <em>{question.answer}</em>.
+          </div>
+          <WhyBlock explain={question.explain} />
+          <div className="feedback-body tiny muted mt">
+            It will come back in a later round so you can try it again.
+          </div>
+        </div>
+      )}
+      {answered && (
+        <button className="btn btn-primary mt" onClick={handleNext} autoFocus>
+          {isLast ? 'See results' : 'Next question'}
+        </button>
       )}
       <div className="row-between mt-lg">
         <span className="tiny muted">✓ {correctCount} correct so far</span>
@@ -365,9 +384,54 @@ export function Quiz({
   );
 }
 
+// The "Why:" explanation with its own read-aloud button.
+function WhyBlock({ explain }) {
+  if (!explain) return null;
+  return (
+    <div className="feedback-body speak-row">
+      <span>
+        <strong>Why: </strong>
+        {explain}
+      </span>
+      <SpeakButton text={explain} label="Read the explanation aloud" />
+    </div>
+  );
+}
+
+// For questions the learner must hear (custom spelling words). The word is
+// spoken on arrival; this card gives a big replay button, or — when the device
+// cannot speak — a clear way forward instead of a dead end.
+function ListenCard({ word, hint }) {
+  if (!canSpeak()) {
+    return (
+      <div className="listen-card no-speech" role="note">
+        <strong>🔈 This device can’t read words aloud.</strong>
+        <span>Ask a grown-up to read this word to you, then type it.</span>
+        {hint && <span className="listen-clue">💡 Clue: {hint}</span>}
+      </div>
+    );
+  }
+  return (
+    <div className="listen-card">
+      <button type="button" className="btn btn-gold listen-btn" onClick={() => speak(word)}>
+        🔊 Hear the word again
+      </button>
+      {hint && <span className="listen-clue">💡 Clue: {hint}</span>}
+    </div>
+  );
+}
+
 // End-of-round summary: score ring, coins earned, and every answer with the
 // correct answer and explanation for misses. Plays a fanfare on mount.
-export function Results({ score, total, history, coinsEarned, onAgain, onHome }) {
+export function Results({
+  score,
+  total,
+  history,
+  coinsEarned,
+  onAgain,
+  onHome,
+  againLabel = 'Another round',
+}) {
   const pct = Math.round((score / total) * 100);
   useEffect(() => {
     playFanfare();
@@ -427,7 +491,7 @@ export function Results({ score, total, history, coinsEarned, onAgain, onHome })
           Home
         </button>
         <button className="btn btn-primary" onClick={onAgain}>
-          Another round
+          {againLabel}
         </button>
       </div>
     </div>

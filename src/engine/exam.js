@@ -2,7 +2,17 @@
  * Exam mode rules: paper sizes, time allowance and grade bands.
  */
 
-export const EXAM_SIZES = [20, 25, 30];
+// 10 is a short "warm-up" paper: a full 25-30 question sitting is a long
+// stretch of concentration for a 10-year-old on a school night.
+export const EXAM_SIZES = [10, 20, 25, 30];
+
+/** Named paper lengths for a friendlier picker; sizes match EXAM_SIZES. */
+export const EXAM_PRESETS = [
+  { id: 'short', label: 'Quick check', size: 10 },
+  { id: 'standard', label: 'Standard', size: 20 },
+  { id: 'full', label: 'Full paper', size: 25 },
+  { id: 'long', label: 'Long paper', size: 30 },
+];
 
 export const SECONDS_PER_QUESTION = 45;
 

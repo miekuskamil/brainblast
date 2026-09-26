@@ -31,6 +31,8 @@ describe('makeQuestion', () => {
       longForm: false,
       tier: null,
       passage: null,
+      accept: [],
+      speak: null,
     });
   });
 
@@ -75,9 +77,9 @@ describe('isCorrect', () => {
     expect(isCorrect('£12', '12')).toBe(true);
   });
 
-  it('rejects mixed currencies', () => {
+  it('compares pounds and pence by value, so 1p is not £1 but 100p is', () => {
     expect(isCorrect('1p', '£1')).toBe(false);
-    expect(isCorrect('£1', '100p')).toBe(false);
+    expect(isCorrect('£1', '100p')).toBe(true);
   });
 
   it('rejects empty and non-numeric mismatches', () => {

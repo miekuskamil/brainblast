@@ -39,7 +39,7 @@ export function updateMastery(record, wasCorrect) {
 
 /** Accuracy over the recent window, 0–1. Missing or untouched records count as 0. */
 export function accuracy(record) {
-  if (!record || record.recent.length === 0) return 0;
+  if (!record?.recent?.length) return 0;
   return record.recent.reduce((sum, hit) => sum + hit, 0) / record.recent.length;
 }
 

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { dueItems } from '../engine/review.js';
 import { STATUS, masteryOverview, statusOf } from '../engine/mastery.js';
 import { ALL_TOPICS, SUBJECTS } from '../curriculum/index.js';
@@ -5,11 +6,26 @@ import { dailyAvailable } from '../engine/storage.js';
 import { stageFor } from '../engine/garden.js';
 import { Coins, ProgressBar, SUBJECT_THEME, StreakChip, Tile } from './common.jsx';
 
-// Home screen. Top to bottom: greeting with today's review count and overall
-// mastery, the daily challenge (only while still available today), one tile per
-// subject with secure/review counts, exam mode, games, and utility links.
+// Greeting line under "Hi <name>". A brand-new learner has nothing to review
+// yet, so tell them where tricky questions will appear rather than implying
+// they have already done the work.
+function reviewLine(dueCount, isNew) {
+  if (dueCount > 0) {
+    return `${dueCount} ${dueCount === 1 ? 'question' : 'questions'} to practise again today.`;
+  }
+  if (isNew) return 'Questions you find tricky will come back here for another go.';
+  return 'All caught up — nothing to practise again today.';
+}
+
+// Home screen. Top to bottom: greeting (with a profile switcher), today's
+// review count and overall mastery; for a new profile a single "Start your
+// first round" card, otherwise the daily challenge (or a "done today" note);
+// one tile per subject with secure/review counts, exam mode, games, and
+// utility links. Only one primary "Start" button is ever on screen.
 export function Hub({
   state,
+  onFirstRound,
+  onSwitchProfile,
   onPractise,
   onGame,
   onDaily,
@@ -21,9 +37,14 @@ export function Hub({
   onSettings,
   onWords,
 }) {
-  const dueCount = dueItems(state.review).length;
+  // dueItems walks every review record; compute it once per review change,
+  // not once per subject tile.
+  const dueList = useMemo(() => dueItems(state.review), [state.review]);
+  const dueCount = dueList.length;
   const overview = masteryOverview(state.mastery, ALL_TOPICS);
   const dailyReady = dailyAvailable(state);
+  const isNew = (state.stats?.answered ?? 0) === 0;
+  const startFirstRound = onFirstRound ?? onDaily;
   const gardenStage = stageFor(state.garden.grown);
   const lastExam = state.examHistory?.[0] ?? null;
   return (
@@ -33,11 +54,19 @@ export function Hub({
           <div className="bar-mid">
             <h1>Hi {state.name} 👋</h1>
             <p className="small muted" style={{ marginTop: 3 }}>
-              {dueCount > 0
-                ? `${dueCount} ${dueCount === 1 ? 'question' : 'questions'} to practise again today.`
-                : 'Nothing to practise again today — good place to be.'}
+              {reviewLine(dueCount, isNew)}
             </p>
           </div>
+          {onSwitchProfile && (
+            <button
+              className="icon-btn avatar-btn"
+              onClick={onSwitchProfile}
+              aria-label={`Switch profile (now: ${state.name})`}
+              title="Switch profile"
+            >
+              <span aria-hidden="true">{initialOf(state.name)}</span>
+            </button>
+          )}
         </div>
         <div className="wrap">
           <Coins n={state.coins} />
@@ -58,7 +87,18 @@ export function Hub({
           <ProgressBar value={overview.secure} max={overview.total} tone="good" />
         </div>
       </div>
-      {dailyReady && (
+      {isNew ? (
+        <div className="card rise first-run">
+          <h2>Ready for your first round?</h2>
+          <p className="small muted" style={{ marginTop: 4 }}>
+            Five quick questions from maths and literacy. Your first hint is free, and if you get
+            stuck you can always tap “Show me”.
+          </p>
+          <button className="btn btn-primary mt" onClick={startFirstRound}>
+            Start your first round
+          </button>
+        </div>
+      ) : dailyReady ? (
         <div
           className="card rise"
           style={{ background: 'linear-gradient(135deg, var(--brand-soft), var(--gold-soft))' }}
@@ -74,10 +114,18 @@ export function Hub({
               className="btn btn-primary"
               style={{ width: 'auto', padding: '10px 18px' }}
               onClick={onDaily}
+              aria-label="Start the daily challenge"
             >
               Start
             </button>
           </div>
+        </div>
+      ) : (
+        <div className="card rise daily-done" role="status">
+          <h2>Daily challenge</h2>
+          <p className="small muted" style={{ marginTop: 3 }}>
+            Done today ✓ — come back tomorrow for a new one.
+          </p>
         </div>
       )}
       <div className="card rise">
@@ -87,15 +135,14 @@ export function Hub({
           const secureCount = subject.topics
             .map((topic) => `${subject.id}:${topic.id}`)
             .filter((key) => statusOf(state.mastery[key]) === STATUS.SECURE).length;
-          const reviewCount = dueItems(state.review).filter((item) =>
-            item.key.startsWith(`${subject.id}:`),
-          ).length;
+          const reviewCount = dueList.filter((item) => item.key.startsWith(`${subject.id}:`))
+            .length;
           return (
             <Tile
               key={subject.id}
               icon={subject.icon}
               title={subject.label}
-              note={`${subject.topics.length} topics · ${secureCount} secure${reviewCount ? ` · ${reviewCount} to review` : ''}`}
+              note={`${subject.topics.length} topics · ${secureCount} secure${reviewCount ? ` · ${reviewCount} to practise again` : ''}`}
               accent={theme.accent}
               soft={theme.soft}
               onClick={() => onPractise(subject.id)}
@@ -113,15 +160,16 @@ export function Hub({
             <p className="small muted" style={{ marginTop: 3 }}>
               {lastExam
                 ? `Last time: ${lastExam.pct}% — ${lastExam.grade}`
-                : '20–30 mixed questions · timed · full report at the end'}
+                : 'A longer mixed paper · timed · full report at the end'}
             </p>
           </div>
           <button
-            className="btn btn-primary"
-            style={{ width: 'auto', padding: '10px 18px' }}
+            className="btn btn-ghost"
+            style={{ width: 'auto', padding: '10px 18px', whiteSpace: 'nowrap' }}
             onClick={onExam}
+            aria-label="Set up an exam"
           >
-            Start
+            Set up
           </button>
         </div>
       </div>
@@ -130,13 +178,13 @@ export function Hub({
         <Tile
           icon="⚡"
           title="Times Tables Turbo"
-          note="5 seconds per question · earn coins · just for fun, doesn't count towards progress"
+          note="Quick-fire tables · earn coins · just for fun, doesn't count towards progress"
           accent="var(--brand)"
           soft="var(--brand-soft)"
           onClick={onTimesTable}
         />
         <Tile
-          icon="🎮"
+          icon="🏃"
           title={'Run & Learn'}
           note="Jump the gaps, answer at each gate · counts towards progress"
           accent="var(--gold)"
@@ -179,8 +227,19 @@ export function Hub({
           soft="var(--maths-soft)"
           onClick={onWords}
         />
-        <Tile icon="⚙️" title="Settings" note="Timer, speed, difficulty" onClick={onSettings} />
+        <Tile
+          icon="⚙️"
+          title="Settings"
+          note="Timer, speed, difficulty, profiles and backup"
+          onClick={onSettings}
+        />
       </div>
     </>
   );
+}
+
+// First letter of the profile name for the avatar button ("?" if unnamed).
+function initialOf(name) {
+  const trimmed = String(name ?? '').trim();
+  return trimmed ? trimmed[0].toUpperCase() : '?';
 }
