@@ -42,6 +42,17 @@ tests/                  core · engine · maths · literacy · visual · app · 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
 
+## Documents
+
+| PDF | What it covers |
+|---|---|
+| [Overview](docs/BrainBlast-Overview.pdf) | One-page summary of the app for parents and teachers |
+| [Architecture](docs/BrainBlast-Architecture.pdf) | System map, round lifecycle, modules, storage schema, testing |
+| [Question sources](docs/BrainBlast-Question-Sources.pdf) | Every topic, its CfE organiser, source file and item count; how questions are checked |
+| [Product review](docs/BrainBlast-Product-Review.pdf) | The 25 Sep 2026 review whose findings v1.1 fixes |
+
+`docs/architecture.html` is the interactive version of the architecture document.
+
 ## Principles
 
 - **Offline, private, free.** No accounts, no network requests, no analytics. Everything lives in `localStorage`.
